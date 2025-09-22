@@ -130,11 +130,11 @@ namespace internal{
          //std::cout << std::endl;
       } // end of atom loop
 
-      //--------------------------------------------------------------------------------- 
+      //---------------------------------------------------------------------------------
       // Output Neel tensors to file
       //---------------------------------------------------------------------------------
 
-      /*std::ofstream ofile("Neel_tensor.txt");
+      std::ofstream ofile("Neel_tensor.txt");
 
       for(int atom=0; atom < atoms::num_atoms; atom++){
          // only output tensors for surface atoms
@@ -145,7 +145,7 @@ namespace internal{
          }
       }
 
-      ofile.close();*/
+      ofile.close();
 
    } // end of surface anisotropy initialisation
 

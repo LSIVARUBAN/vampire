@@ -139,6 +139,15 @@ namespace anisotropy{
       // Resize surface atoms mask and initialise to false
       atoms::surface_array.resize(atoms::num_atoms, false);
 
+
+      // LS EDITS 
+      static constexpr unsigned int FEA_ID = 0; // tetrahedral FeA material id
+      static constexpr unsigned int FEB_ID = 1; // octahedral FeB material id
+      static constexpr unsigned int O_ID = 2; // oxygen material id
+      static constexpr unsigned int THRESH_FEA = 4; // FeA coordination threshold (Fe–O only)
+      static constexpr unsigned int THRESH_FEB = 6; // FeB coordination threshold (Fe–O only)
+      // END LS EDITS
+
       // Loop over all *local* atoms
       for(int atom = 0; atom < atoms::num_atoms; atom++){
 
@@ -156,18 +165,64 @@ namespace anisotropy{
 
             }
 
+            // LS EDITS BELOW COMMENTED 
+
             // check for atoms with < threshold number of nearest neighbours
-            if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
-               atoms::surface_array[atom]=true;
-               num_surface_atoms++;
-               //total_num_surface_nn+=nnn_int;
+            // if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
+            //    atoms::surface_array[atom]=true;
+            //    num_surface_atoms++;
+            //    //total_num_surface_nn+=nnn_int;
+            // }
+            
+            const unsigned int imat = atoms::type_array[atom];
+
+            // Only classify Fe sites (FeA/FeB). Others (e.g., O) remain non-surface.
+            if (imat != FEA_ID && imat != FEB_ID) continue;
+
+
+            // Count only NEAREST-NEIGHBOUR **oxygen** neighbours
+            unsigned int nnn_FeO = 0;
+            for (unsigned int nn = 0; nn < cneighbourlist[atom].size(); ++nn) {
+            // only consider interactions pre-labelled as nearest-neighbour
+            if (!nearest_neighbour_interactions_list[atom][nn]) continue;
+
+
+            const unsigned int j_atom = cneighbourlist[atom][nn].nn; // neighbour atom index
+            const unsigned int jmat = atoms::type_array[j_atom]; // neighbour material id
+            if (jmat == O_ID) ++nnn_FeO; // count Fe–O only
             }
-         }
+
+
+            // Choose Fe-site-specific threshold (override any global/native threshold)
+            unsigned int threshold = (imat == FEA_ID) ? THRESH_FEA : THRESH_FEB;
+
+
+            if (nnn_FeO < threshold) {
+            atoms::surface_array[atom] = true;
+            ++num_surface_atoms;
+            }
+            }
+            // END LS EDITS
+
+
+         
       }
 
       // Output statistics to log file
       zlog << zTs() << num_surface_atoms << " surface atoms found." << std::endl;
 
+      // LS EDITS(counts by FeA/FeB)
+      {
+      unsigned int nFeA = 0, nFeB = 0;
+      for (int a = 0; a < atoms::num_atoms; ++a) if (atoms::surface_array[a]) {
+      const unsigned int m = atoms::type_array[a];
+      if (m == FEA_ID) ++nFeA; else if (m == FEB_ID) ++nFeB;
+      }
+      zlog << zTs() << num_surface_atoms << " surface Fe atoms found (FeA: "
+      << nFeA << ", FeB: " << nFeB << ")" << std::endl;
+      }
+      // END LS EDITS
+      
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data
       //----------------------------------------------------------------

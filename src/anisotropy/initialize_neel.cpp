@@ -1,18 +1,15 @@
-//------------------------------------------------------------------------------
-//
-//   This file is part of the VAMPIRE open source package under the
-//   Free BSD licence (see licence file for details).
-//
-//   (c) Sam Westmoreland and Richard Evans 2017. All rights reserved.
-//
-//   Email: richard.evans@york.ac.uk
-//
-//------------------------------------------------------------------------------
-//
-
 // C++ standard library headers
 #include <string>
 #include <sstream>
+
+// LS EDIT START
+#include <fstream>
+#include <iomanip>
+#include <cmath>
+#include <map>
+#include <cstring>
+#include <limits>
+// LS EDIT END
 
 // Vampire headers
 #include "atoms.hpp" // to be removed
@@ -23,12 +20,125 @@
 #include "units.hpp"
 #include "vio.hpp"
 
+// LS EDIT START
+#include "sim.hpp"  // for sim::constraint_theta, sim::constraint_phi
+// LS EDIT END
+
 // anisotropy module headers
 #include "internal.hpp"
 
 namespace anisotropy{
 
 namespace internal{
+
+// LS EDIT START
+// sim::constraint_theta and sim::constraint_phi as "theta_XXXdeg_phi_YYYdeg.csv".
+std::string neel_pairs_csv_name;
+
+// temporary helper... map material id to the labels used in the Python CSVs
+static inline const char* mat_label(unsigned int id) {
+    switch (id) {
+        case 0: return "FeA";
+        case 1: return "FeB";
+        case 2: return "O";
+        default: return "X";
+    }
+}
+
+// temporary helper... write perpair CSV in the current directory (same as py script)
+// Columns:
+// fe_id,o_id,fe_site,fe_coord_z,ex,ey,ez,sx,sy,sz,k_J,S_dot_e,pair_energy_J,fe_x,fe_y,fe_z,o_x,o_y,o_z
+static void write_neel_pairs_csv(
+    const std::string& csv_name,
+    const std::vector<std::vector<bool>>& nnmask,
+    const std::vector<std::vector<neighbours::neighbour_t>>& cneighbourlist
+) {
+    const std::string fname = csv_name.empty() ? std::string("results_pairs.csv") : csv_name;
+    std::ofstream out(fname);
+    if (!out) {
+        zlog << zTs() << "Error opening " << fname << " for writing." << std::endl;
+        return;
+    }
+
+    out << "fe_id,o_id,fe_site,fe_coord_z,"
+           "ex,ey,ez,sx,sy,sz,"
+           "k_J,S_dot_e,pair_energy_J,"
+           "fe_x,fe_y,fe_z,o_x,o_y,o_z\n";
+    out << std::setprecision(16);
+
+    // Iterate surface Fe atoms
+    for (int i = 0; i < atoms::num_atoms; ++i) {
+        if (!atoms::surface_array[i]) continue;
+
+        const unsigned int imat = atoms::type_array[i];
+        const char* ilabel = mat_label(imat);
+        if (!(std::strcmp(ilabel, "FeA") == 0 || std::strcmp(ilabel, "FeB") == 0)) continue;
+
+        // Count Fe–O nearest neighbours for coordination z
+        unsigned int zcoord = 0;
+        for (unsigned int nn = 0; nn < cneighbourlist[i].size(); ++nn) {
+            if (!nnmask[i][nn]) continue;
+            const unsigned int jz = cneighbourlist[i][nn].nn;
+            if (mat_label(atoms::type_array[jz])[0] == 'O') ++zcoord;
+        }
+
+        // Spins for atom i
+        const double sx = atoms::x_spin_array[i];
+        const double sy = atoms::y_spin_array[i];
+        const double sz = atoms::z_spin_array[i];
+
+        // Emit one row per Fe–O pair
+        for (unsigned int nn = 0; nn < cneighbourlist[i].size(); ++nn) {
+            if (!nnmask[i][nn]) continue;
+
+            const unsigned int j = cneighbourlist[i][nn].nn;
+            const unsigned int jmat = atoms::type_array[j];
+            if (mat_label(jmat)[0] != 'O') continue; // Fe–O only
+
+            // Vector i->j and unit e_ij
+            double vx = cneighbourlist[i][nn].vx;
+            double vy = cneighbourlist[i][nn].vy;
+            double vz = cneighbourlist[i][nn].vz;
+            const double rij = std::sqrt(vx*vx + vy*vy + vz*vz);
+            if (rij <= 0.0) continue;
+            const double invrij = 1.0 / rij;
+            const double ex = vx * invrij;
+            const double ey = vy * invrij;
+            const double ez = vz * invrij;
+
+            // k in Joules assuming /2 is taken into account by mp[imat].kij[jmat]
+            double k_J = anisotropy::internal::mp[imat].kij[jmat];
+            if (internal::neel_range_dependent) {
+                // exp factor if needed
+                k_J *= std::exp(-neel_exponential_factor * (rij - neel_exponential_range) / neel_exponential_range);
+            }
+
+            const double SdotE = sx*ex + sy*ey + sz*ez;
+            const double pair_energy_J = -k_J * (SdotE * SdotE);
+
+            // Positions
+            const double ix = atoms::x_coord_array[i];
+            const double iy = atoms::y_coord_array[i];
+            const double iz = atoms::z_coord_array[i];
+            const double jx = atoms::x_coord_array[j];
+            const double jy = atoms::y_coord_array[j];
+            const double jz = atoms::z_coord_array[j];
+
+            // Row
+            out << i << ',' << j << ','
+                << ilabel << ',' << zcoord << ','
+                << ex << ',' << ey << ',' << ez << ','
+                << sx << ',' << sy << ',' << sz << ','
+                << k_J << ',' << SdotE << ',' << pair_energy_J << ','
+                << ix << ',' << iy << ',' << iz << ','
+                << jx << ',' << jy << ',' << jz << '\n';
+        }
+    }
+
+    out.close();
+    zlog << zTs() << "Wrote pairs CSV: " << fname << std::endl;
+}
+// LS EDIT END
 
    //---------------------------------------------------------------------------
    // Function to calculate surface anisotropy tensor
@@ -72,6 +182,11 @@ namespace internal{
 
                   // get material id for j atom
                   const unsigned int jmat = atoms::type_array[natom];
+
+                  // LS EDIT START Fe–O only in tensor
+                  static constexpr unsigned int O_ID = 2; 
+                  if (jmat != O_ID) continue;
+                  // LS EDIT END
 
                   // get atomic position vector i->j
                   double eij[3]={cneighbourlist[atom][nn].vx, cneighbourlist[atom][nn].vy, cneighbourlist[atom][nn].vz};
@@ -146,6 +261,36 @@ namespace internal{
       }
 
       ofile.close();
+
+      // LS EDIT START
+      std::string csv_name_final = neel_pairs_csv_name;
+
+      if (csv_name_final.empty()) {
+          double th_deg = 0.0;
+          double ph_deg = 0.0;
+
+          th_deg = sim::constraint_theta;
+          ph_deg = sim::constraint_phi;
+
+          auto norm360 = [](double a)->double {
+              double x = std::fmod(a, 360.0);
+              if (x < 0.0) x += 360.0;
+              return x;
+          };
+
+          const int th_i = static_cast<int>(std::llround(norm360(th_deg)));
+          const int ph_i = static_cast<int>(std::llround(norm360(ph_deg)));
+
+          std::ostringstream oss;
+          oss << "theta_" << std::setw(3) << std::setfill('0') << th_i
+              << "deg_phi_" << std::setw(3) << std::setfill('0') << ph_i
+              << "deg.csv";
+          csv_name_final = oss.str();
+      }
+
+      // Write CSV for this (theta,phi) run in the current directory.
+      write_neel_pairs_csv(csv_name_final, nearest_neighbour_interactions_list, cneighbourlist);
+      // LS EDIT END
 
    } // end of surface anisotropy initialisation
 

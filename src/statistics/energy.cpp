@@ -152,58 +152,79 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
    std::fill( applied_field_energy.begin(), applied_field_energy.end(), 0.0 );
    std::fill( magnetostatic_energy.begin(), magnetostatic_energy.end(), 0.0 );
 
+   // Uncomment to output mask atoms and their anisotropy energies ... careful it appends to the file so every call of the fn will increase filesize
+   // // LS EDIT START
+   // // append per atom mask energy CSV once per process and write header once.
+   // // File: anisotropy_mask_atoms_energy.csv
+   // // Columns:
+   // //   atom_id,mask_id,material_id,mm_T,
+   // //   exchange_T,anisotropy_T,applied_T,magnetostatic_T,total_T,
+   // //   exchange_J,anisotropy_J,applied_J,magnetostatic_J,total_J
+   // bool do_write_atoms_csv = true;
+   // #ifdef MPICF
+   // do_write_atoms_csv = (vmpi::my_rank == 0);
+   // #endif
+   // static bool atoms_csv_header_written = false;
+   // std::ofstream atoms_csv;
+   // if (do_write_atoms_csv) {
+   //    atoms_csv.open("anisotropy_mask_atoms_energy.csv", std::ios::out | std::ios::app);
+   //    if (!atoms_csv) {
+   //       zlog << zTs() << "Failed to open anisotropy_mask_atoms_energy.csv for appending." << std::endl;
+   //       do_write_atoms_csv = false;
+   //    } else if (!atoms_csv_header_written) {
+   //       atoms_csv.setf(std::ios::scientific);
+   //       atoms_csv.precision(12);
+   //       atoms_csv << "atom_id,mask_id,material_id,mm_T,"
+   //                 << "exchange_T,anisotropy_T,applied_T,magnetostatic_T,total_T,"
+   //                 << "exchange_J,anisotropy_J,applied_J,magnetostatic_J,total_J\n";
+   //       atoms_csv_header_written = true;
+   //    }
+   // }
+   // // LS EDITS END
+
    //---------------------------------------------------------------------------
-   // Calculate exchange energy (in Tesla)
+   // Calculate exchange energy (in Tesla) -- per-atom then accumulate
    //---------------------------------------------------------------------------
 
    // loop over all atoms in mask
    for( int atom = 0; atom < num_atoms; ++atom ){
       const int mask_id = mask[atom]; // get mask id
-      exchange_energy[mask_id] += exchange::single_spin_energy(atom, sx[atom], sy[atom], sz[atom]) * mm[atom];
-   }
 
-   // Optionally calculate biquadratic exchange energy
-   if(exchange::biquadratic){
-
-      // loop over all atoms in mask
-      for( int atom = 0; atom < num_atoms; ++atom ){
-         const int mask_id = mask[atom]; // get mask id
-         exchange_energy[mask_id] += exchange::single_spin_biquadratic_energy(atom, sx[atom], sy[atom], sz[atom]) * mm[atom];
+      // Single-spin components (field-like, Tesla)
+      double e_ex_T = exchange::single_spin_energy(atom, sx[atom], sy[atom], sz[atom]);
+      if(exchange::biquadratic){
+         e_ex_T += exchange::single_spin_biquadratic_energy(atom, sx[atom], sy[atom], sz[atom]);
       }
+      const double e_an_T = anisotropy::single_spin_energy(atom, mat[atom], sx[atom], sy[atom], sz[atom], temperature);
+      const double e_ap_T = sim::spin_applied_field_energy(sx[atom], sy[atom], sz[atom]);
+      const double e_ms_T = dipole::spin_magnetostatic_energy(atom, sx[atom], sy[atom], sz[atom]);
 
+      // Accumulate mask energies in native units (Tesla * μB count)
+      exchange_energy[mask_id]       += e_ex_T * mm[atom];
+      anisotropy_energy[mask_id]     += e_an_T * mm[atom];
+      applied_field_energy[mask_id]  += e_ap_T * mm[atom];
+      magnetostatic_energy[mask_id]  += e_ms_T * mm[atom];
+
+      // LS EDIT START
+      // Per atom CSV row (T and J). Apply 1/2 factors to exchange and magnetostatic to the total only.
+      if (do_write_atoms_csv) {
+         const double total_T = 0.5*e_ex_T + e_an_T + e_ap_T + 0.5*e_ms_T;
+         const double ex_J = e_ex_T * mm[atom] * constants::muB;
+         const double an_J = e_an_T * mm[atom] * constants::muB;
+         const double ap_J = e_ap_T * mm[atom] * constants::muB;
+         const double ms_J = e_ms_T * mm[atom] * constants::muB;
+         const double total_J = total_T * mm[atom] * constants::muB;
+
+         atoms_csv << atom << "," << mask_id << "," << mat[atom] << "," << mm[atom] << ","
+                   << e_ex_T << "," << e_an_T << "," << e_ap_T << "," << e_ms_T << "," << total_T << ","
+                   << ex_J   << "," << an_J   << "," << ap_J   << "," << ms_J   << "," << total_J  << "\n";
+      }
+      // LS EDITS END
    }
 
    // save total energy accounting for factor 1/2 in double summation
    for( int mask_id = 0; mask_id < mask_size; ++mask_id ){
-      exchange_energy[mask_id] = 0.5 * exchange_energy[mask_id];
-   }
-
-   //---------------------------------------------------------------------------
-   // Calculate anisotropy energy (in Tesla)
-   //---------------------------------------------------------------------------
-   for( int atom = 0; atom < num_atoms; ++atom ){
-      const int mask_id = mask[atom]; // get mask id
-      anisotropy_energy[mask_id] += anisotropy::single_spin_energy(atom, mat[atom], sx[atom], sy[atom], sz[atom], temperature) * mm[atom];
-   }
-
-   //---------------------------------------------------------------------------
-   // Calculate applied field energy (in Tesla)
-   //---------------------------------------------------------------------------
-   for( int atom = 0; atom < num_atoms; ++atom ){
-      const int mask_id = mask[atom]; // get mask id
-      applied_field_energy[mask_id] += sim::spin_applied_field_energy(sx[atom], sy[atom], sz[atom]) * mm[atom];
-   }
-
-   //---------------------------------------------------------------------------
-   // Calculate magnetostatic field energy (in Tesla)
-   //---------------------------------------------------------------------------
-   for( int atom = 0; atom < num_atoms; ++atom ){
-      const int mask_id = mask[atom]; // get mask id
-      magnetostatic_energy[mask_id] += dipole::spin_magnetostatic_energy(atom, sx[atom], sy[atom], sz[atom]) * mm[atom];
-   }
-
-   // save energy accounting for factor 1/2 in double summation
-   for( int mask_id = 0; mask_id < mask_size; ++mask_id ){
+      exchange_energy[mask_id]      = 0.5 * exchange_energy[mask_id];
       magnetostatic_energy[mask_id] = 0.5 * magnetostatic_energy[mask_id];
    }
 
@@ -231,7 +252,7 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
    //---------------------------------------------------------------------------
    // Add energies to mean energies
    //---------------------------------------------------------------------------
-   for(int mask_id=0; mask_id<mask_size; ++mask_id ){
+   for( int mask_id=0; mask_id<mask_size; ++mask_id ){
       mean_total_energy[mask_id]         += total_energy[mask_id];
       mean_exchange_energy[mask_id]      += exchange_energy[mask_id];
       mean_anisotropy_energy[mask_id]    += anisotropy_energy[mask_id];
@@ -253,9 +274,18 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
       magnetostatic_energy[ zero_list[id] ] = 0.0;
    }
 
+   // LS EDIT START
+   if (do_write_atoms_csv) {
+      atoms_csv.close();
+   }
+   // LS EDITS END
+
    return;
 
 }
+
+
+
 
 //------------------------------------------------------------------------------------------------------
 // Function to get const reference for total energy data

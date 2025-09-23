@@ -301,7 +301,7 @@ static void write_neel_pairs_csv(
       }
 
       // Write CSV for this (theta,phi) run in the current directory.
-      write_neel_pairs_csv(csv_name_final, nearest_neighbour_interactions_list, cneighbourlist);
+      //write_neel_pairs_csv(csv_name_final, nearest_neighbour_interactions_list, cneighbourlist);
       // LS EDIT END
 
    } // end of surface anisotropy initialisation

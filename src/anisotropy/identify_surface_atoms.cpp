@@ -176,14 +176,14 @@ namespace anisotropy{
             
             const unsigned int imat = atoms::type_array[atom];
 
-            // Only classify Fe sites (FeA/FeB). Others (e.g., O) remain non-surface.
+            // Only classify Fe sites,  Others (O) remain non surface.
             if (imat != FEA_ID && imat != FEB_ID) continue;
 
 
-            // Count only NEAREST-NEIGHBOUR **oxygen** neighbours
+            // Count only nearest neighbour oxygens
             unsigned int nnn_FeO = 0;
             for (unsigned int nn = 0; nn < cneighbourlist[atom].size(); ++nn) {
-            // only consider interactions pre-labelled as nearest-neighbour
+            // only consider interactions labelled as nearest neighbour
             if (!nearest_neighbour_interactions_list[atom][nn]) continue;
 
 
@@ -193,7 +193,7 @@ namespace anisotropy{
             }
 
 
-            // Choose Fe-site-specific threshold (override any global/native threshold)
+            // Choose Fe site specific threshold and overide any global thrsh
             unsigned int threshold = (imat == FEA_ID) ? THRESH_FEA : THRESH_FEB;
 
 

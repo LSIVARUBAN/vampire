@@ -207,18 +207,18 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
 
       // LS EDIT START
       // Per atom CSV row (T and J). Apply 1/2 factors to exchange and magnetostatic to the total only.
-      if (do_write_atoms_csv) {
-         const double total_T = 0.5*e_ex_T + e_an_T + e_ap_T + 0.5*e_ms_T;
-         const double ex_J = e_ex_T * mm[atom] * constants::muB;
-         const double an_J = e_an_T * mm[atom] * constants::muB;
-         const double ap_J = e_ap_T * mm[atom] * constants::muB;
-         const double ms_J = e_ms_T * mm[atom] * constants::muB;
-         const double total_J = total_T * mm[atom] * constants::muB;
+      // if (do_write_atoms_csv) {
+      //    const double total_T = 0.5*e_ex_T + e_an_T + e_ap_T + 0.5*e_ms_T;
+      //    const double ex_J = e_ex_T * mm[atom] * constants::muB;
+      //    const double an_J = e_an_T * mm[atom] * constants::muB;
+      //    const double ap_J = e_ap_T * mm[atom] * constants::muB;
+      //    const double ms_J = e_ms_T * mm[atom] * constants::muB;
+      //    const double total_J = total_T * mm[atom] * constants::muB;
 
-         atoms_csv << atom << "," << mask_id << "," << mat[atom] << "," << mm[atom] << ","
-                   << e_ex_T << "," << e_an_T << "," << e_ap_T << "," << e_ms_T << "," << total_T << ","
-                   << ex_J   << "," << an_J   << "," << ap_J   << "," << ms_J   << "," << total_J  << "\n";
-      }
+      //    atoms_csv << atom << "," << mask_id << "," << mat[atom] << "," << mm[atom] << ","
+      //              << e_ex_T << "," << e_an_T << "," << e_ap_T << "," << e_ms_T << "," << total_T << ","
+      //              << ex_J   << "," << an_J   << "," << ap_J   << "," << ms_J   << "," << total_J  << "\n";
+      // }
       // LS EDITS END
    }
 

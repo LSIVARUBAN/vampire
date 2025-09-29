@@ -275,9 +275,9 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
    }
 
    // LS EDIT START
-   if (do_write_atoms_csv) {
-      atoms_csv.close();
-   }
+   // if (do_write_atoms_csv) {
+   //    atoms_csv.close();
+   // }
    // LS EDITS END
 
    return;

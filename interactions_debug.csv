@@ -1,0 +1,15 @@
+total_bilinear,total_biquadratic,total_all
+6,6,12
+kind,id,i,j,dx,dy,dz
+bilinear,0,0,0,-1,0,0
+bilinear,1,0,0,0,-1,0
+bilinear,2,0,0,0,0,-1
+bilinear,3,0,0,0,0,1
+bilinear,4,0,0,0,1,0
+bilinear,5,0,0,1,0,0
+biquadratic,0,0,0,-1,0,0
+biquadratic,1,0,0,0,-1,0
+biquadratic,2,0,0,0,0,-1
+biquadratic,3,0,0,0,0,1
+biquadratic,4,0,0,0,1,0
+biquadratic,5,0,0,1,0,0

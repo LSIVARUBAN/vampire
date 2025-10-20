@@ -128,8 +128,9 @@ namespace anisotropy{
                err::vexit();
             }
 
-            // set mask to true or false for non-fully coordinated atoms in the bulk
+            // LS EDIT START keep but not using to determine periodicity
             nearest_neighbour_interactions_list[atom][nn]=nn_interaction.at(id);
+            // LS EDIT END
 
          }
       }
@@ -153,28 +154,60 @@ namespace anisotropy{
       static constexpr unsigned int THRESH_FEB = 6; // FeB coordination threshold (Fe–O only)
       // LS EDIT END
 
-      // LS EDIT START: store Fe–O coordination for optional CSV debug
-      std::vector<unsigned int> feo_coord(atoms::num_atoms, 0);
+      // LS EDIT START Initial check of unit cell interactions for periodic hops and map to atoms - to identify which are from the xp xn yp yn surfaces
+      const std::size_t num_uc_atoms = cs::unit_cell.atom.size();
+      std::vector<unsigned int> uc_pbc_count(num_uc_atoms, 0);   // how many periodic interactions a site has
+      std::vector<unsigned char> uc_has_pbc(num_uc_atoms, 0);    // flag if any
+
+      // Bilinear
+      for (std::size_t k = 0; k < cs::unit_cell.bilinear.interaction.size(); ++k) {
+         const auto &I = cs::unit_cell.bilinear.interaction[k];
+         if (I.dx != 0 || I.dy != 0 || I.dz != 0) {
+            if (I.i >= 0 && (std::size_t)I.i < num_uc_atoms) { ++uc_pbc_count[I.i]; uc_has_pbc[I.i] = 1; }
+            if (I.j >= 0 && (std::size_t)I.j < num_uc_atoms) { ++uc_pbc_count[I.j]; uc_has_pbc[I.j] = 1; }
+         }
+      }
+      // Biquadratic (for completeness)
+      for (std::size_t k = 0; k < cs::unit_cell.biquadratic.interaction.size(); ++k) {
+         const auto &I = cs::unit_cell.biquadratic.interaction[k];
+         if (I.dx != 0 || I.dy != 0 || I.dz != 0) {
+            if (I.i >= 0 && (std::size_t)I.i < num_uc_atoms) { ++uc_pbc_count[I.i]; uc_has_pbc[I.i] = 1; }
+            if (I.j >= 0 && (std::size_t)I.j < num_uc_atoms) { ++uc_pbc_count[I.j]; uc_has_pbc[I.j] = 1; }
+         }
+      }
+
+      std::vector<unsigned char> atom_has_pbc(atoms::num_atoms, 0);
+      std::vector<unsigned int>  atom_pbc_count(atoms::num_atoms, 0);
+      unsigned int atoms_marked_pbc = 0;
+      for (int a = 0; a < atoms::num_atoms; ++a) {
+         const unsigned int ucid = catom_array[a].uc_id;
+         if (ucid < uc_has_pbc.size()) {
+            atom_has_pbc[a]  = uc_has_pbc[ucid];
+            atom_pbc_count[a]= uc_pbc_count[ucid];
+            if (atom_has_pbc[a]) ++atoms_marked_pbc;
+         }
+      }
+      zlog << zTs() << "Pre-scan: " << atoms_marked_pbc
+           << " atoms map to unitcellfile sites that have periodic hops (dx|dy|dz != 0)." << std::endl;
       // LS EDIT END
 
-      // Loop over all *local* atoms
+      // LS EDIT START store Fe–O coordination and debug fields
+      std::vector<unsigned int> feo_coord(atoms::num_atoms, 0);
+      std::vector<unsigned int> total_interactions_vec(atoms::num_atoms, 0);
+      std::vector<unsigned char> excluded_due_to_pbc(atoms::num_atoms, 0);
+      unsigned int undercoord_total = 0;
+      unsigned int excluded_count   = 0;
+      
+      std::vector<unsigned int> pbc_any_nn(atoms::num_atoms, 0); 
+      std::vector<unsigned int> pbc_feo_nn(atoms::num_atoms, 0); 
+      // LS EDIT END
+
+      // Single pass: classify surface iff (a) Fe–O undercoord and (b) not in precomputed PBC list
       for(int atom = 0; atom < atoms::num_atoms; atom++){
 
          // Check for local MPI atoms only
          if(catom_array[atom].mpi_type!=2){
 
-            // Initialise counter for number of nearest neighbour interactions
-            unsigned int nnn_int=0;
-
-            // Loop over all interactions to determine number of nearest neighbour interactions
-            for(unsigned int nn = 0 ; nn < cneighbourlist[atom].size(); nn++){
-
-               // If interaction is nn, increment counter
-               if(nearest_neighbour_interactions_list[atom][nn]) nnn_int++;
-
-            }
-
-            // LS EDIT START
             const unsigned int imat = atoms::type_array[atom];
 
             // Only classify Fe sites, O remain non-surface
@@ -182,35 +215,45 @@ namespace anisotropy{
                continue;
             }
 
-            // Count only nearest-neighbour oxygens (Fe–O)
-            unsigned int nnn_FeO = 0;
+            // Count Fe–O coordination using all entries in cneighbourlist since unitcell file already only includes nns
+            unsigned int nFeO = 0;
+            total_interactions_vec[atom] = static_cast<unsigned int>(cneighbourlist[atom].size());
             for (unsigned int nn = 0; nn < cneighbourlist[atom].size(); ++nn) {
-               if (!nearest_neighbour_interactions_list[atom][nn]) continue; 
-               const unsigned int j_atom = cneighbourlist[atom][nn].nn; // neighbour atom index
-               const unsigned int jmat   = atoms::type_array[j_atom];   // neighbour material id
-               if (jmat == O_ID) ++nnn_FeO;
+               const unsigned int j_atom = cneighbourlist[atom][nn].nn;
+               const unsigned int jmat   = atoms::type_array[j_atom];
+               if (jmat == O_ID) ++nFeO;
             }
+            feo_coord[atom] = nFeO;
 
-            // stash for optional CSV
-            feo_coord[atom] = nnn_FeO;
-
-            // Fe-site threshold
             const unsigned int threshold = (imat == FEA_ID) ? THRESH_FEA : THRESH_FEB;
+            const bool is_undercoord = (nFeO < threshold);
 
-            // interactionbased classification (PBC neighbours included)
-            if (nnn_FeO < threshold) {
-               atoms::surface_array[atom] = true;
-               ++num_surface_atoms;
+            if (is_undercoord) {
+               ++undercoord_total;
+               if (!atom_has_pbc[atom]) {
+                  atoms::surface_array[atom] = true;
+                  ++num_surface_atoms;
+               } else {
+                  atoms::surface_array[atom] = false;
+                  excluded_due_to_pbc[atom] = 1;
+                  ++excluded_count;
+               }
+            } else {
+               atoms::surface_array[atom] = false;
             }
-            // LS EDIT END
 
+            // for debugging csv
+            pbc_any_nn[atom] = atom_pbc_count[atom];
+            pbc_feo_nn[atom] = 0; 
          } 
       }
 
       // Output statistics to log file
-      zlog << zTs() << num_surface_atoms << " surface atoms found." << std::endl;
+      zlog << zTs() << undercoord_total << " Fe atoms found under-coordinated (Fe–O)." << std::endl;
+      zlog << zTs() << excluded_count   << " Fe atoms excluded due to periodic interactions." << std::endl;
+      zlog << zTs() << num_surface_atoms<< " surface atoms after applying PBC exclusion." << std::endl;
 
-      // LS EDIT START
+      // LS EDIT START 
       {
          unsigned int nFeA = 0, nFeB = 0;
          for (int a = 0; a < atoms::num_atoms; ++a) if (atoms::surface_array[a]) {
@@ -230,29 +273,38 @@ namespace anisotropy{
          if (!ofs) {
             zlog << zTs() << "WARNING: could not open " << csv_name << " for writing." << std::endl;
          } else {
-            ofs << "atom_id,uc_id,type,FeO_coord,threshold,is_surface,x,y,z\n";
+            // Columns: PBC count/flag, Fe–O coordination, total interactions, and exclusion reason
+            ofs << "atom_id,uc_id,type,FeO_coord,threshold,"
+                   "is_surface_after_pbc,n_pbc_uc,total_interactions,"
+                   "excluded_due_to_pbc,x,y,z\n";
             ofs << std::setprecision(10);
             for (int a = 0; a < atoms::num_atoms; ++a) {
                const unsigned int t = atoms::type_array[a];
                if (t != FEA_ID && t != FEB_ID) continue; // only Fe sites
                const unsigned int thr = (t == FEA_ID) ? THRESH_FEA : THRESH_FEB;
-               const bool is_surf = atoms::surface_array[a];
+               const bool is_surf_final = atoms::surface_array[a];
                const unsigned int ucid = catom_array[a].uc_id;
-               const double x = catom_array[a].x;  // or .rx depending on build
-               const double y = catom_array[a].y;  // or .ry
-               const double z = catom_array[a].z;  // or .rz
+               const double x = catom_array[a].x;
+               const double y = catom_array[a].y;
+               const double z = catom_array[a].z;
 
                ofs << a << "," << ucid << "," << (t==FEA_ID?"FeA":"FeB") << ","
-                   << feo_coord[a] << "," << thr << "," << (is_surf?1:0) << ","
+                   << feo_coord[a] << "," << thr << ","
+                   << (is_surf_final?1:0) << ","
+                   << atom_pbc_count[a] << ","
+                   << total_interactions_vec[a] << ","
+                   << static_cast<unsigned int>(excluded_due_to_pbc[a]) << ","
                    << x << "," << y << "," << z << "\n";
             }
             ofs.close();
-            zlog << zTs() << "Surface CSV written: " << csv_name << std::endl;
+            zlog << zTs() << "Surface debugging CSV written: " << csv_name << std::endl;
          }
       }
       */
       // LS EDIT END
 
+      zlog << zTs() << "Surface atom identification complete." << std::endl;
+      
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data
       //----------------------------------------------------------------

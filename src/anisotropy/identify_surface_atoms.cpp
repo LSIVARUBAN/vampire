@@ -13,6 +13,12 @@
 // C++ standard library headers
 #include <string>
 #include <sstream>
+// LS EDIT START
+#include <limits>
+#include <vector>
+#include <fstream>
+#include <iomanip>
+// LS EDIT END
 
 // Vampire headers
 #include "atoms.hpp" // to be removed
@@ -139,14 +145,17 @@ namespace anisotropy{
       // Resize surface atoms mask and initialise to false
       atoms::surface_array.resize(atoms::num_atoms, false);
 
-
-      // LS EDITS 
+      // LS EDIT START
       static constexpr unsigned int FEA_ID = 0; // tetrahedral FeA material id
       static constexpr unsigned int FEB_ID = 1; // octahedral FeB material id
-      static constexpr unsigned int O_ID = 2; // oxygen material id
+      static constexpr unsigned int O_ID   = 2; // oxygen material id
       static constexpr unsigned int THRESH_FEA = 4; // FeA coordination threshold (Fe–O only)
       static constexpr unsigned int THRESH_FEB = 6; // FeB coordination threshold (Fe–O only)
-      // END LS EDITS
+      // LS EDIT END
+
+      // LS EDIT START: store Fe–O coordination for optional CSV debug
+      std::vector<unsigned int> feo_coord(atoms::num_atoms, 0);
+      // LS EDIT END
 
       // Loop over all *local* atoms
       for(int atom = 0; atom < atoms::num_atoms; atom++){
@@ -165,64 +174,85 @@ namespace anisotropy{
 
             }
 
-            // LS EDITS BELOW COMMENTED 
-
-            // check for atoms with < threshold number of nearest neighbours
-            // if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
-            //    atoms::surface_array[atom]=true;
-            //    num_surface_atoms++;
-            //    //total_num_surface_nn+=nnn_int;
-            // }
-            
+            // LS EDIT START
             const unsigned int imat = atoms::type_array[atom];
 
-            // Only classify Fe sites,  Others (O) remain non surface.
-            if (imat != FEA_ID && imat != FEB_ID) continue;
+            // Only classify Fe sites, O remain non-surface
+            if (imat != FEA_ID && imat != FEB_ID){
+               continue;
+            }
 
-
-            // Count only nearest neighbour oxygens
+            // Count only nearest-neighbour oxygens (Fe–O)
             unsigned int nnn_FeO = 0;
             for (unsigned int nn = 0; nn < cneighbourlist[atom].size(); ++nn) {
-            // only consider interactions labelled as nearest neighbour
-            if (!nearest_neighbour_interactions_list[atom][nn]) continue;
-
-
-            const unsigned int j_atom = cneighbourlist[atom][nn].nn; // neighbour atom index
-            const unsigned int jmat = atoms::type_array[j_atom]; // neighbour material id
-            if (jmat == O_ID) ++nnn_FeO; // count Fe–O only
+               if (!nearest_neighbour_interactions_list[atom][nn]) continue; 
+               const unsigned int j_atom = cneighbourlist[atom][nn].nn; // neighbour atom index
+               const unsigned int jmat   = atoms::type_array[j_atom];   // neighbour material id
+               if (jmat == O_ID) ++nnn_FeO;
             }
 
+            // stash for optional CSV
+            feo_coord[atom] = nnn_FeO;
 
-            // Choose Fe site specific threshold and overide any global thrsh
-            unsigned int threshold = (imat == FEA_ID) ? THRESH_FEA : THRESH_FEB;
+            // Fe-site threshold
+            const unsigned int threshold = (imat == FEA_ID) ? THRESH_FEA : THRESH_FEB;
 
-
+            // interactionbased classification (PBC neighbours included)
             if (nnn_FeO < threshold) {
-            atoms::surface_array[atom] = true;
-            ++num_surface_atoms;
+               atoms::surface_array[atom] = true;
+               ++num_surface_atoms;
             }
-            }
-            // END LS EDITS
+            // LS EDIT END
 
-
-         
+         } 
       }
 
       // Output statistics to log file
       zlog << zTs() << num_surface_atoms << " surface atoms found." << std::endl;
 
-      // LS EDITS(counts by FeA/FeB)
+      // LS EDIT START
       {
-      unsigned int nFeA = 0, nFeB = 0;
-      for (int a = 0; a < atoms::num_atoms; ++a) if (atoms::surface_array[a]) {
-      const unsigned int m = atoms::type_array[a];
-      if (m == FEA_ID) ++nFeA; else if (m == FEB_ID) ++nFeB;
+         unsigned int nFeA = 0, nFeB = 0;
+         for (int a = 0; a < atoms::num_atoms; ++a) if (atoms::surface_array[a]) {
+            const unsigned int m = atoms::type_array[a];
+            if (m == FEA_ID) ++nFeA; else if (m == FEB_ID) ++nFeB;
+         }
+         zlog << zTs() << num_surface_atoms << " surface Fe atoms found (FeA: "
+              << nFeA << ", FeB: " << nFeB << ")" << std::endl;
       }
-      zlog << zTs() << num_surface_atoms << " surface Fe atoms found (FeA: "
-      << nFeA << ", FeB: " << nFeB << ")" << std::endl;
+      // LS EDIT END
+
+      // LS EDIT Optional csv showing surface atoms identified
+      /*
+      {
+         const std::string csv_name = "surface_debug.csv";
+         std::ofstream ofs(csv_name.c_str(), std::ios::out | std::ios::trunc);
+         if (!ofs) {
+            zlog << zTs() << "WARNING: could not open " << csv_name << " for writing." << std::endl;
+         } else {
+            ofs << "atom_id,uc_id,type,FeO_coord,threshold,is_surface,x,y,z\n";
+            ofs << std::setprecision(10);
+            for (int a = 0; a < atoms::num_atoms; ++a) {
+               const unsigned int t = atoms::type_array[a];
+               if (t != FEA_ID && t != FEB_ID) continue; // only Fe sites
+               const unsigned int thr = (t == FEA_ID) ? THRESH_FEA : THRESH_FEB;
+               const bool is_surf = atoms::surface_array[a];
+               const unsigned int ucid = catom_array[a].uc_id;
+               const double x = catom_array[a].x;  // or .rx depending on build
+               const double y = catom_array[a].y;  // or .ry
+               const double z = catom_array[a].z;  // or .rz
+
+               ofs << a << "," << ucid << "," << (t==FEA_ID?"FeA":"FeB") << ","
+                   << feo_coord[a] << "," << thr << "," << (is_surf?1:0) << ","
+                   << x << "," << y << "," << z << "\n";
+            }
+            ofs.close();
+            zlog << zTs() << "Surface CSV written: " << csv_name << std::endl;
+         }
       }
-      // END LS EDITS
-      
+      */
+      // LS EDIT END
+
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data
       //----------------------------------------------------------------

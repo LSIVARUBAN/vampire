@@ -72,7 +72,7 @@ namespace anisotropy{
       ofs.close();
       zlog << zTs() << "Surface list written: " << out_name << std::endl;
    }
-   /
+   
    // LS EDIT END
 
    //---------------------------------------------------------------------------

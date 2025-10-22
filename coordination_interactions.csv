@@ -1,0 +1,7 @@
+pair_kind,i,j,i_type,j_type,dx,dy,dz
+FeFe,0,0,FeA,FeA,-1,0,0
+FeFe,0,0,FeA,FeA,0,-1,0
+FeFe,0,0,FeA,FeA,0,0,-1
+FeFe,0,0,FeA,FeA,0,0,1
+FeFe,0,0,FeA,FeA,0,1,0
+FeFe,0,0,FeA,FeA,1,0,0

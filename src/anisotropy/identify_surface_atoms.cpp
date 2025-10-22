@@ -34,6 +34,47 @@
 
 namespace anisotropy{
 
+   // LS EDIT START
+   // Fn to output IDs of surface atoms detected 
+   static inline void write_vampire_surface_csv(
+      const std::vector<cs::catom_t>& catom_array)
+   {
+      static constexpr unsigned int FEA_ID = 0; // tetrahedral FeA material id
+      static constexpr unsigned int FEB_ID = 1; // octahedral FeB material id
+
+      const char* out_name = "vampire_surface.csv";
+      std::ofstream ofs(out_name, std::ios::out | std::ios::trunc);
+      if (!ofs) {
+         zlog << zTs() << "WARNING: could not open " << out_name
+               << " for writing." << std::endl;
+         return;
+      }
+
+      // header
+      ofs << "atom_id,type\n";
+
+      // Only output rank local atoms 
+      for (int a = 0; a < atoms::num_atoms; ++a) {
+         if (catom_array[a].mpi_type == 2) continue; 
+
+         if (!atoms::surface_array[a]) continue;     // only surface
+
+         const unsigned int t = atoms::type_array[a];
+         if (t == FEA_ID) {
+               ofs << a << ",FeA\n";
+         } else if (t == FEB_ID) {
+               ofs << a << ",FeB\n";
+         } else {
+            
+         }
+      }
+
+      ofs.close();
+      zlog << zTs() << "Surface list written: " << out_name << std::endl;
+   }
+   /
+   // LS EDIT END
+
    //---------------------------------------------------------------------------
    // Function to identify less than fully coordinated atoms
    //---------------------------------------------------------------------------
@@ -304,6 +345,15 @@ namespace anisotropy{
       // LS EDIT END
 
       zlog << zTs() << "Surface atom identification complete." << std::endl;
+
+      // LS EDIT START
+      // Optionally write vampire_surface.csv
+      {
+         // Create a compact CSV with just the ids and Fe site type
+         write_vampire_surface_csv(catom_array);
+      }
+      // LS EDIT END
+
       
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data

@@ -61,7 +61,8 @@ namespace anisotropy{
       //-------------------------------------------------------------------
       test="enable-bulk-neel-anisotropy";
       if(word==test){
-          // Enable large threshold to force calculation of Neel anisotropy for all atoms
+          // Enable bulk Neel anisotropy for all Fe atoms
+          internal::enable_bulk_neel_anisotropy = true;
           internal::neel_anisotropy_threshold = 1000000000;
           return true;
       }

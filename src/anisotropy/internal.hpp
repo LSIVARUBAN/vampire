@@ -339,6 +339,7 @@ namespace anisotropy{
 
       extern bool native_neel_anisotropy_threshold;  // enables site-dependent surface threshold
       extern unsigned int neel_anisotropy_threshold; // global threshold for surface atoms
+      extern bool enable_bulk_neel_anisotropy;       // enables bulk Neel anisotropy for all Fe atoms
       extern double nearest_neighbour_distance;      // Control surface anisotropy nearest neighbour distance
       extern bool neel_range_dependent;              // Enable range dependent Neel anisotropy Lij = L0 exp(-F(r-r0)/r0)
       extern double neel_exponential_range;          // r0 value for range dependence of Neel anisotropy

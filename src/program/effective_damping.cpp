@@ -9,6 +9,7 @@
 
 // C++ standard library headers
 #include <iostream>
+#include <cmath>
 
 // Vampire Header files
 #include "atoms.hpp"
@@ -21,6 +22,49 @@
 #include "vio.hpp"
 #include "vmath.hpp"
 #include "vmpi.hpp"
+
+/// Function to rotate all spins around an axis
+void rotate_spins_around_axis(std::vector<double>& axis, double angle_deg){
+
+   double phi = angle_deg * 3.14159265359 / 180.0;
+   double u = axis[0];
+   double v = axis[1];
+   double w = axis[2];
+   
+   // Normalise axis
+   double norm = sqrt(u*u + v*v + w*w);
+   if(norm > 0.0){
+       u /= norm;
+       v /= norm;
+       w /= norm;
+   }
+
+   double cos_phi = cos(phi);
+   double sin_phi = sin(phi);
+   double one_minus_cos_phi = 1.0 - cos_phi;
+
+   // loop over all spins and rotate by phi around axis
+   for(int atom = 0; atom < atoms::num_atoms; atom++){
+
+      // Load spin coordinates
+      double x = atoms::x_spin_array[atom];
+      double y = atoms::y_spin_array[atom];
+      double z = atoms::z_spin_array[atom];
+
+      double dot = x*u + y*v + z*w;
+
+      // Rodrigues' rotation formula
+      double new_x = u * dot * one_minus_cos_phi + x * cos_phi + (-w * y + v * z) * sin_phi;
+      double new_y = v * dot * one_minus_cos_phi + y * cos_phi + ( w * x - u * z) * sin_phi;
+      double new_z = w * dot * one_minus_cos_phi + z * cos_phi + (-v * x + u * y) * sin_phi;
+
+      atoms::x_spin_array[atom] = new_x;
+      atoms::y_spin_array[atom] = new_y;
+      atoms::z_spin_array[atom] = new_z;
+   }
+
+   return;
+}
 
 /// Function to rotate all spin around the x-axis
 void rotate_spins_around_x_axis(double ddx){
@@ -94,7 +138,9 @@ void effective_damping(){
    }
 
    // Rotate all spins by 30 degrees from z-axis
-   rotate_spins_around_x_axis(30.0);
+   // rotate_spins_around_x_axis(30.0);
+   // Rotate all spins around effective_damping_rotation_axis by effective_damping_angle
+   rotate_spins_around_axis(program::effective_damping_rotation_axis,program::effective_damping_angle);
 
    // reset system temperature
    sim::temperature=temp;

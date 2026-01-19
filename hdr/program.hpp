@@ -14,6 +14,7 @@
 
 // C++ standard library headers
 #include <string>
+#include <vector>
 
 // Vampire headers
 #include "program.hpp"
@@ -29,6 +30,9 @@ namespace program
 	//---------------------------------------------------------------------------
 	extern int program; // program type to be run in vampire
 
+	extern double effective_damping_angle; // angle to rotate atoms from z-axis
+	extern std::vector<double> effective_damping_rotation_axis; // axis to rotate atoms around
+	
 	extern double fractional_electric_field_strength; // factor controlling strength of stt/sot and voltage
 
 	//---------------------------------------------------------------------------

@@ -24,6 +24,8 @@ namespace program{
    // Externally visible variables
    //---------------------------------------------------------------------------
    int program = 0; // program type to be run in vampire
+   double effective_damping_angle = 30.0; // angle to rotate and offset spins from effective_damping_rotation_axis, default 30 degrees
+   std::vector<double> effective_damping_rotation_axis = {1.0, 0.0, 0.0}; // axis to rotate spins around, default x-axis
    double fractional_electric_field_strength = 1.0; // factor controlling strength of stt/sot and voltage
 
    namespace internal{

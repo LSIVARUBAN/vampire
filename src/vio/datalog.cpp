@@ -325,6 +325,12 @@ namespace vout{
 			case 90:
 			   vout::material_mean_syslatticetemp(stream, header);
 			   break;
+			case 91:
+				vout::cubic_geofencing(stream,header);
+				break;
+			case 92:
+				vout::uniaxial_geofencing(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;

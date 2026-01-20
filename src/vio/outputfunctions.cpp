@@ -12,6 +12,7 @@
 //
 
 // C++ standard library headers
+#include <cmath>
 
 // Vampire headers
 #include "vio.hpp"
@@ -565,5 +566,145 @@ namespace vout{
     void material_mean_syslatticetemp(std::ostream& stream, bool header){
    stream << stats::material_lattice_temp.output_mean_lattice_temp(header);
     }
+   
+   // Output Function 91
+   // Cubic magnetic state geofencing
+   // In a state if m dot (±1,±1,±1)/sqrt(3) >= 0.95
+   // States:
+   // 0: Lost
+   // 1: +++
+   // 2: -++
+   // 3: +-+
+   // 4: --+
+   // 5: ++-
+   // 6: -+-
+   // 7: +--
+   // 8: ---
+   void cubic_geofencing(std::ostream& stream, bool header){ 
+
+      const double geofencing_threshold = vout::cubic_geofencing_threshold;   // dot product threshold
+      const int geofencing_material_id = vout::cubic_geofencing_material_id;  // selected material id, default 0
+
+      struct easy_axis{                            // easy axis components and state label
+         double x;                             
+         double y;                             
+         double z;                             
+         int state;                             
+      };
+
+      const double inv_sqrt3 = 1.0/std::sqrt(3.0); 
+      const easy_axis axes[8] = {                    // Array of cubic easy axes
+         {+inv_sqrt3, +inv_sqrt3, +inv_sqrt3, 1}, 
+         {-inv_sqrt3, +inv_sqrt3, +inv_sqrt3, 2}, 
+         {+inv_sqrt3, -inv_sqrt3, +inv_sqrt3, 3}, 
+         {-inv_sqrt3, -inv_sqrt3, +inv_sqrt3, 4}, 
+         {+inv_sqrt3, +inv_sqrt3, -inv_sqrt3, 5}, 
+         {-inv_sqrt3, +inv_sqrt3, -inv_sqrt3, 6}, 
+         {+inv_sqrt3, -inv_sqrt3, -inv_sqrt3, 7}, 
+         {-inv_sqrt3, -inv_sqrt3, -inv_sqrt3, 8}, 
+      };
+
+      std::ostringstream res;                    // Create output stringstream
+      vout::fixed_width_output result(res, vout::fw_size_int); // Align column output
+
+      if(header){                                // print header if required
+         result << "cubic_geofencing_m" + std::to_string(geofencing_material_id);
+         stream << result.str();                 // write formatted header to output stream
+         return;                                 
+      }
+
+      const std::vector<double>& m = stats::material_magnetization.get_magnetization(); // get reference to magnetisation data
+
+      const std::size_t base = 4u*static_cast<std::size_t>(geofencing_material_id); // 4 values per material, calculate index of mx_0 in flattened array
+      if(m.size() < base + 3u){                  // if mx, my, mz not available, assign Lost
+         result << 0;                            
+         stream << result.str();                 
+         return;                                
+      }
+
+      const double mx = m[base + 0u];            // mx_0
+      const double my = m[base + 1u];            // my_0
+      const double mz = m[base + 2u];            // mz_0
+
+      double best_dot = -1.0;                    // track closest axis dot product (-1 is antiparallel)
+      int best_state = 0;                        // default to Lost until a better state is found
+      for(const easy_axis& a : axes){               // loop each easy axis 
+         const double dot = mx*a.x + my*a.y + mz*a.z; // m dot ea
+         if(dot > best_dot){                     // update best state and dot value
+            best_dot = dot;                      
+            best_state = a.state;                
+         }
+      }
+
+      const int state = (best_dot >= geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
+
+      result << state;                           // append state to column
+      stream << result.str();                    // output formatted column to stream
+   }
+
+   // Output Function 92
+   // Uniaxial magnetic state geofencing along 111
+   // In a state if m dot (±1,±1,±1)/sqrt(3) >= 0.95
+   // States:
+   // 0: Lost
+   // 1: +++
+   // 2: ---
+   void uniaxial_geofencing(std::ostream& stream, bool header){ 
+
+      const double uniaxial_geofencing_threshold = vout::uniaxial_geofencing_threshold;   // dot product threshold
+      const int uniaxial_geofencing_material_id = vout::uniaxial_geofencing_material_id;  // selected material id, default 0
+
+      struct easy_axis{                            // easy axis components and state label
+         double x;                             
+         double y;                             
+         double z;                             
+         int state;                             
+      };
+
+      const double ax = vout::uniaxial_axis_x; // uniaxial easy axis components, default ±111
+      const double ay = vout::uniaxial_axis_y;
+      const double az = vout::uniaxial_axis_z;
+      const easy_axis axes[2] = {                    // Array of uniaxial easy axes
+         {+ax, +ay, +az, 1},
+         {-ax, -ay, -az, 2},
+      };
+
+      std::ostringstream res;                    // Create output stringstream
+      vout::fixed_width_output result(res, vout::fw_size_int); // Align column output
+
+      if(header){                                // print header if required
+         result << "uniaxial_geofencing_m" + std::to_string(uniaxial_geofencing_material_id);
+         stream << result.str();                 // write formatted header to output stream
+         return;                                 
+      }
+
+      const std::vector<double>& m = stats::material_magnetization.get_magnetization(); // get reference to magnetisation data
+
+      const std::size_t base = 4u*static_cast<std::size_t>(uniaxial_geofencing_material_id); // 4 values per material, calculate index of mx_0 in flattened array
+      if(m.size() < base + 3u){                  // if mx, my, mz not available, assign Lost
+         result << 0;                            
+         stream << result.str();                 
+         return;                                
+      }
+
+      const double mx = m[base + 0u];            // mx_0
+      const double my = m[base + 1u];            // my_0
+      const double mz = m[base + 2u];            // mz_0
+
+      double best_dot = -1.0;                    // track closest axis dot product (-1 is antiparallel)
+      int best_state = 0;                        // default to Lost until a better state is found
+      for(const easy_axis& a : axes){               // loop each easy axis 
+         const double dot = mx*a.x + my*a.y + mz*a.z; // m dot ea
+         if(dot > best_dot){                     // update best state and dot value
+            best_dot = dot;                      
+            best_state = a.state;                
+         }
+      }
+
+      const int state = (best_dot >= uniaxial_geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
+
+      result << state;                           // append state to column
+      stream << result.str();                    // output formatted column to stream
+   }
 
 }

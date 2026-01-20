@@ -63,6 +63,15 @@ namespace vout{
    	extern pid_t    zLogPid; /// Process ID
    #endif
 
+   // Geofencing parameters
+   extern double cubic_geofencing_threshold;
+   extern int cubic_geofencing_material_id;
+   extern double uniaxial_geofencing_threshold;
+   extern int uniaxial_geofencing_material_id;
+   extern double uniaxial_axis_x;
+   extern double uniaxial_axis_y;
+   extern double uniaxial_axis_z;
+
    // namespaced io lists (to avoid collisions)
    namespace grain{
       // defined enumerated types
@@ -218,6 +227,10 @@ namespace vout{
    void mean_sld_exchange_energy(std::ostream& stream, bool header);
    void mean_sld_coupling_energy(std::ostream& stream, bool header);
    void mean_sld_total_energy(std::ostream& stream, bool header);
+
+   // Geofencing output functions
+   void cubic_geofencing(std::ostream& stream, bool header);
+   void uniaxial_geofencing(std::ostream& stream, bool header);
 
    //-------------------------------------------------------------------------
    // Funciton protypes for functions inside: datalog.cpp

@@ -1596,7 +1596,76 @@ namespace vin{
             vout::output_rate=r;
             return EXIT_SUCCESS;
         }
+        //--------------------------------------------------------------------
+        test="cubic-geofencing";
+        if(word==test){
+            stats::calculate_material_magnetization=true;
+            output_list.push_back(91); 
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="uniaxial-geofencing";
+        if(word==test){
+            stats::calculate_material_magnetization=true;
+            output_list.push_back(92);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="cubic-geofencing-threshold";
+        if(word==test){
+            double threshold = atof(value.c_str());
+            check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
+            vout::cubic_geofencing_threshold = threshold;
+            return EXIT_SUCCESS;
+        }
+        else
+        //--------------------------------------------------------------------
+        test="cubic-geofencing-material-id";
+        if(word==test){
+            int mat_id = atoi(value.c_str());
+            vin::check_for_valid_int(mat_id, word, line, prefix, 0, 100, "input", "0 - 100");
+            vout::cubic_geofencing_material_id = mat_id;
+            return EXIT_SUCCESS;
+        }
+        else
+        //--------------------------------------------------------------------
+        test="uniaxial-geofencing-threshold";
+        if(word==test){
+            double threshold = atof(value.c_str());
+            vin::check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
+            vout::uniaxial_geofencing_threshold = threshold;
+            return EXIT_SUCCESS;
+        }
+        else
+        //--------------------------------------------------------------------
+        test="uniaxial-geofencing-material-id";
+        if(word==test){
+            int mat_id = atoi(value.c_str());
+            vin::check_for_valid_int(mat_id, word, line, prefix, 0, 100, "input", "0 - 100");
+            vout::uniaxial_geofencing_material_id = mat_id;
+            return EXIT_SUCCESS;
+        }
+        else
+        //--------------------------------------------------------------------
+        test="uniaxial-geofencing-axis";
+        if(word==test){
+            std::vector<double> u(3);
+            u = doubles_from_string(value);
+            vin::check_for_valid_three_vector(u, word, line, prefix, "input");
 
+            const double ulen = sqrt(u.at(0)*u.at(0) + u.at(1)*u.at(1) + u.at(2)*u.at(2));
+            if(ulen <= 0.0){
+                terminaltextcolor(RED);
+                std::cerr << "Error - value for \'" << prefix << word << "\' must be a non-zero vector on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+
+            vout::uniaxial_axis_x = u.at(0) / ulen;
+            vout::uniaxial_axis_y = u.at(1) / ulen;
+            vout::uniaxial_axis_z = u.at(2) / ulen;
+            return EXIT_SUCCESS;
+        }
         //--------------------------------------------------------------------
         // keyword not found
         //--------------------------------------------------------------------

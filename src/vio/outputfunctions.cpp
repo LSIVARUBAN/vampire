@@ -584,6 +584,7 @@ namespace vout{
 
       const double geofencing_threshold = vout::cubic_geofencing_threshold;   // dot product threshold
       const int geofencing_material_id = vout::cubic_geofencing_material_id;  // selected material id, default 0
+      const bool output_best_dot = vout::cubic_geofencing_output_dot; // output best dot product column if not disabled
 
       struct easy_axis{                            // easy axis components and state label
          double x;                             
@@ -604,22 +605,26 @@ namespace vout{
          {-inv_sqrt3, -inv_sqrt3, -inv_sqrt3, 8}, 
       };
 
-      std::ostringstream res;                    // Create output stringstream
-      vout::fixed_width_output result(res, vout::fw_size_int); // Align column output
+      const std::string state_header = "cubic_geofencing_m" + std::to_string(geofencing_material_id); // state output header
+      const std::string dot_header = "cubic_geofencing_dot_m" + std::to_string(geofencing_material_id); // best dot product output header
 
-      if(header){                                // print header if required
-         result << "cubic_geofencing_m" + std::to_string(geofencing_material_id);
-         stream << result.str();                 // write formatted header to output stream
-         return;                                 
+      if(header){
+         stream << generic_output_int(state_header, 0u, true);
+         if(output_best_dot){
+            stream << generic_output_double(dot_header, 0.0, true); 
+         }
+         return;
       }
 
       const std::vector<double>& m = stats::material_magnetization.get_magnetization(); // get reference to magnetisation data
 
       const std::size_t base = 4u*static_cast<std::size_t>(geofencing_material_id); // 4 values per material, calculate index of mx_0 in flattened array
       if(m.size() < base + 3u){                  // if mx, my, mz not available, assign Lost
-         result << 0;                            
-         stream << result.str();                 
-         return;                                
+         stream << generic_output_int(state_header, 0u, false);
+         if(output_best_dot){
+            stream << generic_output_double(dot_header, 0.0, false);
+         }
+         return;
       }
 
       const double mx = m[base + 0u];            // mx_0
@@ -638,8 +643,10 @@ namespace vout{
 
       const int state = (best_dot >= geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
 
-      result << state;                           // append state to column
-      stream << result.str();                    // output formatted column to stream
+      stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      if(output_best_dot){
+         stream << generic_output_double(dot_header, best_dot, false); // output best dot product
+      }
    }
 
    // Output Function 92
@@ -653,6 +660,7 @@ namespace vout{
 
       const double uniaxial_geofencing_threshold = vout::uniaxial_geofencing_threshold;   // dot product threshold
       const int uniaxial_geofencing_material_id = vout::uniaxial_geofencing_material_id;  // selected material id, default 0
+      const bool output_best_dot = vout::uniaxial_geofencing_output_dot;  // output best dot product column if not disabled
 
       struct easy_axis{                            // easy axis components and state label
          double x;                             
@@ -669,22 +677,26 @@ namespace vout{
          {-ax, -ay, -az, 2},
       };
 
-      std::ostringstream res;                    // Create output stringstream
-      vout::fixed_width_output result(res, vout::fw_size_int); // Align column output
+      const std::string state_header = "uniaxial_geofencing_m" + std::to_string(uniaxial_geofencing_material_id); // state output header
+      const std::string dot_header = "uniaxial_geofencing_dot_m" + std::to_string(uniaxial_geofencing_material_id); // best dot product output header
 
-      if(header){                                // print header if required
-         result << "uniaxial_geofencing_m" + std::to_string(uniaxial_geofencing_material_id);
-         stream << result.str();                 // write formatted header to output stream
-         return;                                 
+      if(header){
+         stream << generic_output_int(state_header, 0u, true);
+         if(output_best_dot){
+            stream << generic_output_double(dot_header, 0.0, true);
+         }
+         return;
       }
 
       const std::vector<double>& m = stats::material_magnetization.get_magnetization(); // get reference to magnetisation data
 
       const std::size_t base = 4u*static_cast<std::size_t>(uniaxial_geofencing_material_id); // 4 values per material, calculate index of mx_0 in flattened array
       if(m.size() < base + 3u){                  // if mx, my, mz not available, assign Lost
-         result << 0;                            
-         stream << result.str();                 
-         return;                                
+         stream << generic_output_int(state_header, 0u, false);
+         if(output_best_dot){
+            stream << generic_output_double(dot_header, 0.0, false);
+         }
+         return;
       }
 
       const double mx = m[base + 0u];            // mx_0
@@ -703,8 +715,10 @@ namespace vout{
 
       const int state = (best_dot >= uniaxial_geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
 
-      result << state;                           // append state to column
-      stream << result.str();                    // output formatted column to stream
+      stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      if(output_best_dot){
+         stream << generic_output_double(dot_header, best_dot, false); // output best dot product
+      }
    }
 
 }

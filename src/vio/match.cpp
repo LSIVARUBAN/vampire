@@ -1601,6 +1601,20 @@ namespace vin{
         if(word==test){
             stats::calculate_material_magnetization=true;
             output_list.push_back(91); 
+
+            if(value == "no-product"){
+                vout::cubic_geofencing_output_dot = false; // output only the magnetic state column
+            }
+            else if(value == "" || value == "product"){
+                vout::cubic_geofencing_output_dot = true; // output the magnetic state and best dot product columns
+            }
+            else{
+                terminaltextcolor(RED);
+                std::cerr << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
@@ -1608,6 +1622,20 @@ namespace vin{
         if(word==test){
             stats::calculate_material_magnetization=true;
             output_list.push_back(92);
+
+            if(value == "no-product"){
+                vout::uniaxial_geofencing_output_dot = false; // output only the magnetic state column
+            }
+            else if(value == "" || value == "product"){
+                vout::uniaxial_geofencing_output_dot = true; // output the magnetic state and best dot product columns
+            }
+            else{
+                terminaltextcolor(RED);
+                std::cerr << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------

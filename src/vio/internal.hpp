@@ -64,11 +64,13 @@ namespace vout{
    #endif
 
    // Geofencing parameters
-   extern double cubic_geofencing_threshold;
-   extern int cubic_geofencing_material_id;
-   extern double uniaxial_geofencing_threshold;
-   extern int uniaxial_geofencing_material_id;
-   extern double uniaxial_axis_x;
+   extern double cubic_geofencing_threshold; // m dot e_a threshold
+   extern int cubic_geofencing_material_id; // magnetisation material id
+   extern bool cubic_geofencing_output_dot; // output best dot product column
+   extern double uniaxial_geofencing_threshold; // m dot e_a threshold
+   extern int uniaxial_geofencing_material_id; // magnetisation material id
+   extern bool uniaxial_geofencing_output_dot; // output best dot product column
+   extern double uniaxial_axis_x; // uniaxial easy axis components
    extern double uniaxial_axis_y;
    extern double uniaxial_axis_z;
 

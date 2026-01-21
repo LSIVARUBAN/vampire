@@ -41,6 +41,18 @@ namespace vout{
       }
       return result.str();
     }
+
+   std::string generic_output_string(const std::string& header_str, const std::string& value, const bool header){
+      std::ostringstream res;
+      vout::fixed_width_output result(res, vout::fw_size_int);
+      if(header){
+         result << header_str;
+      }
+      else{
+         result << value;
+      }
+      return result.str();
+   }
     //--------------------------------------------------------------------------
     // Function to format a standard double variable including a file header
     //--------------------------------------------------------------------------
@@ -643,7 +655,12 @@ namespace vout{
 
       const int state = (best_dot >= geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
 
-      stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      if(state == 0){
+         stream << generic_output_string(state_header, "0" + std::to_string(best_state), false); // output lost state as 0X where X is best state but below threshold
+      }
+      else{
+         stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      }
       if(output_best_dot){
          stream << generic_output_double(dot_header, best_dot, false); // output best dot product
       }
@@ -715,7 +732,12 @@ namespace vout{
 
       const int state = (best_dot >= uniaxial_geofencing_threshold) ? best_state : 0; // if best_dot >= threshold, use best_state otherwise Lost 
 
-      stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      if(state == 0){
+         stream << generic_output_string(state_header, "0" + std::to_string(best_state), false); // output lost state as 0X where X is the best state but below threshold
+      }
+      else{
+         stream << generic_output_int(state_header, static_cast<uint64_t>(state), false); // output state
+      }
       if(output_best_dot){
          stream << generic_output_double(dot_header, best_dot, false); // output best dot product
       }

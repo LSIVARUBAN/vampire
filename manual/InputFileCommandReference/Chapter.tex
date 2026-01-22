@@ -258,6 +258,28 @@ enabling the effect of localised spin-orbit interactions. Internally this sets a
 large threshold, and so specifying anisotropy:surface-anisotropy-threshold will
 override this flag.
 
+{\zicf anisotropy:enable_fourth_order_neel_anisotropy = bool [default false]}\phantomsection\addcontentsline{toc}
+{subsection}{anisotropy:enable_fourth_order_neel_anisotropy} Enables the
+fourth order N\'eel pair anisotropy model. When enabled, the
+simulation requires both \textit{material:neel-anisotropy-constant} and
+\textit{material:neel-fourth-order-anisotropy-constant} to be specified.
+
+The fourth order N\'eel pair anisotropy energy for a pair of atoms $(i,j)$ is
+defined as
+
+\begin{equation}
+H_{\mathrm{Neel}} = -\frac{1}{2}\sum_{j\in\mathrm{nn}(i)} \Bigg\{ 
+\ell(r_{ij})\left[\left(\mathbf{s}_i\cdot\hat{\mathbf{e}}_{ij}\right)^2 - \frac{1}{3}\right]
+\; + \;
+q(r_{ij})\left[\left(\mathbf{s}_i\cdot\hat{\mathbf{e}}_{ij}\right)^4 - \frac{6}{7}\left(\mathbf{s}_i\cdot\hat{\mathbf{e}}_{ij}\right)^2 + \frac{3}{35}\right]
+\Bigg\}
+\end{equation}
+
+\noindent where $\mathbf{s}_i$ is the unit spin direction at site $i$,
+$\hat{\mathbf{e}}_{ij}$ is the unit vector from site $i$ to neighbour $j$,
+$\ell(r_{ij})$ is the second-order N\'eel coefficient and $q(r_{ij})$ is the
+fourth-order coefficient.
+
 {\zicf anisotropy:neel-anisotropy-exponential-range = float [default $2.5$]}\phantomsection\addcontentsline{toc}
 {subsection}{anisotropy:neel-anisotropy-exponential-range} Enables an
 exponentially range dependent N\'eel pair anisotropy so that lattice distortions

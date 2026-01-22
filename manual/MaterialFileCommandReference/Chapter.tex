@@ -175,6 +175,12 @@ E_i = +\frac{1}{2} \sum_j^{\mathrm{nn}} \ksurf (\sms \cdot \rij )^2
 {\zicf neel-anisotropy-constant[index] = float [default 0.0 J]}\phantomsection\addcontentsline{toc}{subsection}{material:neel-anisotropy-constant}
 Has the same meaning and is the preferred form for material:surface-anisotropy-constant.
 
+{\zicf neel-fourth-order-anisotropy-constant[index] = float [default 0.0 J]}\phantomsection\addcontentsline{toc}{subsection}{material:neel-fourth-order-anisotropy-constant}
+Defines the fourth order N\'eel pair anisotropy coefficient $Q_{ij}$. This term
+is only used when \textit{anisotropy:enable_fourth_order_neel_anisotropy} is
+enabled. Both \textit{material:neel-anisotropy-constant} and
+\textit{material:neel-fourth-order-anisotropy-constant} must be specified.
+
 {\zicf lattice-anisotropy-constant = float [default 0.0 J/atom]}\phantomsection\addcontentsline{toc}{subsection}{material:lattice-anisotropy-constant}
 Defines anisotropy arising from temperature dependent lattice expansion such as in RETM alloys. The temperature dependence of the lattice anisotropy is defined with a user defined function specified in the parameter\textit{lattice-anisotropy-file}.
 

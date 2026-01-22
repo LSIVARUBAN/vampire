@@ -139,14 +139,12 @@ namespace anisotropy{
       // Resize surface atoms mask and initialise to false
       atoms::surface_array.resize(atoms::num_atoms, false);
 
-
-      // LS EDITS 
+      // Hardcoded material IDs and thresholds for Fe3O4 - to be made more general later
       static constexpr unsigned int FEA_ID = 0; // tetrahedral FeA material id
       static constexpr unsigned int FEB_ID = 1; // octahedral FeB material id
       static constexpr unsigned int O_ID = 2; // oxygen material id
       static constexpr unsigned int THRESH_FEA = 4; // FeA coordination threshold (Fe–O only)
       static constexpr unsigned int THRESH_FEB = 6; // FeB coordination threshold (Fe–O only)
-      // END LS EDITS
 
       // Loop over all *local* atoms
       for(int atom = 0; atom < atoms::num_atoms; atom++){
@@ -164,8 +162,6 @@ namespace anisotropy{
                if(nearest_neighbour_interactions_list[atom][nn]) nnn_int++;
 
             }
-
-            // LS EDITS BELOW
             
             const unsigned int imat = atoms::type_array[atom];
 
@@ -198,14 +194,11 @@ namespace anisotropy{
                ++num_surface_atoms;
             }
          }
-         // END LS EDITS
-
-
          
       }
 
       // Output statistics to log file
-      // LS EDITS(counts by FeA/FeB)
+      // Added individual counts for FeA and FeB surface atoms
       {
          unsigned int nFeA = 0, nFeB = 0;
          for (int a = 0; a < atoms::num_atoms; ++a) {
@@ -224,7 +217,6 @@ namespace anisotropy{
                  << nFeA << ", FeB: " << nFeB << ")" << std::endl;
          }
       }
-      // END LS EDITS
       
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data

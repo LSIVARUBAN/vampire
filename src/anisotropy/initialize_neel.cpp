@@ -13,28 +13,21 @@
 // C++ standard library headers
 #include <string>
 #include <sstream>
-
-// LS EDIT START
 #include <fstream>
 #include <iomanip>
 #include <cmath>
 #include <map>
 #include <cstring>
 #include <limits>
-// LS EDIT END
 
 // Vampire headers
 #include "atoms.hpp" // to be removed
 #include "create.hpp" // to be removed
-
 #include "anisotropy.hpp"
 #include "errors.hpp"
 #include "units.hpp"
 #include "vio.hpp"
-
-// LS EDIT START
 #include "sim.hpp"  // for sim::constraint_theta, sim::constraint_phi
-// LS EDIT END
 
 // anisotropy module headers
 #include "internal.hpp"
@@ -43,11 +36,9 @@ namespace anisotropy{
 
 namespace internal{
 
-// LS EDIT START
-// sim::constraint_theta and sim::constraint_phi as "theta_XXXdeg_phi_YYYdeg.csv".
-std::string neel_pairs_csv_name;
+std::string neel_pairs_csv_name; // sim::constraint_theta and sim::constraint_phi as "theta_XXXdeg_phi_YYYdeg.csv"
 
-// temporary helper... map material id to the labels used in the Python CSVs
+// Helper to map material id to the labels used in the Python CSVs
 static inline const char* mat_label(unsigned int id) {
     switch (id) {
         case 0: return "FeA";
@@ -57,7 +48,7 @@ static inline const char* mat_label(unsigned int id) {
     }
 }
 
-// temporary helper... write perpair CSV in the current directory (same as py script)
+// Helper to write per-pair CSV in the current directory (to compare with Python scripts)
 // Columns:
 // fe_id,o_id,fe_site,fe_coord_z,ex,ey,ez,sx,sy,sz,k_J,S_dot_e,pair_energy_J,fe_x,fe_y,fe_z,o_x,o_y,o_z
 static void write_neel_pairs_csv(
@@ -99,7 +90,7 @@ static void write_neel_pairs_csv(
         const double sy = atoms::y_spin_array[i];
         const double sz = atoms::z_spin_array[i];
 
-        // Emit one row per Fe–O pair
+        // Write one row per Fe–O pair
         for (unsigned int nn = 0; nn < cneighbourlist[i].size(); ++nn) {
             if (!nnmask[i][nn]) continue;
 
@@ -118,10 +109,10 @@ static void write_neel_pairs_csv(
             const double ey = vy * invrij;
             const double ez = vz * invrij;
 
-            // k in Joules assuming /2 is taken into account by mp[imat].kij[jmat]
+            // k is in Joules assuming 1/2 is taken into account by mp[imat].kij[jmat]
             double k_J = anisotropy::internal::mp[imat].kij[jmat];
             if (internal::neel_range_dependent) {
-                // exp factor if needed
+                // exponential factor if needed
                 k_J *= std::exp(-neel_exponential_factor * (rij - neel_exponential_range) / neel_exponential_range);
             }
 
@@ -150,7 +141,6 @@ static void write_neel_pairs_csv(
     out.close();
     zlog << zTs() << "Wrote pairs CSV: " << fname << std::endl;
 }
-// LS EDIT END
 
    //---------------------------------------------------------------------------
    // Function to calculate surface anisotropy tensor
@@ -195,10 +185,9 @@ static void write_neel_pairs_csv(
                   // get material id for j atom
                   const unsigned int jmat = atoms::type_array[natom];
 
-                  // LS EDIT START Fe–O only in tensor
+                  // Fe–O only in tensor
                   static constexpr unsigned int O_ID = 2; 
                   if (jmat != O_ID) continue;
-                  // LS EDIT END
 
                   // get atomic position vector i->j
                   double eij[3]={cneighbourlist[atom][nn].vx, cneighbourlist[atom][nn].vy, cneighbourlist[atom][nn].vz};
@@ -274,7 +263,7 @@ static void write_neel_pairs_csv(
 
       ofile.close();
 
-      // LS EDIT START
+      // Output the per-pair CSV for comparison with Python scripts
       std::string csv_name_final = neel_pairs_csv_name;
 
       if (csv_name_final.empty()) {
@@ -300,9 +289,8 @@ static void write_neel_pairs_csv(
           csv_name_final = oss.str();
       }
 
-      // Write CSV for this (theta,phi) run in the current directory.
-      //write_neel_pairs_csv(csv_name_final, nearest_neighbour_interactions_list, cneighbourlist);
-      // LS EDIT END
+      // Uncomment to write a CSV for this (theta,phi) run in the current directory.
+      // write_neel_pairs_csv(csv_name_final, nearest_neighbour_interactions_list, cneighbourlist);
 
    } // end of surface anisotropy initialisation
 

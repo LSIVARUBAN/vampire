@@ -152,9 +152,8 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
    std::fill( applied_field_energy.begin(), applied_field_energy.end(), 0.0 );
    std::fill( magnetostatic_energy.begin(), magnetostatic_energy.end(), 0.0 );
 
-   // Uncomment to output mask atoms and their anisotropy energies ... careful it appends to the file so every call of the fn will increase filesize
-   // // LS EDIT START
-   // // append per atom mask energy CSV once per process and write header once.
+   // Uncomment to output mask atoms and their anisotropy energies. Warning: it will append to the file each call of the function so filesize can be large
+   // // Append per atom mask energy CSV once per process and write header once.
    // // File: anisotropy_mask_atoms_energy.csv
    // // Columns:
    // //   atom_id,mask_id,material_id,mm_T,
@@ -180,7 +179,6 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
    //       atoms_csv_header_written = true;
    //    }
    // }
-   // // LS EDITS END
 
    //---------------------------------------------------------------------------
    // Calculate exchange energy (in Tesla) -- per-atom then accumulate
@@ -205,7 +203,6 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
       applied_field_energy[mask_id]  += e_ap_T * mm[atom];
       magnetostatic_energy[mask_id]  += e_ms_T * mm[atom];
 
-      // LS EDIT START
       // Per atom CSV row (T and J). Apply 1/2 factors to exchange and magnetostatic to the total only.
       // if (do_write_atoms_csv) {
       //    const double total_T = 0.5*e_ex_T + e_an_T + e_ap_T + 0.5*e_ms_T;
@@ -219,7 +216,6 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
       //              << e_ex_T << "," << e_an_T << "," << e_ap_T << "," << e_ms_T << "," << total_T << ","
       //              << ex_J   << "," << an_J   << "," << ap_J   << "," << ms_J   << "," << total_J  << "\n";
       // }
-      // LS EDITS END
    }
 
    // save total energy accounting for factor 1/2 in double summation
@@ -274,11 +270,10 @@ void energy_statistic_t::calculate(const std::vector<double>& sx,  // spin unit 
       magnetostatic_energy[ zero_list[id] ] = 0.0;
    }
 
-   // LS EDIT START
+   // Optionally output per-atom CSV and close file
    // if (do_write_atoms_csv) {
    //    atoms_csv.close();
    // }
-   // LS EDITS END
 
    return;
 

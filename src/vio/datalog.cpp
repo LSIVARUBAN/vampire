@@ -328,6 +328,12 @@ namespace vout{
 			case 91:
 				vout::mean_coupling_field_vec(stream,header);
 				break;
+			case 92:
+				vout::cubic_geofencing(stream,header);
+				break;
+			case 93:
+				vout::uniaxial_geofencing(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;

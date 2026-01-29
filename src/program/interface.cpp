@@ -268,6 +268,25 @@ namespace program{
          program::internal::exchange_stiffness_delta_constraint_angle = ai;
          return true;
       }
+      //--------------------------------------------------------------------
+      test="effective-damping-angle"; // angle to offset spins about rotation axis
+      if(word==test){
+         double angle=atof(value.c_str());
+         vin::check_for_valid_value(angle, word, line, prefix, unit, "angle", 0.0, 360.0,"input","0 - 360 degrees");
+         program::effective_damping_angle = angle;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="effective-damping-rotation-axis"; // axis to rotate spins around
+      if(word==test){
+         std::vector<double> u(3);
+         u=vin::doubles_from_string(value);
+         vin::check_for_valid_unit_vector(u, word, line, prefix,"length");
+         program::effective_damping_rotation_axis[0] = u[0];
+         program::effective_damping_rotation_axis[1] = u[1];
+         program::effective_damping_rotation_axis[2] = u[2];
+         return true;
+      }
       //-------------------------------------------------------------------
       test = "field-pulse-time";
       if(word == test){

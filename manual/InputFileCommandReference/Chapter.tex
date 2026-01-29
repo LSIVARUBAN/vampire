@@ -418,6 +418,14 @@ m(T) = \langle{\sqrt{\sum_i \sms}}\rangle = \left(1 - \frac{T}{T_{\mathrm{C}}} \
 
 {\zicf sim:program = temperature-pulse}\phantomsection\addcontentsline{toc}{subsubsection}{temperature-pulse}
 
+{\zicf sim:program = effective-damping}\phantomsection\addcontentsline{toc}{subsubsection}{effective-damping}
+Program to calculate the effective Gilbert damping. The system is first equilibrated at
+\textit{sim:equilibration-temperature} and then the spins are
+rotated by an angle \textit{sim:effective-damping-angle}
+(in degrees) about a defined rotation axis
+\textit{sim:effective-damping-rotation-axis} (Vector which is normalised internally).
+Default rotation is $30^{\circ}$ about the $x$-axis (axis vector $(1,0,0)$).
+
 {\zicf sim:program = electrical-pulse}\phantomsection\addcontentsline{toc}{subsubsection}{electrical-pulse}
 Simulates the effect of an electrical pulse through either spin-transfer (STT) or
 spin-orbit (SOT) torques, or through the spin-transport circuit theory model. The
@@ -632,6 +640,17 @@ temperature and anisotropy.
 \end{itemize}
 
 {\zicf sim:preconditioning-steps = integer [default 0]}\phantomsection\addcontentsline{toc}{subsection}{sim:preconditioning-steps} Defines a number of preconditioning steps to thermalise the spins at sim:equilibration-temperature prior to the main simulation starting. The preconditioner uses a Monte Carlo algorithm to develop a Boltzmann spin distribution prior to the main program starting. The method works in serial and parallel mode and is especially efficient for materials with low Gilbert damping. The preconditioning steps are applied after loading a checkpoint, allowing you to take a low temperature starting state and thermally equilibrate it.
+
+{\zicf sim:effective-damping-angle = float [0 - 360 degrees, default $30^{\circ}$]}\phantomsection\addcontentsline{toc}{subsection}{sim:effective-damping-angle}
+Rotation angle (in degrees) applied to all spins at the end of the equilibration
+stage in \textit{sim:program = effective-damping}. The spins are rotated by this
+angle about \textit{sim:effective-damping-rotation-axis}.
+
+{\zicf sim:effective-damping-rotation-axis = float vector [default (1,0,0)]}\phantomsection\addcontentsline{toc}{subsection}{sim:effective-damping-rotation-axis}
+Vector defining the axis about which the spins are rotated in
+\textit{sim:program = effective-damping}. The vector is normalised internally.
+For example, specifying $(1,0,0)$ rotates about the
+$x$-axis.
 
 {\zicf sim:electrical-pulse-time = float [default $1.0$ ns]}\phantomsection\addcontentsline{toc}{subsection}{sim:electrical-pulse-time}
 Defines the pulse time in the program \textit{electrical-pulse} with default

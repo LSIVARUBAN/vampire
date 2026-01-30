@@ -49,6 +49,11 @@ void read_unit_cell(unit_cell_t & unit_cell, std::string filename){
    // defaults for interaction list
    unsigned int interaction_range = 1; // assume +-1 unit cell as default
 
+	// optional per atom surface flag column (1 to classify as surface else 0) in unit cell file atom list
+	bool surface_flag_column_determined = false;
+	bool surface_flag_column_present = false;
+	unit_cell.surface_flags_present = false;
+
 	// Loop over all lines
 	while (! inputfile.eof() ){
 		line_counter++;
@@ -125,6 +130,51 @@ void read_unit_cell(unit_cell_t & unit_cell, std::string filename){
 					getline(inputfile,atom_line);
 					std::istringstream atom_iss(atom_line,std::istringstream::in);
 					atom_iss >> id >> cx >> cy >> cz >> mat_id >> lcat_id >> hcat_id;
+
+					// try to read optional surface flag column (1 to classify as surface else 0)
+					int surface_flag = 0;
+					const bool has_surface_flag_on_line = bool(atom_iss >> surface_flag);
+
+					// determine whether the surface flag column is present (based on the first line of atom section)
+					if(!surface_flag_column_determined){
+						surface_flag_column_determined = true;
+						surface_flag_column_present = has_surface_flag_on_line;
+						unit_cell.surface_flags_present = surface_flag_column_present;
+					}
+					else{
+						// make sure flags are present throughout or not at all
+						if(surface_flag_column_present != has_surface_flag_on_line){
+							terminaltextcolor(RED);
+							std::cerr << "Error! Inconsistent unit cell atom format on line " << line_counter
+										 << " of unit cell input file " << filename.c_str()
+										 << ". Optional surface flag column must be either present for all atoms or absent for all atoms. Exiting" << std::endl;
+							terminaltextcolor(WHITE);
+							zlog << zTs() << "Error! Inconsistent unit cell atom format on line " << line_counter
+									 << " of unit cell input file " << filename.c_str()
+									 << ". Optional surface flag column must be either present for all atoms or absent for all atoms. Exiting" << std::endl;
+							err::vexit();
+						}
+					}
+
+					// Store surface flags if present
+					if(surface_flag_column_present){
+						if(surface_flag == 0) unit_cell.atom[i].is_surface = false;
+						else if(surface_flag == 1) unit_cell.atom[i].is_surface = true;
+						else{
+							terminaltextcolor(RED);
+							std::cerr << "Error! Invalid surface flag value " << surface_flag << " for atom " << id
+										 << " on line " << line_counter << " of unit cell input file " << filename.c_str()
+										 << ". Must be 0 or 1. Exiting" << std::endl;
+							terminaltextcolor(WHITE);
+							zlog << zTs() << "Error! Invalid surface flag value " << surface_flag << " for atom " << id
+									 << " on line " << line_counter << " of unit cell input file " << filename.c_str()
+									 << ". Must be 0 or 1. Exiting" << std::endl;
+							err::vexit();
+						}
+					}
+					else{
+						unit_cell.atom[i].is_surface = false;
+					}
 					//std::cout << id << "\t" << cx << "\t" << cy << "\t" << cz<< "\t"  << mat_id << "\t" << lcat_id << "\t" << hcat_id << std::endl;
 					//inputfile >> id >> cx >> cy >> cz >> mat_id >> lcat_id >> hcat_id;
 					// now check for mostly sane input

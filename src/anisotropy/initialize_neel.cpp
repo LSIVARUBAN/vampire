@@ -37,7 +37,17 @@ namespace internal{
                                           std::vector<std::vector <neighbours::neighbour_t> >& cneighbourlist){
 
       // Print informative message to log file
-      zlog << zTs() << "Using Néel pair anisotropy for atoms with < threshold number of neighbours." << std::endl;
+      static constexpr unsigned int BULK_NEEL_THRESHOLD = 1000000000;
+      const bool bulk_neel_anisotropy_enabled = (internal::neel_anisotropy_threshold >= BULK_NEEL_THRESHOLD);
+      if(bulk_neel_anisotropy_enabled){
+         zlog << zTs() << "Using Néel pair anisotropy for all atoms (bulk Néel anisotropy enabled)." << std::endl;
+      }
+      else if(cs::unit_cell.surface_flags_present){
+         zlog << zTs() << "Using Néel pair anisotropy for surface atoms defined in unit cell file." << std::endl;
+      }
+      else{
+         zlog << zTs() << "Using Néel pair anisotropy for atoms with < threshold number of neighbours." << std::endl;
+      }
 
       // allocate memory for neel anisotropy tensor
       internal::neel_tensor.resize( 9 * atoms::num_atoms, 0.0 );

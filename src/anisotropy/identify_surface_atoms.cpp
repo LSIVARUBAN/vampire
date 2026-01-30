@@ -13,6 +13,7 @@
 // C++ standard library headers
 #include <string>
 #include <sstream>
+#include <vector>
 
 // Vampire headers
 #include "atoms.hpp" // to be removed
@@ -36,21 +37,36 @@ namespace anisotropy{
       // initialise surface threshold if not overidden by input file
       if(internal::neel_anisotropy_threshold == 123456789) internal::neel_anisotropy_threshold = cs::unit_cell.surface_threshold;
 
+      // See if the large threshold has been set by enable-bulk-neel-anisotropy
+      static constexpr unsigned int BULK_NEEL_THRESHOLD = 1000000000;
+      const bool bulk_neel_anisotropy_enabled = (internal::neel_anisotropy_threshold >= BULK_NEEL_THRESHOLD);
+      const bool use_unit_cell_surface_flags = (cs::unit_cell.surface_flags_present && !bulk_neel_anisotropy_enabled);
+
       //-------------------------------------------------
       //	Optionally set up surface anisotropy
       //-------------------------------------------------
 
       // create temporary array for storing surface threshold
       std::vector<unsigned int> surface_anisotropy_threshold_array(atoms::num_atoms, internal::neel_anisotropy_threshold);
-      // if using native (local) surface threshold then repopulate threshold array
-      if(internal::native_neel_anisotropy_threshold){
-         zlog << zTs() << "Identifying surface atoms using native (site dependent) threshold." << std::endl;
-         for(int atom=0; atom < atoms::num_atoms; atom++){
-            unsigned int atom_uc_id = catom_array.at(atom).uc_id;
-            surface_anisotropy_threshold_array.at(atom) = cs::unit_cell.atom.at(atom_uc_id).ni;
+      // Output messages to log file
+      if(!use_unit_cell_surface_flags){
+         // if using native (local) surface threshold then repopulate threshold array
+         if(internal::native_neel_anisotropy_threshold && !bulk_neel_anisotropy_enabled){
+            zlog << zTs() << "Identifying surface atoms using native (site dependent) threshold." << std::endl;
+            for(int atom=0; atom < atoms::num_atoms; atom++){
+               unsigned int atom_uc_id = catom_array.at(atom).uc_id;
+               surface_anisotropy_threshold_array.at(atom) = cs::unit_cell.atom.at(atom_uc_id).ni;
+            }
+         }
+         else{
+            if(bulk_neel_anisotropy_enabled){
+               zlog << zTs() << "Bulk Néel anisotropy enabled: using global threshold value of " << internal::neel_anisotropy_threshold << std::endl;
+            }
+            else{
+               zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::neel_anisotropy_threshold << std::endl;
+            }
          }
       }
-      else zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::neel_anisotropy_threshold << std::endl;
 
       //--------------------------------------------------------------------------------------------
       // Determine nearest neighbour interactions from unit cell data for a single unit cell
@@ -139,34 +155,88 @@ namespace anisotropy{
       // Resize surface atoms mask and initialise to false
       atoms::surface_array.resize(atoms::num_atoms, false);
 
-      // Loop over all *local* atoms
-      for(int atom = 0; atom < atoms::num_atoms; atom++){
+      // If surface flags are specified in the unit cell file then use them rather than geometric identification.
+      // However enabling bulk Néel anisotropy will override surface flags and use all atoms.
+      if(use_unit_cell_surface_flags){
 
-         // Check for local MPI atoms only
-         if(catom_array[atom].mpi_type!=2){
+         zlog << zTs() << "Identifying surface atoms using unit cell surface flags." << std::endl;
 
-            // Initialise counter for number of nearest neighbour interactions
-            unsigned int nnn_int=0;
+         // Loop over all *local* atoms
+         for(int atom = 0; atom < atoms::num_atoms; atom++){
 
-            // Loop over all interactions to determine number of nearest neighbour interactions
-            for(unsigned int nn = 0 ; nn < cneighbourlist[atom].size(); nn++){
+            // Check for local MPI atoms only
+            if(catom_array[atom].mpi_type!=2){
 
-               // If interaction is nn, increment counter
-               if(nearest_neighbour_interactions_list[atom][nn]) nnn_int++;
+               const unsigned int atom_uc_id = catom_array.at(atom).uc_id;
 
-            }
-
-            // check for atoms with < threshold number of nearest neighbours
-            if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
-               atoms::surface_array[atom]=true;
-               num_surface_atoms++;
-               //total_num_surface_nn+=nnn_int;
+               if(cs::unit_cell.atom[atom_uc_id].is_surface){
+                  atoms::surface_array[atom]=true;
+                  num_surface_atoms++;
+               }
             }
          }
+
+         zlog << zTs() << num_surface_atoms << " surface atoms found from unit cell flags." << std::endl;
+
+      }
+      else{
+
+         // Loop over all *local* atoms
+         for(int atom = 0; atom < atoms::num_atoms; atom++){
+
+            // Check for local MPI atoms only
+            if(catom_array[atom].mpi_type!=2){
+
+               // Initialise counter for number of nearest neighbour interactions
+               unsigned int nnn_int=0;
+
+               // Loop over all interactions to determine number of nearest neighbour interactions
+               for(unsigned int nn = 0 ; nn < cneighbourlist[atom].size(); nn++){
+
+                  // If interaction is nn, increment counter
+                  if(nearest_neighbour_interactions_list[atom][nn]) nnn_int++;
+
+               }
+
+               // check for atoms with < threshold number of nearest neighbours
+               if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
+                  atoms::surface_array[atom]=true;
+                  num_surface_atoms++;
+                  //total_num_surface_nn+=nnn_int;
+               }
+            }
+         }
+
+         // Output statistics to log file
+         zlog << zTs() << num_surface_atoms << " surface atoms found." << std::endl;
+
       }
 
-      // Output statistics to log file
-      zlog << zTs() << num_surface_atoms << " surface atoms found." << std::endl;
+      // Output surface atom counts per material id
+      {
+         unsigned int max_id = 0; 
+         for(int a = 0; a < atoms::num_atoms; ++a){ // find max material id
+            const unsigned int t = atoms::type_array[a];
+            if(t > max_id) max_id = t;
+         }
+
+         std::vector<unsigned int> surface_atoms_by_type(max_id + 1, 0); // count surface atoms per material id
+         for(int a = 0; a < atoms::num_atoms; ++a){
+            if(atoms::surface_array[a]){
+               surface_atoms_by_type[atoms::type_array[a]]++;
+            }
+         }
+
+         zlog << zTs() << "Surface atoms by material id:"; // output counts
+         bool any = false;
+         for(unsigned int t = 0; t < surface_atoms_by_type.size(); ++t){
+            if(surface_atoms_by_type[t] == 0) continue;
+            zlog << " " << t << ":" << surface_atoms_by_type[t];
+            any = true;
+         }
+         if(!any) zlog << " none";
+         zlog << std::endl;
+      }
 
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data

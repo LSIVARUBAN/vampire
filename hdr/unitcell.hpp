@@ -41,6 +41,7 @@ namespace unitcell{
       unsigned int hc; /// height category
       unsigned int ni; /// number of interactions
       bool nm; // non-magnetic atom (no interactions are calculated)
+      bool is_surface; // optional per atom surface flag (to override geometric identification in identify_surface_atoms)
 
       // constructor
       atom_t():
@@ -51,7 +52,8 @@ namespace unitcell{
          lc(0),
          hc(0),
          ni(0),
-         nm(false)
+         nm(false),
+         is_surface(false)
       {
       };
 
@@ -153,6 +155,9 @@ namespace unitcell{
 		unsigned int lcsize; /// number of local categories
 		unsigned int hcsize; /// number of height categories
 		unsigned int surface_threshold; /// threshold for surface atoms
+
+      // Optional surface flags from unit cell file
+      bool surface_flags_present = false; // if true, use atom[i].is_surface instead of geometric identification in identify_surface_atoms
 
 		// list of atoms in each unit cell
 		std::vector <unitcell::atom_t> atom;

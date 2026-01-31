@@ -147,8 +147,13 @@ namespace anisotropy{
       internal::cubic_fourth_order_rotation_fields(spin_array_x, spin_array_y, spin_array_z, type_array, field_array_x, field_array_y, field_array_z, start_index, end_index);
 
       // Neel anisotropy
-      internal::neel_fields(spin_array_x, spin_array_y, spin_array_z, type_array, field_array_x, field_array_y, field_array_z, start_index, end_index);
-
+      if(internal::enable_neel_fourth_order_anisotropy){
+         internal::neel_fields_fourth(spin_array_x, spin_array_y, spin_array_z, type_array, field_array_x, field_array_y, field_array_z, start_index, end_index);
+      }
+      else{
+         internal::neel_fields(spin_array_x, spin_array_y, spin_array_z, type_array, field_array_x, field_array_y, field_array_z, start_index, end_index);
+      }
+      
       // lattice anisotropy
       internal::lattice_fields(spin_array_x, spin_array_y, spin_array_z, type_array, field_array_x, field_array_y, field_array_z, start_index, end_index, temperature);
 

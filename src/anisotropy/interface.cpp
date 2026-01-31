@@ -35,7 +35,7 @@ namespace anisotropy{
       if(key!=prefix) return false;
 
       //-------------------------------------------------------------------
-      std::string test="enable_fourth_order_neel_anisotropy";
+      std::string test="enable-fourth-order-neel-anisotropy";
       if(word==test){
           // Enable fourth order (collinear spin) Neel anisotropy model.
           zlog << zTs() << "Enabling fourth order Neel anisotropy model." << std::endl;
@@ -1045,7 +1045,7 @@ namespace anisotropy{
       }
       //------------------------------------------------------------
       // Quartic coefficient for fourth order (collinear spin) Neel anisotropy model.
-      // The model also needs to be enabled using anisotropy:enable_fourth_order_neel_anisotropy
+      // The model also needs to be enabled using anisotropy:enable-fourth-order-neel-anisotropy
       test="neel-fourth-order-anisotropy-constant";
       if(word == test){
          double qij = atof(value.c_str());

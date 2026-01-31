@@ -35,7 +35,15 @@ namespace anisotropy{
       if(key!=prefix) return false;
 
       //-------------------------------------------------------------------
-      std::string test="surface-anisotropy-threshold";
+      std::string test="enable_fourth_order_neel_anisotropy";
+      if(word==test){
+          // Enable fourth order (collinear spin) Neel anisotropy model.
+          zlog << zTs() << "Enabling fourth order Neel anisotropy model." << std::endl;
+          internal::enable_neel_fourth_order_anisotropy = true;
+          return true;
+      }
+      //-------------------------------------------------------------------
+      test="surface-anisotropy-threshold";
       if(word==test){
           // test for native keyword
           test="native";
@@ -1129,6 +1137,16 @@ namespace anisotropy{
          vin::check_for_valid_value(kij, word, line, prefix, unit, "energy", -1e-17, 1e-17,"material"," < +/- 1.0e17");
          internal::mp[super_index].kij[sub_index] = kij;
          internal::enable_neel_anisotropy = true;
+         return true;
+      }
+      //------------------------------------------------------------
+      // Quartic coefficient for fourth order (collinear spin) Neel anisotropy model.
+      // The model also needs to be enabled using anisotropy:enable_fourth_order_neel_anisotropy
+      test="neel-fourth-order-anisotropy-constant";
+      if(word == test){
+         double qij = atof(value.c_str());
+         vin::check_for_valid_value(qij, word, line, prefix, unit, "energy", -1e-17, 1e-17,"material"," < +/- 1.0e17");
+         internal::mp[super_index].qij[sub_index] = qij;
          return true;
       }
       //------------------------------------------------------------

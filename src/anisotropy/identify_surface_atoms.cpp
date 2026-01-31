@@ -241,7 +241,33 @@ namespace anisotropy{
       //----------------------------------------------------------------
       // If neel surface anisotropy is enabled, calculate necessary data
       //----------------------------------------------------------------
-      if(internal::enable_neel_anisotropy){
+      if(internal::enable_neel_fourth_order_anisotropy){ // Use fourth order Neel anisotropy (for collinear spins) rather than standard second order
+
+         // Require both quadratic and quartic pair coefficients.
+         // Quadratic coefficients are material:neel-anisotropy-constant (kij).
+         // Quartic coefficients are material:neel-fourth-order-anisotropy-constant (qij).
+         bool any_qij = false;
+         const int nmat = (mp::num_materials > 0) ? mp::num_materials : static_cast<int>(internal::mp.size());
+         for(int i = 0; i < nmat && !any_qij; ++i){
+            for(int j = 0; j < nmat; ++j){
+               if(std::fabs(internal::mp[i].qij[j]) > 0.0){
+                  any_qij = true;
+                  break;
+               }
+            }
+         }
+
+         if(!internal::enable_neel_anisotropy || !any_qij){
+            std::cerr << "Error: fourth order Neel anisotropy is enabled but both required material coefficients were not provided.\n"
+                      << "Exiting." << std::endl;
+            zlog << zTs() << "Error: fourth order Neel anisotropy is enabled but both required material coefficients were not provided.\n"
+                 << "Exiting." << std::endl;
+            err::vexit();
+         }
+
+         internal::initialise_neel_fourth_order_anisotropy_tensors(nearest_neighbour_interactions_list, cneighbourlist);
+      }
+      else if(internal::enable_neel_anisotropy){
          internal::initialise_neel_anisotropy_tensor(nearest_neighbour_interactions_list, cneighbourlist);
       }
 

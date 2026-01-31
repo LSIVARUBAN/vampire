@@ -37,6 +37,7 @@ namespace anisotropy{
       bool initialised = false; // variable to determine if module has been initialised
 
       bool enable_neel_anisotropy     = false; // Flag to turn on Neel anisotropy calculation (memory intensive at startup)
+      bool enable_neel_fourth_order_anisotropy = false; // Flag to select fourth order Neel anisotropy model for collinear spins
       bool enable_lattice_anisotropy  = false; // Flag to turn on lattice anisotropy calculation
       bool enable_random_anisotropy   = false; // Flag to enable random anisitropy initialisation
       bool enable_rotational_anisotropy = false; // Flag for CUDA to store rotational data
@@ -83,6 +84,12 @@ namespace anisotropy{
 
       // array for storing 1D second order collapsed tensor for Neel anisotropy
       std::vector<double> neel_tensor(0);
+
+      // array for storing 1D rank 4 collapsed tensor for fourth order (collinear spin) Neel anisotropy
+      std::vector<double> neel_tensor_4(0);
+
+      // per atom constant energy offset for fourth order (collinear spin) Neel anisotropy
+      std::vector<double> neel_fourth_order_energy_constant(0);
 
       // arrays for storing unrolled anisotropy constants in Tesla
       std::vector<double> ku2(0);

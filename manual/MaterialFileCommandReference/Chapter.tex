@@ -167,7 +167,7 @@ anisotropy vector. Both random anisotropies are compatible with higher order uni
 {\zicf material:surface-anisotropy-constant = float default 0.0 (J/atom)}\phantomsection\addcontentsline{toc}{subsection}{material:surface-anisotropy-constant} Describes the surface anisotropy constant in the N\'eel pair anisotropy model. The anisotropy is given by a summation over nearest neighbour atoms given by
 
 \begin{equation*}
-E_i = +\frac{1}{2} \sum_j^{\mathrm{nn}} \ksurf (\sms \cdot \rij )^2
+E_i = -\frac{1}{2} \sum_j^{\mathrm{nn}} \ksurf (\sms \cdot \rij )^2
 \end{equation*}
 
 \noindent where \ksurf is the surface anisotropy constant between atoms $i$ and $j$ and \rij is a unit vector between sites $i$ and $j$.

@@ -151,11 +151,12 @@ namespace micromagnetic{
             S_new[1]=S[1]+xyz[1]*mp::dt;
             S_new[2]=S[2]+xyz[2]*mp::dt;
 
+            // Test disabled mid step normalisation of spin length 
             // Normalise Spin Length
-            mod_S = 1.0/sqrt(S_new[0]*S_new[0] + S_new[1]*S_new[1] + S_new[2]*S_new[2]);
-            S_new[0]=S_new[0]*mod_S;
-            S_new[1]=S_new[1]*mod_S;
-            S_new[2]=S_new[2]*mod_S;
+            // mod_S = 1.0/sqrt(S_new[0]*S_new[0] + S_new[1]*S_new[1] + S_new[2]*S_new[2]);
+            // S_new[0]=S_new[0]*mod_S;
+            // S_new[1]=S_new[1]*mod_S;
+            // S_new[2]=S_new[2]*mod_S;
 
             //Writing of Spin Values to Storage Array
             x_spin_storage_array[atom]=S_new[0];

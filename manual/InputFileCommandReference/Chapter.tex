@@ -498,12 +498,11 @@ set the shift between the centre of application of the external field and temper
 
 {\zicf sim:program = ms-macrospin-cubic-geofencing}\phantomsection\addcontentsline{toc}{subsubsection}{ms-macrospin-cubic-geofencing}
 Runs a many spin macrospin time-series program with cubic geofencing. Each atom in the system is treated as a macrospin therefore there should be zero exchange interactions. 
-The magnetic state of each macrospin is tracked throughout the simulation using geofencing against cubic easy axes. The default output file contains one row per magnetic atom with columns: atom id, tau,
-fractional lost time, final simulation time, and total transitions. tau is defined as the simulation time between the final and initial transitions divided by the total number of transitions, and the fractional lost time represents the fraction of time when the geofencing threshold is not met.
+The magnetic state of each macrospin is tracked throughout the simulation using geofencing against cubic easy axes. Output is provided through the standard VIO system using output keys such as \textit{output:ms-macrospin-tau}, \textit{output:ms-macrospin-lost-time}, and \textit{output:ms-macrospin-total-transitions}, with the frequency controlled by \textit{output:output-rate}.
 
 {\zicf sim:program = ms-macrospin-uniaxial-geofencing}\phantomsection\addcontentsline{toc}{subsubsection}{ms-macrospin-uniaxial-geofencing}
 Runs the many spin macrospin time-series program with uniaxial geofencing. The uniaxial axis can be set with
-\textit{sim:ms-macrospin-uniaxial-axis}. The output format is the same as the cubic mode.
+\textit{sim:ms-macrospin-uniaxial-axis}. The output keys are the same as the cubic mode.
 
 {\zicf sim:enable-fmr-field}\phantomsection\addcontentsline{toc}{subsection}{sim:enable-fmr-field}
 
@@ -708,10 +707,6 @@ Sets the geofencing threshold used by the many spin macrospin program. Spins are
 {\zicf sim:ms-macrospin-uniaxial-axis = float vector [default (0,0,1)]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-uniaxial-axis}
 Sets the uniaxial easy axis for many spin macrospin geofencing. The vector is normalised internally.
 
-{\zicf sim:ms-macrospin-output-steps = integer [default 0]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-output-steps}
-Defines the number of time steps between many spin macrospin outputs. A value of 0 disables periodic writes and
-only writes the final results. Subsequent outputs overwrite the previous output file, so only the latests statistics are recorded to file. 
-
 \section*{Data output}
 \phantomsection\addcontentsline{toc}{section}{Data output}
 The following commands control what data is output to the \textit{output} file. The order in which they appear is the order in which they appear in the \textit{output} file. Most options output a single column of data, but some output multiple columns, particularly vector data or parameters related to materials, where one column per material is output. Note that this means that for vector data, one set of columns per material is output.
@@ -758,6 +753,12 @@ Outputs the time-averaged normalized magnetization length for each material, e.g
 {\zicf output:cubic-geofencing}\phantomsection\addcontentsline{toc}{subsection}{output:cubic-geofencing} Outputs the cubic magnetic state of the magnetisation direction, classified into one of the eight $\langle 111 \rangle$ directions using the geofencing method. By default, the magnetisation direction used is the material magnetisation of material 0. The output state numbers are: 0X = Lost (where X is the best state), 1 = $[+,+,+]$, 2 = $[-,+,+]$, 3 = $[+,-,+]$, 4 = $[-,-,+]$, 5 = $[+,+,-]$, 6 = $[-,+,-]$, 7 = $[+,-,-]$, 8 = $[-,-,-]$, corresponding to $(\pm 1,\pm 1,\pm 1)/\sqrt{3}$. By default this outputs two columns: the state and the best dot product $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}}$ for the axis that defined the state. Optionally can be set equal to no-product to only output just the magnetic state column.
 
 {\zicf output:uniaxial-geofencing}\phantomsection\addcontentsline{toc}{subsection}{output:uniaxial-geofencing} Outputs the uniaxial magnetic state along a defined axis using the geofencing method. By default, the magnetisation direction used is the material magnetisation of material 0 and the axis is $[001]$. The output state numbers are: 0 = Lost (where X is the best state), 1 = aligned with the axis, 2 = antiparallel with the axis. By default this outputs two columns: the state and the best dot product $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}}$ for the axis that defined the state. Optionally can be set equal to no-product to output just the magnetic state column.
+
+{\zicf output:ms-macrospin-tau}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-tau} Outputs the average macrospin switching time $\tau$ across all magnetic atoms in the many-spin macrospin programs. The per-atom $\tau$ is defined as the time between the final and initial transitions divided by the total number of transitions for that atom. 
+
+{\zicf output:ms-macrospin-lost-time}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-lost-time} Outputs the average percentage of time that macrospins are outside the geofencing threshold across all magnetic atoms in the many-spin macrospin programs. 
+
+{\zicf output:ms-macrospin-total-transitions}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-total-transitions} Outputs the total number of macrospin transitions summed across all magnetic atoms in the many-spin macrospin programs.
 
 {\zicf output:cubic-geofencing-threshold}\phantomsection\addcontentsline{toc}{subsection}{output:cubic-geofencing-threshold} Sets the dot product threshold used for cubic geofencing. A magnetisation direction is assigned to the closest $\langle 111 \rangle$ direction if $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}} \ge threshold$. (Default 0.95).
 

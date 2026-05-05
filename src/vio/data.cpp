@@ -11,6 +11,7 @@
 //
 
 // C++ standard library headers
+#include <cstdint>
 
 // Vampire headers
 // Headers
@@ -74,4 +75,8 @@ namespace vout{
    double uniaxial_axis_x = 0.0; // uniaxial easy axis components, default 001
    double uniaxial_axis_y = 0.0;
    double uniaxial_axis_z = 1.0;
+
+   double ms_macrospin_tau_avg = 0.0;
+   double ms_macrospin_lost_time_avg = 0.0;
+   uint64_t ms_macrospin_total_transitions = 0u;
 }

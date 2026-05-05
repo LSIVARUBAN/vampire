@@ -83,54 +83,6 @@ static int aligned_state_uniaxial(const double mx, const double my, const double
 	return (best_dot >= threshold) ? best_state : -1;
 }
 
-static void write_ms_macrospin_output(const int num_atoms,
-										const std::vector<uint64_t>& switch_counts,
-										const std::vector<uint64_t>& aligned_steps,
-										const std::vector<uint64_t>& lost_steps,
-										const std::vector<double>& first_transition_time,
-										const std::vector<double>& last_transition_time,
-										const std::vector<bool>& has_transition,
-										const double total_time_s){
-	if(vmpi::my_rank != 0){
-		return;
-	}
-
-    // ignore file and screen output settings and write the outputs for many spin macrospin program
-	if(zmag.is_open()){
-		zmag.close();
-	}
-	vout::file_output_list.clear();
-	vout::screen_output_list.clear();
-	vout::output_rate = 1;
-	vout::data();
-
-    // set precision for outputs
-	if(vout::custom_precision){
-		zmag.precision(vout::precision);
-		if(vout::fixed) zmag.setf(std::ios::fixed, std::ios::floatfield);
-	}
-
-    // loop through atoms and output switching statistics for each magnetic atom to file
-	for(int atom = 0; atom < num_atoms; ++atom){
-		
-        if(!atoms::magnetic[atom]){
-			continue;
-		}
-
-        // output file has columns: atom id, tau, fractional lost time, final simulation time, and total transitions. tau is defined as the simulation time between the final and initial transitions divided by the total number of transitions, and the fractional lost time represents the fraction of time when the geofencing threshold is not met.
-		const uint64_t transitions = switch_counts[atom];
-		const uint64_t total_steps = aligned_steps[atom] + lost_steps[atom];
-		const double tau = (transitions > 0u && has_transition[atom])
-			? ((last_transition_time[atom] - first_transition_time[atom]) / static_cast<double>(transitions))
-			: 0.0;
-		const double fractional_lost_time = (total_steps > 0u)
-			? (static_cast<double>(lost_steps[atom]) / static_cast<double>(total_steps)) * 100.0
-			: 0.0;
-		zmag << atom << "\t" << tau << "\t" << fractional_lost_time << "\t" << total_time_s
-			 << "\t" << transitions << '\n'; // don't flush the buffer after every atom line 
-	}
-}
-
 //------------------------------------------------------------------------------
 // Program to calculate many spin macrospin switching statistics
 //------------------------------------------------------------------------------
@@ -181,8 +133,6 @@ void ms_macrospin(){
 	const bool use_cubic = (program::internal::ms_macrospin_geofencing_mode == program::internal::ms_macrospin_geofencing_cubic);
 	const double threshold = use_cubic ? vout::cubic_geofencing_threshold : vout::uniaxial_geofencing_threshold;
 
-	const uint64_t output_steps = program::internal::ms_macrospin_output_steps; // number of steps between periodic outputs, 0 disables periodic outputs
-
 	// Perform Time Series
 	while(sim::time < sim::equilibration_time + sim::total_time){
 
@@ -229,32 +179,44 @@ void ms_macrospin(){
 			}
 		}
 
-        // output stats periodically if enabled
-		if(output_steps > 0u && (sim::time % output_steps == 0u)){
-			const double current_time_s = sim::time * mp::dt_SI;
-			write_ms_macrospin_output(num_atoms,
-			                           switch_counts,
-			                           aligned_steps,
-			                           lost_steps,
-			                           first_transition_time,
-			                           last_transition_time,
-			                           has_transition,
-			                           current_time_s);
+		// calculate statistics, averaging tau over magnetic atoms, and output data at specified intervals
+		uint64_t magnetic_atoms = 0u;
+		double tau_sum = 0.0;
+		double lost_time_sum = 0.0;
+		uint64_t transitions_sum = 0u;
+
+		for(int atom = 0; atom < num_atoms; ++atom){
+			if(!atoms::magnetic[atom]){
+				continue;
+			}
+
+			const uint64_t transitions = switch_counts[atom];
+			const uint64_t total_steps = aligned_steps[atom] + lost_steps[atom];
+			const double tau = (transitions > 0u && has_transition[atom])
+				? ((last_transition_time[atom] - first_transition_time[atom]) / static_cast<double>(transitions))
+				: 0.0;
+			const double fractional_lost_time = (total_steps > 0u)
+				? (static_cast<double>(lost_steps[atom]) / static_cast<double>(total_steps)) * 100.0
+				: 0.0;
+
+			tau_sum += tau;
+			lost_time_sum += fractional_lost_time;
+			transitions_sum += transitions;
+			++magnetic_atoms;
 		}
+
+		if(magnetic_atoms > 0u){
+			vout::ms_macrospin_tau_avg = tau_sum / static_cast<double>(magnetic_atoms);
+			vout::ms_macrospin_lost_time_avg = lost_time_sum / static_cast<double>(magnetic_atoms);
+		}
+		else{
+			vout::ms_macrospin_tau_avg = 0.0;
+			vout::ms_macrospin_lost_time_avg = 0.0;
+		}
+		vout::ms_macrospin_total_transitions = transitions_sum;
+
+		vout::data();
 	}
-
-    // count total time in seconds
-	const double total_time_s = sim::time * mp::dt_SI;
-
-	// output results to file at the end of the simulation
-	write_ms_macrospin_output(num_atoms,
-	                           switch_counts,
-	                           aligned_steps,
-	                           lost_steps,
-	                           first_transition_time,
-	                           last_transition_time,
-	                           has_transition,
-	                           total_time_s);
 }
 
 } // end of namespace program

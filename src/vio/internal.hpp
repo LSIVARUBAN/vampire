@@ -20,6 +20,7 @@
 //---------------------------------------------------------------------
 
 // C++ standard library headers
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -73,6 +74,10 @@ namespace vout{
    extern double uniaxial_axis_x; // uniaxial easy axis components
    extern double uniaxial_axis_y;
    extern double uniaxial_axis_z;
+
+   extern double ms_macrospin_tau_avg;
+   extern double ms_macrospin_lost_time_avg;
+   extern uint64_t ms_macrospin_total_transitions;
 
    // namespaced io lists (to avoid collisions)
    namespace grain{
@@ -233,6 +238,11 @@ namespace vout{
    // Geofencing output functions
    void cubic_geofencing(std::ostream& stream, bool header);
    void uniaxial_geofencing(std::ostream& stream, bool header);
+
+   // Many spin macrospin output functions
+   void ms_macrospin_tau(std::ostream& stream, bool header);
+   void ms_macrospin_lost_time(std::ostream& stream, bool header);
+   void ms_macrospin_total_transitions_out(std::ostream& stream, bool header);
 
    //-------------------------------------------------------------------------
    // Function protypes for functions inside: datalog.cpp

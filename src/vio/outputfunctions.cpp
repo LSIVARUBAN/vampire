@@ -89,6 +89,21 @@ namespace vout{
       stream << generic_output_double("Real_time",sim::time*mp::dt_SI,header);
    }
 
+   // Output Function 93 - with Header
+   void ms_macrospin_tau(std::ostream& stream, bool header){
+      stream << generic_output_double("MS_Macrospin_Tau", vout::ms_macrospin_tau_avg, header);
+   }
+
+   // Output Function 94 - with Header
+   void ms_macrospin_lost_time(std::ostream& stream, bool header){
+      stream << generic_output_double("MS_Macrospin_LostTime", vout::ms_macrospin_lost_time_avg, header);
+   }
+
+   // Output Function 95 - with Header
+   void ms_macrospin_total_transitions_out(std::ostream& stream, bool header){
+      stream << generic_output_int("MS_Macrospin_Transitions", vout::ms_macrospin_total_transitions, header);
+   }
+
    // Output Function 2 - with Header
    void temperature(std::ostream& stream, bool header){
       stream << generic_output_double("Temperature" ,sim::temperature,header);

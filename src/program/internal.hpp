@@ -92,7 +92,6 @@ namespace program{
       };
 
       extern int ms_macrospin_geofencing_mode; // one of ms_macrospin_geofencing_mode_t
-      extern uint64_t ms_macrospin_output_steps; // steps between statistic outputs in many spin macrospin program, 0 disables periodic outputs
 
       //------------------------------------------------------------------------
       // Material level parameters

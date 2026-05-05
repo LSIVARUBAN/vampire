@@ -326,14 +326,6 @@ namespace program{
          vout::uniaxial_axis_z = u.at(2) / ulen;
          return true;
       }
-      //-------------------------------------------------------------------
-      test = "ms-macrospin-output-steps";
-      if(word == test){
-         uint64_t steps = atoll(value.c_str()); // convert string to uint64_t
-         vin::check_for_valid_int(steps, word, line, prefix, 0, 1000000000000ULL, "input", "0 - 1e12");
-         program::internal::ms_macrospin_output_steps = steps;
-         return true;
-      }
       //--------------------------------------------------------------------
       // Keyword not found
       //--------------------------------------------------------------------

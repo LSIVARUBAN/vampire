@@ -1695,6 +1695,24 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
+        test="ms-macrospin-tau";
+        if(word==test){
+            output_list.push_back(93);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="ms-macrospin-lost-time";
+        if(word==test){
+            output_list.push_back(94);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="ms-macrospin-total-transitions";
+        if(word==test){
+            output_list.push_back(95);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
         // keyword not found
         //--------------------------------------------------------------------
         else{

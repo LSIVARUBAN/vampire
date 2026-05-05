@@ -84,6 +84,16 @@ namespace program{
       extern double exchange_stiffness_delta_constraint_angle; // degrees
 
       //------------------------------------------------------------------------
+      // Many spin macrospin program
+      //------------------------------------------------------------------------
+      enum ms_macrospin_geofencing_mode_t {
+         ms_macrospin_geofencing_cubic = 0,
+         ms_macrospin_geofencing_uniaxial = 1
+      };
+
+      extern int ms_macrospin_geofencing_mode; // one of ms_macrospin_geofencing_mode_t
+
+      //------------------------------------------------------------------------
       // Material level parameters
       //------------------------------------------------------------------------
       extern std::vector<internal::mp_t> mp; // array of material properties

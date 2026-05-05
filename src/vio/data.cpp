@@ -71,7 +71,7 @@ namespace vout{
    double uniaxial_geofencing_threshold = 0.95; // default dot product threshold
    int uniaxial_geofencing_material_id = 0; // use material 0 magnetisation by default
    bool uniaxial_geofencing_output_dot = true; // output best dot product column by default
-   double uniaxial_axis_x = 0.5773502691896258; // 1/sqrt(3) uniaxial easy axis components, default 111
-   double uniaxial_axis_y = 0.5773502691896258;
-   double uniaxial_axis_z = 0.5773502691896258;
+   double uniaxial_axis_x = 0.0; // uniaxial easy axis components, default 001
+   double uniaxial_axis_y = 0.0;
+   double uniaxial_axis_z = 1.0;
 }

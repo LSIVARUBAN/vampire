@@ -120,6 +120,17 @@ namespace vin{
 
 namespace vout{
 
+  // geofencing params needed for ms macrospin program
+  extern double cubic_geofencing_threshold;
+  extern int cubic_geofencing_material_id;
+  extern bool cubic_geofencing_output_dot;
+  extern double uniaxial_geofencing_threshold;
+  extern int uniaxial_geofencing_material_id;
+  extern bool uniaxial_geofencing_output_dot;
+  extern double uniaxial_axis_x;
+  extern double uniaxial_axis_y;
+  extern double uniaxial_axis_z;
+
    extern bool custom_precision; // enable user selectable precision for data output
    extern unsigned int precision; // variable to control output precision (digits)
    extern bool fixed; // fixed precision output

@@ -70,6 +70,7 @@
 #include "micromagnetic.hpp"
 #include "sld.hpp"
 
+
 // sim module headers
 #include "internal.hpp"
 
@@ -562,6 +563,14 @@ int run(){
 				zlog << "HAMR cool..." << std::endl;
 			}
 			program::hamr_cool();
+			break;
+		//------------------------------------------------------------------------
+		case 76:
+			if(vmpi::my_rank==0){
+				std::cout << "Many spin macrospin..." << std::endl;
+				zlog << "Many spin macrospin..." << std::endl;
+			}
+			program::ms_macrospin();
 			break;
 
 		//------------------------------------------------------------------------

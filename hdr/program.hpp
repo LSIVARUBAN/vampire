@@ -77,7 +77,7 @@ namespace program
 	extern void electrical_pulse();
 	extern void spin_waves(); // JRH
 	extern void field_pulse();
-
+	extern void ms_macrospin(); 	// many-spin macrospin program
 	// Sundry programs and diagnostics not under general release
 	extern int LLB_Boltzmann();
 	extern int timestep_scaling();

@@ -567,8 +567,8 @@ int run(){
 		//------------------------------------------------------------------------
 		case 76:
 			if(vmpi::my_rank==0){
-				std::cout << "Many spin macrospin..." << std::endl;
-				zlog << "Many spin macrospin..." << std::endl;
+				std::cout << "Many-spin macrospin..." << std::endl;
+				zlog << "Many-spin macrospin..." << std::endl;
 			}
 			program::ms_macrospin();
 			break;

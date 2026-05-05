@@ -58,6 +58,7 @@ namespace program{
       // Many spin macrospin program
       //------------------------------------------------------------------------
       int ms_macrospin_geofencing_mode = ms_macrospin_geofencing_uniaxial; // default to uniaxial geofencing
+      uint64_t ms_macrospin_output_steps = 0; // 0 disables periodic snapshots in ms macrospin program
 
       //------------------------------------------------------------------------
       // Material specific program parameters

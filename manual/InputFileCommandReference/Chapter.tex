@@ -708,6 +708,10 @@ Sets the geofencing threshold used by the many spin macrospin program. Spins are
 {\zicf sim:ms-macrospin-uniaxial-axis = float vector [default (0,0,1)]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-uniaxial-axis}
 Sets the uniaxial easy axis for many spin macrospin geofencing. The vector is normalised internally.
 
+{\zicf sim:ms-macrospin-output-steps = integer [default 0]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-output-steps}
+Defines the number of time steps between many spin macrospin outputs. A value of 0 disables periodic writes and
+only writes the final results. Subsequent outputs overwrite the previous output file, so only the latests statistics are recorded to file. 
+
 \section*{Data output}
 \phantomsection\addcontentsline{toc}{section}{Data output}
 The following commands control what data is output to the \textit{output} file. The order in which they appear is the order in which they appear in the \textit{output} file. Most options output a single column of data, but some output multiple columns, particularly vector data or parameters related to materials, where one column per material is output. Note that this means that for vector data, one set of columns per material is output.

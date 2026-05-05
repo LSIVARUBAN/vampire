@@ -127,7 +127,7 @@ static void write_ms_macrospin_output(const int num_atoms,
 			? (static_cast<double>(lost_steps[atom]) / static_cast<double>(total_steps)) * 100.0
 			: 0.0;
 		zmag << atom << "\t" << tau << "\t" << fractional_lost_time << "\t" << total_time_s
-			 << "\t" << transitions << std::endl;
+			 << "\t" << transitions << '\n'; // don't flush the buffer after every atom line 
 	}
 }
 

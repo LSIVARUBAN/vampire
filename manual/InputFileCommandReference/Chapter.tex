@@ -499,7 +499,7 @@ set the shift between the centre of application of the external field and temper
 {\zicf sim:program = ms-macrospin-cubic-geofencing}\phantomsection\addcontentsline{toc}{subsubsection}{ms-macrospin-cubic-geofencing}
 Runs a many spin macrospin time-series program with cubic geofencing. Each atom in the system is treated as a macrospin therefore there should be zero exchange interactions. 
 The magnetic state of each macrospin is tracked throughout the simulation using geofencing against cubic easy axes. The default output file contains one row per magnetic atom with columns: atom id, tau,
-fractional lost time, final simulation time, and total transitions. tau is defined as the total simulation time divided by the number of transitions, and the fractional lost time represents the fraction of time when the geofencing threshold is not met.
+fractional lost time, final simulation time, and total transitions. tau is defined as the simulation time between the final and initial transitions divided by the total number of transitions, and the fractional lost time represents the fraction of time when the geofencing threshold is not met.
 
 {\zicf sim:program = ms-macrospin-uniaxial-geofencing}\phantomsection\addcontentsline{toc}{subsubsection}{ms-macrospin-uniaxial-geofencing}
 Runs the many spin macrospin time-series program with uniaxial geofencing. The uniaxial axis can be set with

@@ -126,6 +126,9 @@ void ms_macrospin(){
 	std::vector<uint64_t> switch_counts(num_atoms, 0u);
 	std::vector<uint64_t> aligned_steps(num_atoms, 0u);
 	std::vector<uint64_t> lost_steps(num_atoms, 0u);
+	std::vector<double> first_transition_time(num_atoms, 0.0);
+	std::vector<double> last_transition_time(num_atoms, 0.0);
+	std::vector<bool> has_transition(num_atoms, false);
 
 	const bool use_cubic = (program::internal::ms_macrospin_geofencing_mode == program::internal::ms_macrospin_geofencing_cubic);
 	const double threshold = use_cubic ? vout::cubic_geofencing_threshold : vout::uniaxial_geofencing_threshold;
@@ -165,6 +168,12 @@ void ms_macrospin(){
 				last_aligned_state[atom] = aligned_state;
 			}
 			else if(aligned_state != last_aligned_state[atom]){
+				const double transition_time_s = sim::time * mp::dt_SI;
+				if(!has_transition[atom]){
+					first_transition_time[atom] = transition_time_s;
+					has_transition[atom] = true;
+				}
+				last_transition_time[atom] = transition_time_s;
 				++switch_counts[atom];
 				last_aligned_state[atom] = aligned_state;
 			}
@@ -190,7 +199,9 @@ void ms_macrospin(){
 			}
 			const uint64_t transitions = switch_counts[atom];
 			const uint64_t total_steps = aligned_steps[atom] + lost_steps[atom];
-			const double tau = (transitions > 0u) ? (total_time_s / static_cast<double>(transitions)) : 0.0;
+			const double tau = (transitions > 0u && has_transition[atom])
+				? ((last_transition_time[atom] - first_transition_time[atom]) / static_cast<double>(transitions))
+				: 0.0;
 			const double fractional_lost_time = (total_steps > 0u)
 				? (static_cast<double>(lost_steps[atom]) / static_cast<double>(total_steps)) * 100.0
 				: 0.0;

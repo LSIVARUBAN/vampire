@@ -300,10 +300,19 @@ namespace program{
       //-------------------------------------------------------------------
       test = "ms-macrospin-geofencing-threshold";
       if(word == test){
-         double threshold = atof(value.c_str());
-         vin::check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
-         vout::cubic_geofencing_threshold = threshold;
-         vout::uniaxial_geofencing_threshold = threshold;
+         std::vector<double> thresholds = vin::doubles_from_string(value); // convert string to vector of doubles
+         if(thresholds.empty()){
+            terminaltextcolor(RED);
+            std::cerr << "Error - value for '" << prefix << word << "' must include at least one threshold on line " << line << " of input file" << std::endl;
+            terminaltextcolor(WHITE);
+            err::vexit();
+         }
+         for(double threshold : thresholds){
+            vin::check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
+         }
+         vout::ms_macrospin_geofencing_thresholds = thresholds;
+         vout::cubic_geofencing_threshold = thresholds.front(); // just use the first threshold for usual cubic geofencing outputs 
+         vout::uniaxial_geofencing_threshold = thresholds.front();
          return true;
       }
       //-------------------------------------------------------------------

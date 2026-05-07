@@ -121,18 +121,19 @@ void ms_macrospin(){
 
 	const int num_atoms = atoms::num_atoms;
 
-	// track last aligned state per atom and count state transitions
-	std::vector<int> last_aligned_state(num_atoms, -1);
-	std::vector<uint64_t> switch_counts(num_atoms, 0u);
-	std::vector<uint64_t> aligned_steps(num_atoms, 0u);
-	std::vector<uint64_t> lost_steps(num_atoms, 0u);
-	std::vector<double> first_transition_time(num_atoms, 0.0);
-	std::vector<double> last_transition_time(num_atoms, 0.0);
-	std::vector<bool> has_transition(num_atoms, false);
+	const std::vector<double>& thresholds = vout::ms_macrospin_geofencing_thresholds;
+	const size_t num_thresholds = thresholds.size();
+
+	// track last aligned state per atom and count state transitions per threshold
+	std::vector<std::vector<int>> last_aligned_state(num_thresholds, std::vector<int>(num_atoms, -1));
+	std::vector<std::vector<uint64_t>> switch_counts(num_thresholds, std::vector<uint64_t>(num_atoms, 0u));
+	std::vector<std::vector<uint64_t>> aligned_steps(num_thresholds, std::vector<uint64_t>(num_atoms, 0u));
+	std::vector<std::vector<uint64_t>> lost_steps(num_thresholds, std::vector<uint64_t>(num_atoms, 0u));
+	std::vector<std::vector<double>> first_transition_time(num_thresholds, std::vector<double>(num_atoms, 0.0));
+	std::vector<std::vector<double>> last_transition_time(num_thresholds, std::vector<double>(num_atoms, 0.0));
+	std::vector<std::vector<bool>> has_transition(num_thresholds, std::vector<bool>(num_atoms, false));
 
 	const bool use_cubic = (program::internal::ms_macrospin_geofencing_mode == program::internal::ms_macrospin_geofencing_cubic);
-	const double threshold = use_cubic ? vout::cubic_geofencing_threshold : vout::uniaxial_geofencing_threshold;
-
 	// Perform Time Series
 	while(sim::time < sim::equilibration_time + sim::total_time){
 
@@ -153,67 +154,72 @@ void ms_macrospin(){
 			const double my = atoms::y_spin_array[atom];
 			const double mz = atoms::z_spin_array[atom];
 
-			const int aligned_state = use_cubic ? aligned_state_cubic(mx, my, mz, threshold) : aligned_state_uniaxial(mx, my, mz, threshold);
+			for(size_t t = 0; t < num_thresholds; ++t){
+				const double threshold = thresholds[t];
+				const int aligned_state = use_cubic ? aligned_state_cubic(mx, my, mz, threshold) : aligned_state_uniaxial(mx, my, mz, threshold);
 
-			// if aligned state is -1, the spin is lost
-			if(aligned_state < 0){
-				++lost_steps[atom];
-				continue;
-			}
-
-			++aligned_steps[atom];
-
-			// increase switch counts when aligned state changes
-			if(last_aligned_state[atom] < 0){
-				last_aligned_state[atom] = aligned_state;
-			}
-			else if(aligned_state != last_aligned_state[atom]){
-				const double transition_time_s = sim::time * mp::dt_SI;
-				if(!has_transition[atom]){
-					first_transition_time[atom] = transition_time_s;
-					has_transition[atom] = true;
+				// if aligned state is -1, the spin is lost
+				if(aligned_state < 0){
+					++lost_steps[t][atom];
+					continue;
 				}
-				last_transition_time[atom] = transition_time_s;
-				++switch_counts[atom];
-				last_aligned_state[atom] = aligned_state;
+
+				++aligned_steps[t][atom];
+
+				// increase switch counts when aligned state changes
+				if(last_aligned_state[t][atom] < 0){
+					last_aligned_state[t][atom] = aligned_state;
+				}
+				else if(aligned_state != last_aligned_state[t][atom]){
+					const double transition_time_s = sim::time * mp::dt_SI;
+					if(!has_transition[t][atom]){
+						first_transition_time[t][atom] = transition_time_s;
+						has_transition[t][atom] = true;
+					}
+					last_transition_time[t][atom] = transition_time_s;
+					++switch_counts[t][atom];
+					last_aligned_state[t][atom] = aligned_state;
+				}
 			}
 		}
 
 		// calculate statistics, averaging tau over magnetic atoms, and output data at specified intervals
-		uint64_t magnetic_atoms = 0u;
-		double tau_sum = 0.0;
-		double lost_time_sum = 0.0;
-		uint64_t transitions_sum = 0u;
+		vout::ms_macrospin_tau_avg.assign(num_thresholds, 0.0);
+		vout::ms_macrospin_lost_time_avg.assign(num_thresholds, 0.0);
+		vout::ms_macrospin_total_transitions.assign(num_thresholds, 0u);
 
-		for(int atom = 0; atom < num_atoms; ++atom){
-			if(!atoms::magnetic[atom]){
-				continue;
+		for(size_t t = 0; t < num_thresholds; ++t){
+			uint64_t magnetic_atoms = 0u;
+			double tau_sum = 0.0;
+			double lost_time_sum = 0.0;
+			uint64_t transitions_sum = 0u;
+
+			for(int atom = 0; atom < num_atoms; ++atom){
+				if(!atoms::magnetic[atom]){
+					continue;
+				}
+
+				const uint64_t transitions = switch_counts[t][atom];
+				const uint64_t total_steps = aligned_steps[t][atom] + lost_steps[t][atom];
+				const double tau = (transitions > 0u && has_transition[t][atom])
+					? ((last_transition_time[t][atom] - first_transition_time[t][atom]) / static_cast<double>(transitions))
+					: 0.0;
+				const double fractional_lost_time = (total_steps > 0u)
+					? (static_cast<double>(lost_steps[t][atom]) / static_cast<double>(total_steps)) * 100.0
+					: 0.0;
+
+				tau_sum += tau;
+				lost_time_sum += fractional_lost_time;
+				transitions_sum += transitions;
+				++magnetic_atoms;
 			}
 
-			const uint64_t transitions = switch_counts[atom];
-			const uint64_t total_steps = aligned_steps[atom] + lost_steps[atom];
-			const double tau = (transitions > 0u && has_transition[atom])
-				? ((last_transition_time[atom] - first_transition_time[atom]) / static_cast<double>(transitions))
-				: 0.0;
-			const double fractional_lost_time = (total_steps > 0u)
-				? (static_cast<double>(lost_steps[atom]) / static_cast<double>(total_steps)) * 100.0
-				: 0.0;
-
-			tau_sum += tau;
-			lost_time_sum += fractional_lost_time;
-			transitions_sum += transitions;
-			++magnetic_atoms;
+			if(magnetic_atoms > 0u){
+				vout::ms_macrospin_tau_avg[t] = tau_sum / static_cast<double>(magnetic_atoms);
+				vout::ms_macrospin_lost_time_avg[t] = lost_time_sum / static_cast<double>(magnetic_atoms);
+			}
+			vout::ms_macrospin_total_transitions[t] = transitions_sum;
 		}
-
-		if(magnetic_atoms > 0u){
-			vout::ms_macrospin_tau_avg = tau_sum / static_cast<double>(magnetic_atoms);
-			vout::ms_macrospin_lost_time_avg = lost_time_sum / static_cast<double>(magnetic_atoms);
-		}
-		else{
-			vout::ms_macrospin_tau_avg = 0.0;
-			vout::ms_macrospin_lost_time_avg = 0.0;
-		}
-		vout::ms_macrospin_total_transitions = transitions_sum;
 
 		vout::data();
 	}

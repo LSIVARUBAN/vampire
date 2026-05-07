@@ -132,10 +132,11 @@ namespace vout{
   extern double uniaxial_axis_z;
 
   // many spin macrospin outputs
-  extern double ms_macrospin_tau_avg;
-  extern double ms_macrospin_lost_time_avg;
-  extern uint64_t ms_macrospin_total_transitions;
-
+  extern std::vector<double> ms_macrospin_geofencing_thresholds;
+  extern std::vector<double> ms_macrospin_tau_avg;
+  extern std::vector<double> ms_macrospin_lost_time_avg;
+  extern std::vector<uint64_t> ms_macrospin_total_transitions;
+  
    extern bool custom_precision; // enable user selectable precision for data output
    extern unsigned int precision; // variable to control output precision (digits)
    extern bool fixed; // fixed precision output

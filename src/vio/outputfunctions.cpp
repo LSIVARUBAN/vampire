@@ -89,21 +89,6 @@ namespace vout{
       stream << generic_output_double("Real_time",sim::time*mp::dt_SI,header);
    }
 
-   // Output Function 93 - with Header
-   void ms_macrospin_tau(std::ostream& stream, bool header){
-      stream << generic_output_double("MS_Macrospin_Tau", vout::ms_macrospin_tau_avg, header);
-   }
-
-   // Output Function 94 - with Header
-   void ms_macrospin_lost_time(std::ostream& stream, bool header){
-      stream << generic_output_double("MS_Macrospin_LostTime", vout::ms_macrospin_lost_time_avg, header);
-   }
-
-   // Output Function 95 - with Header
-   void ms_macrospin_total_transitions_out(std::ostream& stream, bool header){
-      stream << generic_output_int("MS_Macrospin_Transitions", vout::ms_macrospin_total_transitions, header);
-   }
-
    // Output Function 2 - with Header
    void temperature(std::ostream& stream, bool header){
       stream << generic_output_double("Temperature" ,sim::temperature,header);
@@ -748,6 +733,66 @@ namespace vout{
       if(output_best_dot){
          stream << generic_output_double(dot_header, best_dot, false); // output best dot product
       }
+   }
+
+   // Output Function 93 - with Header
+   void ms_macrospin_tau(std::ostream& stream, bool header){
+      std::ostringstream res;
+      vout::fixed_width_output result(res, vout::fw_size);
+      const size_t count = std::min(vout::ms_macrospin_geofencing_thresholds.size(), vout::ms_macrospin_tau_avg.size());
+      for(size_t i = 0; i < count; ++i){
+         if(header){
+            std::ostringstream label;
+            label.setf(std::ios::fixed, std::ios::floatfield);
+            label.precision(3);
+            label << "MS_Macrospin_Tau_" << vout::ms_macrospin_geofencing_thresholds[i];
+            result << label.str();
+         }
+         else{
+            result << vout::ms_macrospin_tau_avg[i];
+         }
+      }
+      stream << result.str();
+   }
+
+   // Output Function 94 - with Header
+   void ms_macrospin_lost_time(std::ostream& stream, bool header){
+      std::ostringstream res;
+      vout::fixed_width_output result(res, vout::fw_size);
+      const size_t count = std::min(vout::ms_macrospin_geofencing_thresholds.size(), vout::ms_macrospin_lost_time_avg.size());
+      for(size_t i = 0; i < count; ++i){
+         if(header){
+            std::ostringstream label;
+            label.setf(std::ios::fixed, std::ios::floatfield);
+            label.precision(3);
+            label << "MS_Macrospin_LostTime_" << vout::ms_macrospin_geofencing_thresholds[i];
+            result << label.str();
+         }
+         else{
+            result << vout::ms_macrospin_lost_time_avg[i];
+         }
+      }
+      stream << result.str();
+   }
+
+   // Output Function 95 - with Header
+   void ms_macrospin_total_transitions_out(std::ostream& stream, bool header){
+      std::ostringstream res;
+      vout::fixed_width_output result(res, vout::fw_size_int);
+      const size_t count = std::min(vout::ms_macrospin_geofencing_thresholds.size(), vout::ms_macrospin_total_transitions.size());
+      for(size_t i = 0; i < count; ++i){
+         if(header){
+            std::ostringstream label;
+            label.setf(std::ios::fixed, std::ios::floatfield);
+            label.precision(3);
+            label << "MS_Macrospin_Transitions_" << vout::ms_macrospin_geofencing_thresholds[i];
+            result << label.str();
+         }
+         else{
+            result << vout::ms_macrospin_total_transitions[i];
+         }
+      }
+      stream << result.str();
    }
 
 }

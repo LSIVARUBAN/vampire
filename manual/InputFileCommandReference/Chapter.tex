@@ -702,7 +702,7 @@ Defines the pulse linear fall time in the program \textit{electrical-pulse} with
  units of seconds and a default pulse time of 1 ns.
 
 {\zicf sim:ms-macrospin-geofencing-threshold = float [default 0.95]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-geofencing-threshold}
-Sets the geofencing threshold used by the many spin macrospin program. Spins are considered aligned with an easy axis when $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}} \ge threshold$.
+Sets one or more geofencing thresholds used by the many spin macrospin program. Specify a comma-separated list, e.g. \textit{sim:ms-macrospin-geofencing-threshold = 0.95,0.96,0.97}. Spins are considered aligned with an easy axis when $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}} \ge threshold$.
 
 {\zicf sim:ms-macrospin-uniaxial-axis = float vector [default (0,0,1)]}\phantomsection\addcontentsline{toc}{subsection}{sim:ms-macrospin-uniaxial-axis}
 Sets the uniaxial easy axis for many spin macrospin geofencing. The vector is normalised internally.
@@ -754,11 +754,11 @@ Outputs the time-averaged normalized magnetization length for each material, e.g
 
 {\zicf output:uniaxial-geofencing}\phantomsection\addcontentsline{toc}{subsection}{output:uniaxial-geofencing} Outputs the uniaxial magnetic state along a defined axis using the geofencing method. By default, the magnetisation direction used is the material magnetisation of material 0 and the axis is $[001]$. The output state numbers are: 0 = Lost (where X is the best state), 1 = aligned with the axis, 2 = antiparallel with the axis. By default this outputs two columns: the state and the best dot product $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}}$ for the axis that defined the state. Optionally can be set equal to no-product to output just the magnetic state column.
 
-{\zicf output:ms-macrospin-tau}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-tau} Outputs the average macrospin switching time $\tau$ across all magnetic atoms in the many-spin macrospin programs. The per-atom $\tau$ is defined as the time between the final and initial transitions divided by the total number of transitions for that atom. 
+{\zicf output:ms-macrospin-tau}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-tau} Outputs the average macrospin switching time $\tau$ across all magnetic atoms in the many-spin macrospin programs. The per-atom $\tau$ is defined as the time between the final and initial transitions divided by the total number of transitions for that atom. When multiple thresholds are specified, one column is output per threshold.
 
-{\zicf output:ms-macrospin-lost-time}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-lost-time} Outputs the average percentage of time that macrospins are outside the geofencing threshold across all magnetic atoms in the many-spin macrospin programs. 
+{\zicf output:ms-macrospin-lost-time}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-lost-time} Outputs the average percentage of time that macrospins are outside the geofencing threshold across all magnetic atoms in the many-spin macrospin programs. When multiple thresholds are specified, one column is output per threshold.
 
-{\zicf output:ms-macrospin-total-transitions}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-total-transitions} Outputs the total number of macrospin transitions summed across all magnetic atoms in the many-spin macrospin programs.
+{\zicf output:ms-macrospin-total-transitions}\phantomsection\addcontentsline{toc}{subsection}{output:ms-macrospin-total-transitions} Outputs the total number of macrospin transitions summed across all magnetic atoms in the many-spin macrospin programs. When multiple thresholds are specified, one column is output per threshold.
 
 {\zicf output:cubic-geofencing-threshold}\phantomsection\addcontentsline{toc}{subsection}{output:cubic-geofencing-threshold} Sets the dot product threshold used for cubic geofencing. A magnetisation direction is assigned to the closest $\langle 111 \rangle$ direction if $\hat{\mathbf{m}}\cdot\hat{\mathbf{e_a}} \ge threshold$. (Default 0.95).
 

@@ -75,9 +75,10 @@ namespace vout{
    extern double uniaxial_axis_y;
    extern double uniaxial_axis_z;
 
-   extern double ms_macrospin_tau_avg;
-   extern double ms_macrospin_lost_time_avg;
-   extern uint64_t ms_macrospin_total_transitions;
+   extern std::vector<double> ms_macrospin_geofencing_thresholds;
+   extern std::vector<double> ms_macrospin_tau_avg;
+   extern std::vector<double> ms_macrospin_lost_time_avg;
+   extern std::vector<uint64_t> ms_macrospin_total_transitions;
 
    // namespaced io lists (to avoid collisions)
    namespace grain{

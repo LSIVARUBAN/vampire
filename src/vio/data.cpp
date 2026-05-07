@@ -76,7 +76,8 @@ namespace vout{
    double uniaxial_axis_y = 0.0;
    double uniaxial_axis_z = 1.0;
 
-   double ms_macrospin_tau_avg = 0.0;
-   double ms_macrospin_lost_time_avg = 0.0;
-   uint64_t ms_macrospin_total_transitions = 0u;
+   std::vector<double> ms_macrospin_geofencing_thresholds = {0.95}; // default threshold
+   std::vector<double> ms_macrospin_tau_avg(1, 0.0); 
+   std::vector<double> ms_macrospin_lost_time_avg(1, 0.0);
+   std::vector<uint64_t> ms_macrospin_total_transitions(1, 0u);
 }

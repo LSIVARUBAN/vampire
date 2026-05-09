@@ -33,8 +33,13 @@ struct easy_axis{
 	int state;
 };
 
-// return the cubic state index or -1 if below geofencing threshold
-static int aligned_state_cubic(const double mx, const double my, const double mz, const double threshold){
+struct alignment_result{
+	double best_dot;
+	int best_state;
+};
+
+// Return the best-matching cubic state and its dot product.
+static alignment_result best_alignment_cubic(const double mx, const double my, const double mz){
 	const double inv_sqrt3 = 1.0 / std::sqrt(3.0);
 	const easy_axis axes[8] = {
 		{+inv_sqrt3, +inv_sqrt3, +inv_sqrt3, 0},
@@ -57,30 +62,18 @@ static int aligned_state_cubic(const double mx, const double my, const double mz
 		}
 	}
 
-	return (best_dot >= threshold) ? best_state : -1;
+	return {best_dot, best_state};
 }
 
-// return uniaxial state index or -1 if below threshold
-static int aligned_state_uniaxial(const double mx, const double my, const double mz, const double threshold){
+// Return the best-matching uniaxial state and its dot product.
+static alignment_result best_alignment_uniaxial(const double mx, const double my, const double mz){
 	const double ax = vout::uniaxial_axis_x; // uniaxial easy axis components
 	const double ay = vout::uniaxial_axis_y;
 	const double az = vout::uniaxial_axis_z;
-	const easy_axis axes[2] = {
-		{+ax, +ay, +az, 0},
-		{-ax, -ay, -az, 1},
-	};
-
-	double best_dot = -1.0;
-	int best_state = -1;
-	for(const easy_axis& a : axes){
-		const double dot = mx*a.x + my*a.y + mz*a.z;
-		if(dot > best_dot){
-			best_dot = dot;
-			best_state = a.state;
-		}
-	}
-
-	return (best_dot >= threshold) ? best_state : -1;
+	const double dot = mx*ax + my*ay + mz*az;
+	const int best_state = (dot >= 0.0) ? 0 : 1;
+	const double best_dot = std::fabs(dot);
+	return {best_dot, best_state};
 }
 
 //------------------------------------------------------------------------------
@@ -153,10 +146,13 @@ void ms_macrospin(){
 			const double mx = atoms::x_spin_array[atom];
 			const double my = atoms::y_spin_array[atom];
 			const double mz = atoms::z_spin_array[atom];
+			const alignment_result alignment = use_cubic
+				? best_alignment_cubic(mx, my, mz)
+				: best_alignment_uniaxial(mx, my, mz);
 
 			for(size_t t = 0; t < num_thresholds; ++t){
 				const double threshold = thresholds[t];
-				const int aligned_state = use_cubic ? aligned_state_cubic(mx, my, mz, threshold) : aligned_state_uniaxial(mx, my, mz, threshold);
+				const int aligned_state = (alignment.best_dot >= threshold) ? alignment.best_state : -1;
 
 				// if aligned state is -1, the spin is lost
 				if(aligned_state < 0){

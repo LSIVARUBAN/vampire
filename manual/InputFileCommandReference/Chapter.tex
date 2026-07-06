@@ -87,15 +87,11 @@ cell (bcc, bcc110, fcc, hpc, and kagome) will allocate each atom in the unit cel
 
 {\zicf create:intermixing-random-seed integer [default 100181363]}\phantomsection\addcontentsline{toc}{subsection}{create:intermixing-random-seed} Sets the random seed for the psuedo random number generator for calculating intermixing of materials. A different seed will lead to a different realization of a dilute material. Note that different numbers of cores will change the structure that is generated.
 
-<<<<<<< HEAD
 {\zicf create:spin-initialisation-random-seed = integer [default 123456]}
-\addcontentsline{toc}{subsection}{create:spin-initialisation-random-seed}
+\phantomsection\addcontentsline{toc}{subsection}{create:spin-initialisation-random-seed}
 Sets the random seed for the psuedo random number generator for initialising
 spin directions. Note that different numbers of cores will change the
 spin positions that are generated.\\
-=======
-{\zicf create:spin-initialisation-random-seed = integer [default 123456]}\phantomsection\addcontentsline{toc}{subsection}{create:intermixing-random-seed} Sets the random seed for the psuedo random number generator for initialising spin directions. Note that different numbers of cores will change the spin positions that are generated.
->>>>>>> vdc
 
 \section*{System dimensions}\phantomsection\addcontentsline{toc}{section}{System dimensions} The commands here determine the dimensions of the generated system.
 
@@ -134,19 +130,21 @@ spin positions that are generated.\\
 
 \section*{Exchange calculation}\phantomsection\addcontentsline{toc}{section}{Exchange calculation} The following commands control the calculation of built-in exchange interactions for the system.
 
-{\zicf exchange:interaction-range}\phantomsection\addcontentsline{toc}{subsection}{exchange:interaction-range double default [1.0]} Determines the cutoff range exchange interactions for built-in crystal structures in terms of the nearest neighbour range. Larger ranges will enable more interactions via an exchange function which can include 2nd-10th nearest neighbour interaction shells or exponential functions. Note that longer ranged interactions are slower to calculate. In shell mode the computed interaction shells are printed in the log file.
+{\zicf exchange:interaction-range double default [1.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:interaction-range} Determines the cutoff range exchange interactions for built-in crystal structures in terms of the nearest neighbour range. Larger ranges will enable more interactions via an exchange function which can include 2nd-10th nearest neighbour interaction shells or exponential functions. Note that longer ranged interactions are slower to calculate. In shell mode the computed interaction shells are printed in the log file.
 
-{\zicf exchange:function}\phantomsection\addcontentsline{toc}{subsection}{exchange:function string default [nearest-neighbour]} Determines the type of interaction to be used in the spin Hamiltonian. The default \textit{nearest-neighbour} option forces nearest neighbour interactions only. The \textit{shell} option groups neighbours at the same interaction distance into shells which can then be assigned different exchange constants. The \textit{exponential} option implements an exponential decay that is useful for simulating spin glasses and systems such as NdFeB where there are no well-defined neighbour shells. The \textit{material-exponential} function is similar to \textit{exponential}, however it allows different exponential exchange functions to be defined for different inter-material type (for materials as defined in the unit-cell module) interactions e.g. in NdFeB Nd-Fe interactions can have a different function defined vs Fe-Fe interactions.
+{\zicf exchange:function string default [nearest-neighbour]}\phantomsection\addcontentsline{toc}{subsection}{exchange:function} Determines the type of interaction to be used in the spin Hamiltonian. The default \textit{nearest-neighbour} option forces nearest neighbour interactions only. The \textit{shell} option groups neighbours at the same interaction distance into shells which can then be assigned different exchange constants. The \textit{exponential} option implements an exponential decay that is useful for simulating spin glasses and systems such as NdFeB where there are no well-defined neighbour shells. The \textit{material-exponential} function is similar to \textit{exponential}, however it allows different exponential exchange functions to be defined for different inter-material type (for materials as defined in the unit-cell module) interactions e.g. in NdFeB Nd-Fe interactions can have a different function defined vs Fe-Fe interactions.
 
-{\zicf exchange:decay-multiplier}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-multiplier double default [1.0]} Determines the value of $A$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
+{\zicf exchange:decay-multiplier double default [1.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-multiplier} Determines the value of $A$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
 
-{\zicf exchange:decay-length}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-length double default [0.4]} Determines the value of $B$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
+{\zicf exchange:decay-length double default [0.4]}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-length} Determines the value of $B$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
 
-{\zicf exchange:decay-shift}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-shift double default [0.0]} Determines the value of $C$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
+{\zicf exchange:decay-shift double default [0.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:decay-shift} Determines the value of $C$ to be used in $A\exp{-r/B}+C$ for \textit{exchange:function} = \textit{exponential}.
 
-{\zicf exchange:ucc-exchange-parameters[i][j]}\phantomsection\addcontentsline{toc}{subsection}{exchange:ucc-exchange-parameters[i][j] std::vector < std::vector <exchange_parameters_t> > [i][j] default [1.0, 0.4, 0.0]} This is used in conjunction with \textit{exchange:function} = \textit{material-exchange}. i and j represent the unit cell category (material as per unit cell module) of the interacting atoms that the user wishes to set the exponential exchange function for. This variable is set to the three comma separated values: $A$, \textit{exchange:decay-multiplier}; $B$, \textit{exchange:decay-length}; $C$, \textit{exchange:decay-shift} in this order.
+{\zicf exchange:ucc-exchange-parameters[i][j]\newline
+std::vector < std::vector <exchange\_parameters\_t> > [i][j]\newline
+default [1.0, 0.4, 0.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:ucc-exchange-parameters[i][j]} This is used in conjunction with \textit{exchange:function} = \textit{material-exchange}. i and j represent the unit cell category (material as per unit cell module) of the interacting atoms that the user wishes to set the exponential exchange function for. This variable is set to the three comma separated values: $A$, \textit{exchange:decay-multiplier}; $B$, \textit{exchange:decay-length}; $C$, \textit{exchange:decay-shift} in this order.
 
-{\zicf exchange:dmi-cutoff-range}\phantomsection\addcontentsline{toc}{subsection}{exchange:dmi-cutoff-range double default [1.0]} Determines the cutoff range for i-j-k interactions for the built-in DMI in \vampire.
+{\zicf exchange:dmi-cutoff-range double default [1.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:dmi-cutoff-range} Determines the cutoff range for i-j-k interactions for the built-in DMI in \vampire.
 
 \section*{Anisotropy calculation}
 \phantomsection\addcontentsline{toc}{section}{Anisotropy calculation} The following commands control the calculation of the magnetic anisotropy energy for the system.

@@ -48,14 +48,94 @@ namespace sld{
       if( word == test ){
          test="harmonic";
          if( value == test ){
-          sld::internal::harmonic=true;
+          sld::internal::lattice_potential = sld::internal::harmonic_lattice_potential;
           return true;
          }
           test="morse";
           if( value == test ){
-           sld::internal::morse=true;
+           sld::internal::lattice_potential = sld::internal::morse_lattice_potential;
            return true;
           }
+          test="snap";
+          if( value == test ){
+           sld::internal::lattice_potential = sld::internal::snap_lattice_potential;
+           return true;
+          }
+          test="snapzbl";
+          if( value == test ){
+           sld::internal::lattice_potential = sld::internal::snap_zbl_lattice_potential;
+           return true;
+          }
+      }
+
+      // SNAP potentials have a coefficient and parameter file.
+      test = "snap-coeff-file";
+      if( word == test ){
+         std::string snap_coeff_file=value;
+         if(snap_coeff_file!=""){
+            sld::internal::snap_potential.set_coeff_filename(snap_coeff_file);
+            return true;
+         }
+         else{
+            terminaltextcolor(RED);
+            std::cerr << "Error - SNAP coefficient file not defined" << std::endl;
+            terminaltextcolor(WHITE);
+            return false;
+         }
+      }
+
+      test = "snap-param-file";
+      if( word == test ){
+         std::string snap_param_file=value;
+         if(snap_param_file!=""){
+            sld::internal::snap_potential.set_param_filename(snap_param_file);
+            return true;
+         }
+         else{
+            terminaltextcolor(RED);
+            std::cerr << "Error - SNAP parameter file not defined" << std::endl;
+            terminaltextcolor(WHITE);
+            return false;
+         }
+      }
+
+      test = "snap-debug";
+      if( word == test ){
+         const bool debug = vin::check_for_valid_bool(value, word, line, prefix, "input");
+         sld::internal::snap_potential.set_debug(debug);
+         return true;
+      }
+
+      test = "zbl-inner-cutoff";
+      if( word == test ){
+         double r_c = vin::str_to_double(value);
+         vin::check_for_valid_value(r_c, word, line, prefix, unit, "length", 0.1, 20.0,"input","0.1 - 20 A");
+         sld::internal::zbl_inner_cutoff = r_c;
+         return true;
+      }
+
+      test = "zbl-outer-cutoff";
+      if( word == test ){
+         double r_c = vin::str_to_double(value);
+         vin::check_for_valid_value(r_c, word, line, prefix, unit, "length", 0.1, 20.0,"input","0.1 - 20 A");
+         sld::internal::zbl_outer_cutoff = r_c;
+         return true;
+      }
+
+      test = "zbl-atomic-number";
+      if( word == test ){
+         double z = vin::str_to_double(value);
+         vin::check_for_valid_value(z, word, line, prefix, unit, "none", 1.0, 120.0,"input","1 - 120");
+         sld::internal::zbl_atomic_number = z;
+         return true;
+      }
+
+      test = "harmonic-debug";
+      if( word == test ){
+         const bool debug = vin::check_for_valid_bool(value, word, line, prefix, "input");
+         sld::internal::harmonic_debug_enabled = debug;
+         sld::internal::harmonic_debug_force_calls = 0;
+         return true;
       }
 
       test = "coupling";

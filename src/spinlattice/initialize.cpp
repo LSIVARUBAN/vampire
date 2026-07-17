@@ -11,6 +11,7 @@
 //
 
 // C++ standard library headers
+#include <algorithm>
 // Vampire headers
 #include "sld.hpp"
 #include "atoms.hpp"
@@ -18,15 +19,12 @@
 #include "neighbours.hpp"
 #include "material.hpp"
 #include "constants.hpp"
-
-
+#include "errors.hpp"
 
 // sld module headers
 #include "internal.hpp"
 
-
 namespace sld{
-
 
    //----------------------------------------------------------------------------
    // Function to initialize sld module
@@ -35,12 +33,56 @@ namespace sld{
       std::cout<<"Input parameters for Spin-lattice dynamics simulations:"<<std::endl;
       std::cout<<"*******************************************************"<<std::endl;
 
+#ifdef MPICF
+      if(sld::internal::lattice_potential_is_mlip()){
+         err::zexit("MLIP potentials not supported with parallel integrator");
+      }
+#endif
+
+      // MLIP potential files define the cutoff, rather than the VAMPIRE input file potential-cutoff-range
+      if(sld::internal::lattice_potential == sld::internal::snap_lattice_potential ||
+         sld::internal::lattice_potential == sld::internal::snap_zbl_lattice_potential){
+         sld::internal::snap_potential.initialise(mp::num_materials);
+         sld::internal::r_cut_pot = sld::internal::snap_potential.cutoff(); // assign snap cutoff to global var
+      }
+      if(sld::internal::lattice_potential == sld::internal::snap_zbl_lattice_potential){
+         if(sld::internal::zbl_inner_cutoff >= sld::internal::zbl_outer_cutoff){
+            err::zexit("spin-lattice:zbl-inner-cutoff must be smaller than spin-lattice:zbl-outer-cutoff"); // make sure zbl cutoffs are appropriate
+         }
+         sld::internal::r_cut_pot = std::max(sld::internal::r_cut_pot,
+                                             sld::internal::zbl_outer_cutoff);
+      }
+
       std::cout<<"Potential Cutoff: "<<sld::internal::r_cut_pot<<std::endl;
       std::cout<<"Fields Cutoff: "<<sld::internal::r_cut_fields<<std::endl;
       std::cout<<"Mass: "<<sld::internal::mp[0].mass.get()<<std::endl;
       std::cout<<"Lattice damping: "<<sld::internal::mp[0].damp_lat.get()<<std::endl;
       std::cout<<"Coupling C0 "<<sld::internal::mp[0].C0.get()<<std::endl;
-      if(sld::internal::harmonic)std::cout<<"Harmonic potential is used of potential well depth V0="<<sld::internal::mp[0].V0.get()<<std::endl;
+
+      switch(sld::internal::lattice_potential){
+         case sld::internal::harmonic_lattice_potential:
+            std::cout<<"Harmonic potential is used of potential well depth V0="<<sld::internal::mp[0].V0.get()<<std::endl;
+            if(sld::internal::harmonic_debug_enabled){
+               std::cout<<"Harmonic debug output enabled for the first " <<sld::internal::harmonic_debug_max_force_calls <<" force calls"<<std::endl;
+            }
+            break;
+         case sld::internal::morse_lattice_potential:
+            std::cout<<"Morse potential is used"<<std::endl;
+            break;
+         case sld::internal::snap_lattice_potential:
+            std::cout<<"SNAP potential is used with "<<sld::internal::snap_potential.number_of_elements()<<" element(s) and "<<sld::internal::snap_potential.number_of_coefficients()<<" descriptor coefficients"<<std::endl;
+            break;
+         case sld::internal::snap_zbl_lattice_potential:
+            std::cout<<"SNAP+ZBL potential is used with "<<sld::internal::snap_potential.number_of_elements()<<" element(s) and "<<sld::internal::snap_potential.number_of_coefficients()<<" descriptor coefficients"<<std::endl;
+            std::cout<<"ZBL atomic number: "<<sld::internal::zbl_atomic_number<<std::endl;
+            std::cout<<"ZBL inner cutoff: "<<sld::internal::zbl_inner_cutoff<<" Angstrom"<<std::endl;
+            std::cout<<"ZBL outer cutoff: "<<sld::internal::zbl_outer_cutoff<<" Angstrom"<<std::endl;
+            break;
+         default:
+            std::cout<<"No lattice potential selected"<<std::endl;
+            break;
+      }
+
       if(sld::internal::pseudodipolar)std::cout<<"Pseudodipolar coupling is used of strength C0="<<sld::internal::mp[0].C0.get()<<std::endl;
       if(sld::internal::full_neel)std::cout<<"Full Neel coupling is used of strength C0="<<sld::internal::mp[0].C0.get()<<std::endl;
 

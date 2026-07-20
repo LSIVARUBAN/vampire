@@ -94,6 +94,12 @@ namespace spinwaves {
                     internal::sw_array[spec] = &atoms::y_spin_array;
                 } else if (internal::component[spec] == "sz") {
                     internal::sw_array[spec] = &atoms::z_spin_array;
+                } else if (internal::component[spec] == "vx") {
+                    internal::sw_array[spec] = &atoms::x_velo_array;
+                } else if (internal::component[spec] == "vy") {
+                    internal::sw_array[spec] = &atoms::y_velo_array;
+                } else if (internal::component[spec] == "vz") {
+                    internal::sw_array[spec] = &atoms::z_velo_array;
                 }
             }
         }

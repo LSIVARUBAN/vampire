@@ -269,7 +269,8 @@ namespace spinwaves{
                   internal::component[i]=component_temp;
 
                   // check input file contains allowed entry.
-                  if (component_temp == "sx" || component_temp == "sy" || component_temp == "sz"){
+                  if (component_temp == "sx" || component_temp == "sy" || component_temp == "sz" ||
+                      component_temp == "vx" || component_temp == "vy" || component_temp == "vz"){
                      return true;
                   }
                   else {

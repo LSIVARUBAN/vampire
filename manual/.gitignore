@@ -4,5 +4,6 @@
 *.log
 *.toc
 vampire-manual.pdf
+build/
 *.bak
 *~

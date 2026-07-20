@@ -112,7 +112,7 @@ will set the periodic boundary conditions along the $y$ and $z$ directions.
 {\zicf create:intermixing-random-seed integer [default 100181363]}\phantomsection\addcontentsline{toc}{subsection}{create:intermixing-random-seed} Sets the random seed for the psuedo random number generator for calculating intermixing of materials. A different seed will lead to a different realization of a dilute material. Note that different numbers of cores will change the structure that is generated.
 
 {\zicf create:spin-initialisation-random-seed = integer [default 123456]}
-\addcontentsline{toc}{subsection}{create:spin-initialisation-random-seed}
+\phantomsection\addcontentsline{toc}{subsection}{create:spin-initialisation-random-seed}
 Sets the random seed for the psuedo random number generator for initialising
 spin directions. Note that different numbers of cores will change the
 spin positions that are generated.\\
@@ -220,7 +220,9 @@ Determines the value of $B$ to be used in $A\exp{-r/B}+C$ for
 Determines the value of $C$ to be used in $A\exp{-r/B}+C$ for
 \textit{exchange:function} = \textit{exponential}.
 
-{\zicf exchange:ucc-exchange-parameters[i][j]}\phantomsection\addcontentsline{toc}{subsection}{exchange:ucc-exchange-parameters[i][j] default [1.0, 0.4, 0.0]}
+{\zicf exchange:ucc-exchange-parameters[i][j]\newline
+std::vector < std::vector <exchange\_parameters\_t> > [i][j]\newline
+default [1.0, 0.4, 0.0]}\phantomsection\addcontentsline{toc}{subsection}{exchange:ucc-exchange-parameters[i][j]}
 This is used in conjunction with \textit{exchange:function} =
 \textit{material-exchange}. i and j represent the unit cell category (material
 as per unit cell module) of the interacting atoms that the user wishes to set

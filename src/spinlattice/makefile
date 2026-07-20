@@ -8,6 +8,7 @@ data.o \
 initialize.o \
 interface.o\
 forces.o\
+snap.o\
 fields.o\
 suzuki-trotter.o\
 temperatures.o\

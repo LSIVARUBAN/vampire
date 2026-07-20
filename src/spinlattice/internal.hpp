@@ -20,6 +20,7 @@
 //---------------------------------------------------------------------
 
 // C++ standard library headers
+#include <string>
 #include <vector>
 
 // Vampire headers
@@ -27,6 +28,7 @@
 
 // sld module headers
 #include "internal.hpp"
+#include "snap.hpp"
 
 
 namespace sld{
@@ -136,6 +138,14 @@ namespace sld{
       // Internal shared variables
       //-------------------------------------------------------------------------
 
+      enum lattice_potential_t{
+         no_lattice_potential,
+         harmonic_lattice_potential,
+         morse_lattice_potential,
+         snap_lattice_potential,
+         snap_zbl_lattice_potential
+      };
+
       extern bool enabled; // bool to enable module
       extern std::vector<sld::internal::mp_t> mp; // array of material properties
 
@@ -151,11 +161,31 @@ namespace sld{
        extern double alpha_m;
        extern double r0_m;
        extern double morse_D;
-       extern bool morse;
 
-      extern bool harmonic; // bool to enable module
+      extern lattice_potential_t lattice_potential;
       extern bool pseudodipolar;
       extern bool full_neel;
+      extern bool harmonic_debug_enabled;
+      extern int harmonic_debug_force_calls;
+      extern int harmonic_debug_max_force_calls;
+      extern double zbl_inner_cutoff;
+      extern double zbl_outer_cutoff;
+      extern double zbl_atomic_number;
+      extern snap_potential_t snap_potential;
+
+      bool lattice_potential_is_mlip();
+
+      void print_force_debug_summary(const std::string& label,
+                                     const int call,
+                                     const int start_index,
+                                     const int end_index,
+                                     const std::vector<int>& neighbour_counts,
+                                     const std::vector<double>& initial_forces_x,
+                                     const std::vector<double>& initial_forces_y,
+                                     const std::vector<double>& initial_forces_z,
+                                     const std::vector<double>& forces_array_x,
+                                     const std::vector<double>& forces_array_y,
+                                     const std::vector<double>& forces_array_z);
 
 
       //extern std::vector<int> sld_neighbour_list_start_index;
@@ -262,7 +292,6 @@ namespace sld{
             std::vector<double>& forces_array_z,
             std::vector<double>& potential_eng);
 
-
       void compute_thz(const int start_index,
             const int end_index, 
             const std::vector<double>& x_coord_array, // current coord vectors for atoms
@@ -272,7 +301,33 @@ namespace sld{
             std::vector<double>& forces_array_y,
             std::vector<double>& forces_array_z);
 
+      void compute_forces_snap(const int start_index,
+            const int end_index, // last +1 atom to be calculated
+            const std::vector<int>& neighbour_list_start_index,
+            const std::vector<int>& neighbour_list_end_index,
+            const std::vector<int>& type_array, // type for atom
+            const std::vector<int>& neighbour_list_array, // list of interactions between atom
+            const std::vector<double>& x_coord_array, // coord vectors for atoms
+            const std::vector<double>& y_coord_array,
+            const std::vector<double>& z_coord_array,
+            std::vector<double>& forces_array_x, //  vectors for forces
+            std::vector<double>& forces_array_y,
+            std::vector<double>& forces_array_z,
+            std::vector<double>& potential_eng);
 
+      void compute_forces_snap_zbl(const int start_index,
+            const int end_index, // last +1 atom to be calculated
+            const std::vector<int>& neighbour_list_start_index,
+            const std::vector<int>& neighbour_list_end_index,
+            const std::vector<int>& type_array, // type for atom
+            const std::vector<int>& neighbour_list_array, // list of interactions between atom
+            const std::vector<double>& x_coord_array, // coord vectors for atoms
+            const std::vector<double>& y_coord_array,
+            const std::vector<double>& z_coord_array,
+            std::vector<double>& forces_array_x, //  vectors for forces
+            std::vector<double>& forces_array_y,
+            std::vector<double>& forces_array_z,
+            std::vector<double>& potential_eng);
 //
       void compute_sld_coupling(const int start_index,
             const int end_index, // last +1 atom to be calculated

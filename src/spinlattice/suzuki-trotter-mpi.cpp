@@ -11,6 +11,12 @@
 //------------------------------------------------------------------------------
 //
 
+// This will need modifications to work with MLIPs:
+// Issues:
+// Core velocities and forces are calculated early (what if boundary atoms inflict force on core atoms ... we have already calculated the core force so we lose force contributions.)
+// Also, if boundary atoms inflict force on halo atoms, currently there is no communication of this to the ranks that owns the halo atom (so cross rank forces would not be applied)
+
+
 #ifdef MPICF
 // Standard Libraries
 #include <cmath>

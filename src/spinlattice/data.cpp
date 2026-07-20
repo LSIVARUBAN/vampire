@@ -69,11 +69,28 @@ namespace sld{
       double r0_m;
       double morse_D;
 
-
-      bool morse;
-      bool harmonic; //flag for harmonic potential
+      lattice_potential_t lattice_potential = no_lattice_potential;
       bool pseudodipolar;
       bool full_neel;
+      bool harmonic_debug_enabled = false; // ouput force info
+      int harmonic_debug_force_calls = 0; // number of calls to debug forces
+      int harmonic_debug_max_force_calls = 5;
+      double zbl_inner_cutoff = 4.0; // default cutoff for ZBL (bcc Fe)
+      double zbl_outer_cutoff = 4.8;
+      double zbl_atomic_number = 26.0;
+      snap_potential_t snap_potential; // snap potential class
+
+      bool lattice_potential_is_mlip(){
+
+         switch(lattice_potential){
+            case snap_lattice_potential:
+            case snap_zbl_lattice_potential:
+               return true;
+            default:
+               return false;
+         }
+
+      }
 
 
       //initial sld neighbor list

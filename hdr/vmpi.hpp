@@ -119,6 +119,11 @@ namespace vmpi{
    extern void mpi_init_halo_swap_coords();
    extern void mpi_complete_halo_swap_coords();
 
+   // sum force contributions accumulated on halo atoms back onto their owners for SLD MLIAPS
+   extern void mpi_sum_halo_forces(std::vector<double>& force_x,
+                                   std::vector<double>& force_y,
+                                   std::vector<double>& force_z);
+
 	// wrapper functions avoiding MPI library
 	extern void barrier();
    extern uint64_t reduce_sum(uint64_t local);

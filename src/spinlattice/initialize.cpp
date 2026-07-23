@@ -39,12 +39,6 @@ namespace sld{
       std::cout<<"Input parameters for Spin-lattice dynamics simulations:"<<std::endl;
       std::cout<<"*******************************************************"<<std::endl;
 
-#ifdef MPICF
-      if(sld::internal::lattice_potential_is_mlip()){
-         err::zexit("MLIP potentials not supported with parallel integrator");
-      }
-#endif
-
       // MLIP potential files define the cutoff, rather than the VAMPIRE input file potential-cutoff-range
       if(sld::internal::lattice_potential == sld::internal::snap_lattice_potential ||
          sld::internal::lattice_potential == sld::internal::snap_zbl_lattice_potential){

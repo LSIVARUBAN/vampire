@@ -257,4 +257,67 @@ void mpi_complete_halo_swap_coords(){
 
 }
 
+//-----------------------------------------------------------------------------
+// Reverse halo exchange for force contributions
+//-----------------------------------------------------------------------------
+void mpi_sum_halo_forces(std::vector<double>& force_x,
+                         std::vector<double>& force_y,
+                         std::vector<double>& force_z){
+#ifdef MPICF
+
+   // recv_atom_translation_array maps entries received by a normal halo swap onto this rank's halo indices 
+   // pack x/y/z from every halo copy and send each group back to its owner
+   std::vector<double> send_force_data(3 * vmpi::recv_atom_translation_array.size(), 0.0);
+   for(unsigned int i = 0; i < vmpi::recv_atom_translation_array.size(); i++){
+      const int atom = vmpi::recv_atom_translation_array[i];
+      send_force_data[3*i+0] = force_x[atom];
+      send_force_data[3*i+1] = force_y[atom];
+      send_force_data[3*i+2] = force_z[atom];
+   }
+
+   // send_atom_translation_array maps the owned boundary atoms exported by a normal halo swap
+   std::vector<double> recv_force_data(3 * vmpi::send_atom_translation_array.size(), 0.0);
+   std::vector<MPI_Request> force_requests;
+   force_requests.reserve(2 * vmpi::num_processors);
+   MPI_Request req = MPI_REQUEST_NULL;
+
+   for(int p = 0; p < vmpi::num_processors; p++){
+      // send forces on local halo copies to their owner, rank p
+      if(vmpi::recv_num_array[p] != 0){
+         const int num_values = 3 * vmpi::recv_num_array[p];
+         const int start = 3 * vmpi::recv_start_index_array[p];
+         force_requests.push_back(req);
+         MPI_Isend(&send_force_data[start], num_values, MPI_DOUBLE, p, 49,
+                   MPI_COMM_WORLD, &force_requests.back());
+      }
+      // receive forces calculated on rank p's copies of our owned atoms
+      if(vmpi::send_num_array[p] != 0){
+         const int num_values = 3 * vmpi::send_num_array[p];
+         const int start = 3 * vmpi::send_start_index_array[p];
+         force_requests.push_back(req);
+         MPI_Irecv(&recv_force_data[start], num_values, MPI_DOUBLE, p, 49,
+                   MPI_COMM_WORLD, &force_requests.back());
+      }
+   }
+
+   // wait for all sends and receives to finish, then unpack the received forces
+   if(!force_requests.empty()){
+      vmpi::TotalComputeTime += vmpi::SwapTimer(vmpi::ComputeTime, vmpi::WaitTime);
+      std::vector<MPI_Status> force_status(force_requests.size());
+      MPI_Waitall(force_requests.size(), &force_requests[0], &force_status[0]);
+      vmpi::TotalWaitTime += vmpi::SwapTimer(vmpi::WaitTime, vmpi::ComputeTime);
+   }
+
+   // sum the received forces back onto the owned atoms
+   for(unsigned int i = 0; i < vmpi::send_atom_translation_array.size(); i++){
+      const int atom = vmpi::send_atom_translation_array[i];
+      force_x[atom] += recv_force_data[3*i+0];
+      force_y[atom] += recv_force_data[3*i+1];
+      force_z[atom] += recv_force_data[3*i+2];
+   }
+#endif
+
+   return;
+}
+
 } // end of namespace vmpi

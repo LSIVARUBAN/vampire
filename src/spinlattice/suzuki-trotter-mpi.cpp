@@ -11,11 +11,7 @@
 //------------------------------------------------------------------------------
 //
 
-// This will need modifications to work with MLIPs:
-// Issues:
-// Core velocities and forces are calculated early (what if boundary atoms inflict force on core atoms ... we have already calculated the core force so we lose force contributions.)
-// Also, if boundary atoms inflict force on halo atoms, currently there is no communication of this to the ranks that owns the halo atom (so cross rank forces would not be applied)
-
+// For MLIPs, the core and boundary atoms are fully evaluated before any owned atom is integrated, and forces accumulated on halo atoms are returned to their owners
 
 #ifdef MPICF
 // Standard Libraries
@@ -522,36 +518,6 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                        sld::internal::forces_array_z,
                        sld::internal::potential_eng);
 
-     //update position, Velocity
-     		for(int atom=pre_comm_si;atom<pre_comm_ei;atom++){
-
-
-
-     		     const unsigned int imat = atoms::type_array[atom];
- 		         double f_eta=1.0-0.5*sld::internal::mp[imat].damp_lat.get()*mp::dt_SI*1e12;
-                 double velo_noise=sld::internal::mp[imat].F_th_sigma.get()*sqrt(sim::temperature);
-                 double dt2_m=0.5*mp::dt_SI*1e12/sld::internal::mp[imat].mass.get();
-
-                //if during equilibration:
-                if (sim::time < sim::equilibration_time) {
-                      f_eta=1.0-0.5*sld::internal::mp[imat].eq_damp_lat.get()*mp::dt_SI*1e12;
-                      velo_noise=sld::internal::mp[imat].F_th_sigma_eq.get()*sqrt(sim::temperature);
-                }
-
-                 atoms::x_velo_array[atom] =  f_eta*atoms::x_velo_array[atom] + dt2_m * sld::internal::forces_array_x[atom]+dt2*velo_noise*Fx_th[atom];
-                 atoms::y_velo_array[atom] =  f_eta*atoms::y_velo_array[atom] + dt2_m * sld::internal::forces_array_y[atom]+dt2*velo_noise*Fy_th[atom];
-                 atoms::z_velo_array[atom] =  f_eta*atoms::z_velo_array[atom] + dt2_m * sld::internal::forces_array_z[atom]+dt2*velo_noise*Fz_th[atom];
-
-                 sld::internal::x_coord_storage_array[atom] +=  mp::dt_SI*1e12 * atoms::x_velo_array[atom];
-                 sld::internal::y_coord_storage_array[atom] +=  mp::dt_SI*1e12 * atoms::y_velo_array[atom];
-                 sld::internal::z_coord_storage_array[atom] +=  mp::dt_SI*1e12 * atoms::z_velo_array[atom];
-
-
-
-
-   }
-
-
    vmpi::mpi_complete_halo_swap_coords();
    vmpi::barrier();
 
@@ -591,14 +557,15 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                      sld::internal::forces_array_z,
                      sld::internal::potential_eng);
 
+      // Let MLIPs deposit reaction forces onto halo atoms while differentiating a local environment. Then return those contributions to the owning rank before updating any owned velocity.
+      if(sld::internal::lattice_potential_is_mlip()){
+         vmpi::mpi_sum_halo_forces(sld::internal::forces_array_x,
+                                    sld::internal::forces_array_y,
+                                    sld::internal::forces_array_z);
+      }
 
-
-
-
-
-
-      //update position, Velocity for boundary atoms
-      		for(int atom=post_comm_si;atom<post_comm_ei;atom++){
+      // all force contributions have now been calculated so update core and boundary atoms at the same time
+      for(int atom=pre_comm_si;atom<post_comm_ei;atom++){
 
 
      		     const unsigned int imat = atoms::type_array[atom];
@@ -685,30 +652,6 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                sld::internal::forces_array_z,
                                sld::internal::potential_eng);
 
-
-
-           for(int atom=pre_comm_si;atom<pre_comm_ei;atom++){
-
-
-     		     const unsigned int imat = atoms::type_array[atom];
- 		         double f_eta=1.0-0.5*sld::internal::mp[imat].damp_lat.get()*mp::dt_SI*1e12;
-                 double velo_noise=sld::internal::mp[imat].F_th_sigma.get()*sqrt(sim::temperature);
-                 double dt2_m=0.5*mp::dt_SI*1e12/sld::internal::mp[imat].mass.get();
-
-                 //if during equilibration:
-                 if (sim::time < sim::equilibration_time) {
-                       f_eta=1.0-0.5*sld::internal::mp[imat].eq_damp_lat.get()*mp::dt_SI*1e12;
-                       velo_noise=sld::internal::mp[imat].F_th_sigma_eq.get()*sqrt(sim::temperature);
-                 }
-
-              atoms::x_velo_array[atom] =  f_eta*atoms::x_velo_array[atom] + dt2_m * sld::internal::forces_array_x[atom]+dt2*velo_noise*Fx_th[atom];
-              atoms::y_velo_array[atom] =  f_eta*atoms::y_velo_array[atom] + dt2_m * sld::internal::forces_array_y[atom]+dt2*velo_noise*Fy_th[atom];
-              atoms::z_velo_array[atom] =  f_eta*atoms::z_velo_array[atom] + dt2_m * sld::internal::forces_array_z[atom]+dt2*velo_noise*Fz_th[atom];
-
-
-           }
-
-
     vmpi::mpi_complete_halo_swap_coords();
     vmpi::barrier();
 
@@ -749,10 +692,14 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                               sld::internal::forces_array_z,
                               sld::internal::potential_eng);
 
+           if(sld::internal::lattice_potential_is_mlip()){
+              vmpi::mpi_sum_halo_forces(sld::internal::forces_array_x,
+                                         sld::internal::forces_array_y,
+                                         sld::internal::forces_array_z);
+           }
 
-        //
-
-           for(int atom=post_comm_si;atom<post_comm_ei;atom++){
+           // apply the second velocity half step once all local and reverse communicated MLIP force contributions are available
+           for(int atom=pre_comm_si;atom<post_comm_ei;atom++){
 
 
      		     const unsigned int imat = atoms::type_array[atom];

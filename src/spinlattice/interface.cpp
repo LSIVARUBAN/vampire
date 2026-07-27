@@ -250,6 +250,48 @@ namespace sld{
          }
       }
 
+      test = "exchange-function";
+      if( word == test ){
+         if(value == "cubic"){
+            sld::internal::exchange_function = sld::internal::cubic_exchange_function;
+            return true;
+         }
+         if(value == "bethe-slater"){
+            sld::internal::exchange_function = sld::internal::bethe_slater_exchange_function;
+            return true;
+         }
+         terminaltextcolor(RED);
+         std::cerr << "Error - spin-lattice:exchange-function must be cubic or bethe-slater" << std::endl;
+         terminaltextcolor(WHITE);
+         return false;
+      }
+
+      test = "spin-hamiltonian";
+      if( word == test ){
+         if(value == "bilinear"){
+            sld::internal::spin_hamiltonian =
+               sld::internal::bilinear_spin_hamiltonian;
+            return true;
+         }
+         if(value == "biquadratic"){
+            sld::internal::spin_hamiltonian =
+               sld::internal::biquadratic_spin_hamiltonian;
+            return true;
+         }
+         terminaltextcolor(RED);
+         std::cerr << "Error - spin-lattice:spin-hamiltonian must be bilinear or biquadratic" << std::endl;
+         terminaltextcolor(WHITE);
+         return false;
+      }
+
+      test = "exchange-offset";
+      if( word == test ){
+         // choose whether to shift the hamiltonian by -1
+         sld::internal::exchange_offset =
+            vin::check_for_valid_bool(value, word, line, prefix, "input");
+         return true;
+      }
+
       test = "potential-cutoff-range";
       if( word == test ){
          double r_c = vin::str_to_double(value);
@@ -338,6 +380,62 @@ bool match_material_parameter(std::string const word, std::string const value, s
       double j0 = vin::str_to_double(value);
       vin::check_for_valid_value(j0, word, line, prefix, unit, "energy", 0, 5,"input","0 - 5 eV");
       sld::internal::mp[super_index].J0.set(j0);
+      return true;
+   }
+
+   test = "exchange-K0";
+   if( word == test ){
+      double k0 = vin::str_to_double(value);
+      vin::check_for_valid_value(k0, word, line, prefix, unit, "energy", 0, 5,"input","+/- 5 eV");
+      sld::internal::mp[super_index].K0.set(k0);
+      return true;
+   }
+
+   test = "bethe-slater-alpha-j";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "energy", 0, 5, "material", "+/- 5 eV");
+      sld::internal::mp[super_index].bethe_slater_alpha_j.set(parameter);
+      return true;
+   }
+
+   test = "bethe-slater-gamma-j";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "none", 0, 100, "material", "+/- 100");
+      sld::internal::mp[super_index].bethe_slater_gamma_j.set(parameter);
+      return true;
+   }
+
+   test = "bethe-slater-delta-j";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_positive_value(parameter, word, line, prefix, unit, "length", 0.01, 100, "material", "0.01 - 100 A");
+      sld::internal::mp[super_index].bethe_slater_delta_j.set(parameter);
+      return true;
+   }
+
+   test = "bethe-slater-alpha-k";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "energy", 0, 5, "material", "+/- 5 eV");
+      sld::internal::mp[super_index].bethe_slater_alpha_k.set(parameter);
+      return true;
+   }
+
+   test = "bethe-slater-gamma-k";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "none", 0, 100, "material", "+/- 100");
+      sld::internal::mp[super_index].bethe_slater_gamma_k.set(parameter);
+      return true;
+   }
+
+   test = "bethe-slater-delta-k";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_positive_value(parameter, word, line, prefix, unit, "length", 0.01, 100, "material", "0.01 - 100 A");
+      sld::internal::mp[super_index].bethe_slater_delta_k.set(parameter);
       return true;
    }
 

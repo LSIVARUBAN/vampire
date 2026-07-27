@@ -150,6 +150,8 @@ void sld_energy_statistic_t::calculate(const std::vector<double>& sx,  // spin u
                                    const std::vector<int>& mat, // material id
                                    const double temperature){
 
+   std::vector<double> anisotropy_energy(sld_total_energy.size(), 0.0);
+
    // initialise energies to zero
    std::fill(         sld_total_energy.begin(),         sld_total_energy.end(), 0.0 );
    std::fill(      sld_exchange_energy.begin(),      sld_exchange_energy.end(), 0.0 );
@@ -170,11 +172,22 @@ void sld_energy_statistic_t::calculate(const std::vector<double>& sx,  // spin u
 
 
    //---------------------------------------------------------------------------
-   // Calculate anisotropy energy (in Tesla)
+   // Calculate spin-lattice coupling energy
    //---------------------------------------------------------------------------
    for( int atom = 0; atom < num_atoms; ++atom ){
       const int mask_id = mask[atom]; // get mask id
       sld_coupling_energy[mask_id] += sld::compute_coupling_energy(atom,atom+1);
+   }
+
+   //---------------------------------------------------------------------------
+   // Calculate anisotropy energy. anisotropy::single_spin_energy returns an effective field energy in Tesla so convert muB*T -> J -> eV so that it can be combined with the other SLD energy components.
+   //---------------------------------------------------------------------------
+   const double joules_per_electron_volt = 1.602176634e-19;
+   for( int atom = 0; atom < num_atoms; ++atom ){
+      const int mask_id = mask[atom];
+      anisotropy_energy[mask_id] +=
+         anisotropy::single_spin_energy(atom, mat[atom], sx[atom], sy[atom], sz[atom], temperature) *
+         mm[atom] * constants::muB / joules_per_electron_volt;
    }
 
    //---------------------------------------------------------------------------
@@ -200,6 +213,7 @@ void sld_energy_statistic_t::calculate(const std::vector<double>& sx,  // spin u
    for( int mask_id = 0; mask_id < mask_size; ++mask_id ){
       sld_total_energy[mask_id] = sld_exchange_energy[mask_id] +
                               sld_coupling_energy[mask_id] +
+                              anisotropy_energy[mask_id] + // include anisotropy energy in total energy
                               kinetic_energy[mask_id] +
                               potential_energy[mask_id];
    }

@@ -281,7 +281,29 @@ The following commands are specific for the spin-lattice module and needed to in
 
 {\zicf material:damping-constant-lattice= float [ 0-1 : default 0.6]}\phantomsection\addcontentsline{toc}{subsection}{material:damping-constant-lattice}
 
-{\zicf material:exchange-J0=float [ 0-1 : default 0.904 !eV]}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-J0}  prefactor for the exchange function for SLD module;
+{\zicf material:exchange-J0=float [ 0-1 : default 0.904 !eV]}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-J0}
+Sets the $J_0$ energy prefactor used by the cubic spin-lattice exchange function.
+
+{\zicf material:exchange-K0=float}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-K0}
+Sets the $K_0$ energy prefactor used by the cubic spin-lattice exchange function. It is required for every material when \textit{spin-lattice:spin-hamiltonian=biquadratic}.
+
+{\zicf material:bethe-slater-alpha-j=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-alpha-j}
+Sets the energy coefficient $\alpha_J$ of the spin-lattice Bethe--Slater bilinear exchange curve, $J(r)=4\alpha_J x(1-\gamma_J x)\exp(-x)$ with $x=(r/\delta_J)^2$.
+
+{\zicf material:bethe-slater-gamma-j=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-gamma-j}
+Sets the dimensionless coefficient $\gamma_J$.
+
+{\zicf material:bethe-slater-delta-j=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-delta-j}
+Sets the positive coefficient $\delta_J$. The default unit is Angstrom.
+
+{\zicf material:bethe-slater-alpha-k=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-alpha-k}
+Sets the energy coefficient $\alpha_K$ of the biquadratic Bethe--Slater curve. This and the other $K$ parameters are required only for \textit{spin-lattice:exchange-function=bethe-slater} together with \textit{spin-lattice:spin-hamiltonian=biquadratic}.
+
+{\zicf material:bethe-slater-gamma-k=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-gamma-k}
+Sets the dimensionless coefficient $\gamma_K$.
+
+{\zicf material:bethe-slater-delta-k=float}\phantomsection\addcontentsline{toc}{subsection}{material:bethe-slater-delta-k}
+Sets the positive length coefficient $\delta_K$. The default unit is Angstrom.
 
 {\zicf material:harmonic-potential-V0=float [ 0-1 : default 0.15 !eV]}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-J0}  prefactor for the harmonic potential for SLD module;
 

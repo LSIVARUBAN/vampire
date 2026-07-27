@@ -83,8 +83,17 @@ namespace sld{
              set_double_t eq_damp_lat;
 
              set_double_t J0_ms;
+             set_double_t K0;
+             set_double_t K0_ms;
              set_double_t C0_ms;
              set_double_t J0_prime;
+             set_double_t K0_prime;
+             set_double_t bethe_slater_alpha_j;
+             set_double_t bethe_slater_gamma_j;
+             set_double_t bethe_slater_delta_j;
+             set_double_t bethe_slater_alpha_k;
+             set_double_t bethe_slater_gamma_k;
+             set_double_t bethe_slater_delta_k;
              set_double_t F_th_sigma;
              set_double_t F_th_sigma_eq;
 
@@ -146,11 +155,24 @@ namespace sld{
          snap_zbl_lattice_potential
       };
 
+      enum exchange_function_t{
+         cubic_exchange_function,
+         bethe_slater_exchange_function
+      };
+
+      enum spin_hamiltonian_t{
+         bilinear_spin_hamiltonian,
+         biquadratic_spin_hamiltonian
+      };
+
       extern bool enabled; // bool to enable module
       extern std::vector<sld::internal::mp_t> mp; // array of material properties
 
       extern double r_cut_pot; // mechanical potential cutoff
       extern double r_cut_fields; // exchange/coupling cutoff
+      extern exchange_function_t exchange_function;
+      extern spin_hamiltonian_t spin_hamiltonian;
+      extern bool exchange_offset;
 
       extern double dr_init;
       extern double th_velo;

@@ -22,6 +22,7 @@
 #include "anisotropy.hpp"
 #include "atoms.hpp"
 #include "create.hpp"
+#include "material.hpp"
 #include "sld.hpp"
 #include "sim.hpp"
 
@@ -115,6 +116,26 @@ namespace sld{
 
 namespace internal{
 
+   struct bethe_slater_result_t{
+      double value;
+      double derivative;
+   };
+
+   // Return f(r) and df(r)/dr for the Bethe-Slater fn. alpha is in joules and delta/r are in Angstrom, so the derivative is J/A
+   static inline bethe_slater_result_t bethe_slater(const double alpha,
+                                                     const double gamma,
+                                                     const double delta,
+                                                     const double r){
+      const double inverse_delta_squared = 1.0/(delta*delta);
+      const double x = r*r*inverse_delta_squared;
+      const double exponential = std::exp(-x);
+      bethe_slater_result_t result;
+      result.value = 4.0*alpha*x*(1.0-gamma*x)*exponential;
+      result.derivative = 8.0*alpha*r*inverse_delta_squared*exponential*
+                          (1.0-x-gamma*x*(2.0-x));
+      return result;
+   }
+
    void compute_exchange(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -142,7 +163,7 @@ namespace internal{
        double fx = 0.0, fy = 0.0, fz = 0.0;
        double hx = 0.0, hy = 0.0, hz = 0.0;
        double rji_sqr, rji, inv_rji; //,  inv_rji2;
-       double y, f_exch,  energy = 0.0;
+       double y, f_exch, energy = 0.0;
        //double exch_J0 = sld::internal::mp[0].J0_ms.get(); //7034.8836847351113; //
        //double exch_J0_prime = sld::internal::mp[0].J0_prime.get()/1.602176634e-19; //in J  0.72320000000000007 ;
        double J;
@@ -151,12 +172,29 @@ namespace internal{
        //double oneover3=1.0/3.0;
        double exch_inv_rcut=1.0/sld::internal::r_cut_fields;
        double sumJ=0.0;
+       const double joules_per_electron_volt = 1.602176634e-19;
+       const bool use_bethe_slater =
+          sld::internal::exchange_function ==
+          sld::internal::bethe_slater_exchange_function;
+       const bool use_biquadratic =
+          sld::internal::spin_hamiltonian ==
+          sld::internal::biquadratic_spin_hamiltonian;
+       const double hamiltonian_offset =
+          sld::internal::exchange_offset ? 1.0 : 0.0;
 
        for(int i=start_index;i<end_index; ++i){
 
           const unsigned int imat = atoms::type_array[i];
           double exch_J0 = sld::internal::mp[imat].J0_ms.get(); //7034.8836847351113; //
-          double exch_J0_prime = sld::internal::mp[imat].J0_prime.get()/1.602176634e-19;
+          double exch_J0_prime = sld::internal::mp[imat].J0_prime.get()/joules_per_electron_volt;
+          double exch_K0 = 0.0;
+          double exch_K0_prime = 0.0;
+          if(use_biquadratic && !use_bethe_slater){
+             exch_K0 = sld::internal::mp[imat].K0_ms.get();
+             exch_K0_prime =
+                sld::internal::mp[imat].K0_prime.get()/joules_per_electron_volt;
+          }
+          const double inverse_moment = 1.0/::mp::material[imat].mu_s_SI;
           //int count_int=0;
 
           fx = 0.0;
@@ -201,31 +239,81 @@ namespace internal{
                  rji = sqrt(rji_sqr);
                  inv_rji = 1.0/ rji;
 
-                 y = (1.0 - rji * exch_inv_rcut);
-                 J = exch_J0 * y * y * y;
-
                  sjx = x_spin_array[j];
                  sjy = y_spin_array[j];
                  sjz = z_spin_array[j];
-
-                 hx += J * sjx ;
-                 hy += J * sjy ;
-                 hz += J * sjz ;
-                 sumJ += J;
-
-
 
                  //this part calculates the exchange forces
                  //for computational efficiency, forces and fields are calculated at the same time
                  si_dot_sj = sx * sjx + sy * sjy + sz * sjz;
 
-                 f_exch = -exch_J0_prime * y * y;
+                 if(use_bethe_slater){
+                    const bethe_slater_result_t j_curve =
+                       bethe_slater(sld::internal::mp[imat].bethe_slater_alpha_j.get(),
+                                    sld::internal::mp[imat].bethe_slater_gamma_j.get(),
+                                    sld::internal::mp[imat].bethe_slater_delta_j.get(),
+                                    rji);
+                    const double j_field = j_curve.value*inverse_moment;
+                    double pair_field = j_field;
+                    double radial_derivative = j_curve.derivative*(si_dot_sj-hamiltonian_offset);
+                    energy += j_field*(si_dot_sj-hamiltonian_offset);
 
-                 fx += f_exch * dx *  (si_dot_sj)* inv_rji;
-                 fy += f_exch * dy *  (si_dot_sj)* inv_rji;
-                 fz += f_exch * dz *  (si_dot_sj) * inv_rji;
+                    // The biquadratic mode adds K(r)(si.sj)^2 to the Bethe-Slater J(r) Hamiltonian.
+                    if(use_biquadratic){
+                       const bethe_slater_result_t k_curve =
+                          bethe_slater(sld::internal::mp[imat].bethe_slater_alpha_k.get(),
+                                       sld::internal::mp[imat].bethe_slater_gamma_k.get(),
+                                       sld::internal::mp[imat].bethe_slater_delta_k.get(),
+                                       rji);
+                       const double k_field = k_curve.value*inverse_moment;
+                       pair_field += 2.0*k_field*si_dot_sj;
+                       radial_derivative +=
+                          k_curve.derivative*
+                          (si_dot_sj*si_dot_sj-hamiltonian_offset);
+                       energy +=
+                          k_field*(si_dot_sj*si_dot_sj-hamiltonian_offset);
+                    }
 
-                 energy += J *  (si_dot_sj);
+                    hx += pair_field*sjx;
+                    hy += pair_field*sjy;
+                    hz += pair_field*sjz;
+                    sumJ += pair_field;
+
+                    // The optional -1 offsets act on energy and mechanical force. They are used to remove the magnetic force in the collinear ground state without changing spin precession.
+                    f_exch = radial_derivative/joules_per_electron_volt;
+                    fx += f_exch*dx*inv_rji;
+                    fy += f_exch*dy*inv_rji;
+                    fz += f_exch*dz*inv_rji;
+                 }
+                 else{
+                    y = (1.0 - rji * exch_inv_rcut);
+                    J = exch_J0 * y * y * y;
+                    double pair_field = J;
+                    double radial_derivative =
+                       -exch_J0_prime*y*y*
+                       (si_dot_sj-hamiltonian_offset);
+                    energy += J*(si_dot_sj-hamiltonian_offset);
+
+                    if(use_biquadratic){
+                       const double K = exch_K0*y*y*y;
+                       pair_field += 2.0*K*si_dot_sj;
+                       radial_derivative +=
+                          -exch_K0_prime*y*y*
+                          (si_dot_sj*si_dot_sj-hamiltonian_offset);
+                       energy +=
+                          K*(si_dot_sj*si_dot_sj-hamiltonian_offset);
+                    }
+
+                    hx += pair_field*sjx;
+                    hy += pair_field*sjy;
+                    hz += pair_field*sjz;
+                    sumJ += pair_field;
+
+                    f_exch = radial_derivative;
+                    fx += f_exch*dx*inv_rji;
+                    fy += f_exch*dy*inv_rji;
+                    fz += f_exch*dz*inv_rji;
+                 }
                  //std::cout<<std::setprecision(15)<<std::endl;
                  /*
                  if(abs(x_coord_array[i]-20.09)<1e-3 &&abs(y_coord_array[i]-20.09)<1e-3  && abs(z_coord_array[i]-20.09)<1e-3 ){

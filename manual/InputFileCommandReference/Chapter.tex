@@ -376,11 +376,60 @@ Distance cutoff for the interatomic potential calculations. Units is Angstrom.  
 {\zicf spin-lattice:fields-cutoff-range=float}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:fields-cutoff-range=float}
 Distance cutoff for the interatomic potential calculations. Units is Angstrom.  Default value is 3.75 !A;
 
+{\zicf spin-lattice:exchange-function=string [default cubic]}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:exchange-function=string}
+Selects the radial exchange function. The accepted values are \textit{cubic} (default) and \textit{bethe-slater}.
+For the cubic function,
+\[
+J(r)=J_0(1-r/r_{\mathrm{cut}})^3,\qquad
+K(r)=K_0(1-r/r_{\mathrm{cut}})^3
+\]
+for $r<r_{\mathrm{cut}}$, and both functions are zero outside the cutoff.
+The Bethe--Slater form is
+\[
+f(r)=4\alpha_f x_f(1-\gamma_f x_f)\exp(-x_f),\qquad
+x_f=(r/\delta_f)^2,
+\]
+where $f$ is $J$ or $K$. It is evaluated inside \textit{spin-lattice:fields-cutoff-range}. A complete $J$ parameter triplet is
+required for every material; the $K$ triplet is also required when the biquadratic Hamiltonian is selected.
+
+{\zicf spin-lattice:spin-hamiltonian=string [default bilinear]}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:spin-hamiltonian=string}
+Selects \textit{bilinear} or \textit{biquadratic} exchange. The bilinear Hamiltonian is
+\[
+\mathcal{H}_{\mathrm{ex}}=-\frac{1}{2}\sum_{i,j}
+J(r_{ij})(\mathbf{s}_i\cdot\mathbf{s}_j-\Delta),
+\]
+while the biquadratic Hamiltonian is
+\[
+\mathcal{H}_{\mathrm{ex}}=-\frac{1}{2}\sum_{i,j}\left[
+J(r_{ij})(\mathbf{s}_i\cdot\mathbf{s}_j-\Delta)
++K(r_{ij})((\mathbf{s}_i\cdot\mathbf{s}_j)^2-\Delta)\right].
+\]
+The factor of one half removes pair double counting. Here $\Delta=1$ when \textit{spin-lattice:exchange-offset} is enabled and zero otherwise.
+
+{\zicf spin-lattice:exchange-offset=bool [default false]}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:exchange-offset=bool}
+Selects the shifted exchange Hamiltonian. Enabling it sets $\Delta=1$ in the Hamiltonians above. This removes the exchange energy and corresponding mechanical force in
+the aligned ground state without changing the spin field. When disabled, $\Delta=0$ and the original unshifted Hamiltonian is retained.
+
 {\zicf spin-lattice:coupling=string}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:coupling=string}
  Flag that sets up the type of spin-lattice coupling. Possible values are : pseudodipolar, {neel-full};
 
  {\zicf spin-lattice:potential=string}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:potential=string}
- Flag that sets up the type of potential. Possible values are : harmonic, morse, embedded;
+ Flag that sets up the type of potential. Possible values are \textit{harmonic}, \textit{morse}, \textit{snap}, and \textit{snapzbl}.
+
+{\zicf spin-lattice:snap-coeff-file=string}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:snap-coeff-file=string}
+Sets the SNAP coefficient filename when \textit{spin-lattice:potential} is \textit{snap} or \textit{snapzbl}.
+
+{\zicf spin-lattice:snap-param-file=string}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:snap-param-file=string}
+Sets the SNAP parameter filename.
+
+{\zicf spin-lattice:zbl-inner-cutoff=float}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:zbl-inner-cutoff=float}
+Sets the inner switching distance in Angstrom for the ZBL contribution to the \textit{snapzbl} potential.
+
+{\zicf spin-lattice:zbl-outer-cutoff=float}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:zbl-outer-cutoff=float}
+Sets the outer switching distance in Angstrom for the ZBL contribution. It must be larger than the inner cutoff.
+
+{\zicf spin-lattice:zbl-atomic-number=float}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:zbl-atomic-number=float}
+Sets the atomic number used by the ZBL potential.
 
 
 \section*{Phonon Pump Parameters}

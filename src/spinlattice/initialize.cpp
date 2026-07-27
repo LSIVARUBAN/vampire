@@ -59,6 +59,44 @@ namespace sld{
       std::cout<<"Lattice damping: "<<sld::internal::mp[0].damp_lat.get()<<std::endl;
       std::cout<<"Coupling C0 "<<sld::internal::mp[0].C0.get()<<std::endl;
 
+      const bool use_bethe_slater =
+         sld::internal::exchange_function ==
+         sld::internal::bethe_slater_exchange_function;
+      const bool use_biquadratic =
+         sld::internal::spin_hamiltonian ==
+         sld::internal::biquadratic_spin_hamiltonian;
+
+      // validate each curve as a complete alpha/gamma/delta triple
+      if(use_bethe_slater){
+         for(int mat = 0; mat < mp::num_materials; ++mat){
+            const bool j_parameters_set =
+               sld::internal::mp[mat].bethe_slater_alpha_j.is_set() &&
+               sld::internal::mp[mat].bethe_slater_gamma_j.is_set() &&
+               sld::internal::mp[mat].bethe_slater_delta_j.is_set();
+            if(!j_parameters_set){
+               err::zexit("Bethe-Slater exchange requires alpha-j, gamma-j and delta-j in every material");
+            }
+
+            const bool k_parameters_set =
+               sld::internal::mp[mat].bethe_slater_alpha_k.is_set() &&
+               sld::internal::mp[mat].bethe_slater_gamma_k.is_set() &&
+               sld::internal::mp[mat].bethe_slater_delta_k.is_set();
+            if(use_biquadratic && !k_parameters_set){
+               err::zexit("Bethe-Slater biquadratic exchange requires alpha-k, gamma-k and delta-k in every material");
+            }
+         }
+      }
+      else if(use_biquadratic){
+         for(int mat = 0; mat < mp::num_materials; ++mat){
+            if(!sld::internal::mp[mat].K0.is_set()){
+               err::zexit("Cubic biquadratic exchange requires exchange-K0 in every material");
+            }
+         }
+      }
+      std::cout << "Exchange function: " << (use_bethe_slater ? "Bethe-Slater" : "cubic") << std::endl;
+      std::cout << "Spin Hamiltonian: " << (use_biquadratic ? "biquadratic" : "bilinear") << std::endl;
+      std::cout << "Exchange Hamiltonian offset: " << (sld::internal::exchange_offset ? "enabled" : "disabled") << std::endl;
+
       switch(sld::internal::lattice_potential){
          case sld::internal::harmonic_lattice_potential:
             std::cout<<"Harmonic potential is used of potential well depth V0="<<sld::internal::mp[0].V0.get()<<std::endl;
@@ -315,6 +353,12 @@ namespace sld{
          double C=sld::internal::mp[mat].C0.get();
          sld::internal::mp[mat].C0.set(sld::internal::mp[mat].J0.get()*C);
          sld::internal::mp[mat].J0_ms.set(sld::internal::mp[mat].J0.get()/mp::material[mat].mu_s_SI);
+         if(sld::internal::mp[mat].K0.is_set()){
+            sld::internal::mp[mat].K0_ms.set(
+               sld::internal::mp[mat].K0.get()/mp::material[mat].mu_s_SI);
+            sld::internal::mp[mat].K0_prime.set(
+               3.0*sld::internal::mp[mat].K0.get()/sld::internal::r_cut_fields);
+         }
          sld::internal::mp[mat].C0_ms.set(sld::internal::mp[mat].C0.get()/mp::material[mat].mu_s_SI);
          sld::internal::mp[mat].J0_prime.set(3.0*sld::internal::mp[mat].J0.get()/sld::internal::r_cut_fields);
          sld::internal::mp[mat].F_th_sigma.set(sqrt(2.0*sld::internal::mp[mat].damp_lat.get()*constants::kB_eV / (sld::internal::mp[mat].mass.get()*mp::dt_SI*1e12)));

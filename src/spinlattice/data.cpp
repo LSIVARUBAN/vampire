@@ -59,6 +59,9 @@ namespace sld{
 
       double r_cut_pot; // mechanical potential cutoff
       double r_cut_fields;
+      exchange_function_t exchange_function = cubic_exchange_function; // default exchange function
+      spin_hamiltonian_t spin_hamiltonian = bilinear_spin_hamiltonian; // default spin hamiltonian
+      bool exchange_offset = false; // by default don't offset the hamiltonian
 
       double dr_init; // initial conditions
       double th_velo;

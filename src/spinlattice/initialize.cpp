@@ -13,6 +13,7 @@
 // C++ standard library headers
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 
 // Vampire headers
 #include "sld.hpp"
@@ -51,6 +52,12 @@ namespace sld{
          }
          sld::internal::r_cut_pot = std::max(sld::internal::r_cut_pot,
                                              sld::internal::zbl_outer_cutoff);
+      }
+      if((sld::internal::lattice_potential == sld::internal::snap_lattice_potential ||
+          sld::internal::lattice_potential == sld::internal::snap_zbl_lattice_potential) &&
+         sld::internal::r_cut_pot > sld::internal::r_cut_fields){
+         // SNAP filters the exchange derived neighbour list, so its complete mechanical cutoff must fit inside the range available to that list
+         err::zexit("SNAP potential cutoff exceeds spin-lattice:fields-cutoff-range");
       }
 
       std::cout<<"Potential Cutoff: "<<sld::internal::r_cut_pot<<std::endl;

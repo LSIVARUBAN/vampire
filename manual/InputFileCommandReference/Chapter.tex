@@ -374,7 +374,8 @@ sim:integrator=suzuki-trotter.
 Distance cutoff for the interatomic potential calculations. Units is Angstrom.  Default value is 7.8 !A;
 
 {\zicf spin-lattice:fields-cutoff-range=float}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:fields-cutoff-range=float}
-Distance cutoff for the interatomic potential calculations. Units is Angstrom.  Default value is 3.75 !A;
+Distance cutoff for the spin-lattice exchange and coupling calculations. Units are Angstrom. The default value is 3.75 !A. 
+MLIPs currently filter the exchange-derived neighbour list; therefore, a \textit{snap} or \textit{snapzbl} calculation stops during initialisation if its cutoff is larger than this value.
 
 {\zicf spin-lattice:exchange-function=string [default cubic]}\phantomsection\addcontentsline{toc}{subsubsection}{spin-lattice:exchange-function=string}
 Selects the radial exchange function. The accepted values are \textit{cubic} (default) and \textit{bethe-slater}.

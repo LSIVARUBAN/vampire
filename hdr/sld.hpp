@@ -114,20 +114,20 @@ namespace sld{
    double compute_spin_temperature(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,
                const std::vector<int>& type_array, // type for atom
-               std::vector<double>& x_spin_array, // coord vectors for atoms
-               std::vector<double>& y_spin_array,
-               std::vector<double>& z_spin_array,
-               std::vector<double>& fields_array_x, //  vectors for fields
-               std::vector<double>& fields_array_y,
-               std::vector<double>& fields_array_z,
-               std::vector<double>& mu_s_array);
+               const std::vector<double>& x_spin_array, // coord vectors for atoms
+               const std::vector<double>& y_spin_array,
+               const std::vector<double>& z_spin_array,
+               const std::vector<double>& fields_array_x, //  vectors for fields
+               const std::vector<double>& fields_array_y,
+               const std::vector<double>& fields_array_z,
+               const std::vector<double>& mu_s_array);
 
    double compute_lattice_temperature(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,
                const std::vector<int>& type_array, // type for atom
-               std::vector<double>& velo_array_x, // coord vectors for atoms
-               std::vector<double>& velo_array_y,
-               std::vector<double>& velo_array_z);
+               const std::vector<double>& velo_array_x, // coord vectors for atoms
+               const std::vector<double>& velo_array_y,
+               const std::vector<double>& velo_array_z);
 
 //
    double compute_potential_energy(const int start_index, // first atom for exchange interactions to be calculated
@@ -159,6 +159,7 @@ namespace sld{
 //
    extern double lattice_temperature;
    extern double spin_temperature;
+   double electron_temperature();
 
 /*
    extern double potential_energy;

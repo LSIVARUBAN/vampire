@@ -62,6 +62,16 @@ namespace sld{
       exchange_function_t exchange_function = cubic_exchange_function; // default exchange function
       spin_hamiltonian_t spin_hamiltonian = bilinear_spin_hamiltonian; // default spin hamiltonian
       bool exchange_offset = false; // by default don't offset the hamiltonian
+      thermostat_t thermostat = standard_thermostat;
+      electron_heat_capacity_t electron_heat_capacity_model = linear_electron_heat_capacity;
+      double initial_electron_temperature = 300.0; // T_e0 [K]
+      bool initial_electron_temperature_set = false;
+      double electron_temperature = 300.0; // T_e [K]
+      double electron_spin_coupling = 0.0; // G_es [W m^-3 K^-1]
+      double electron_phonon_coupling = 0.0; // G_ep [W m^-3 K^-1]
+      double electron_heat_capacity = 1.0; // [J m^-3 K^-1]
+      double electron_heat_capacity_coefficient = 225.0; // [J m^-3 K^-2]
+      bool sled_production_initialized = false;
 
       double dr_init; // initial conditions
       double th_velo;

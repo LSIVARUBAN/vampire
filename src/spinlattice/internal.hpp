@@ -165,6 +165,17 @@ namespace sld{
          biquadratic_spin_hamiltonian
       };
 
+      enum thermostat_t{
+         standard_thermostat,
+         sled_thermostat
+      };
+
+      enum electron_heat_capacity_t{
+         constant_electron_heat_capacity,
+         linear_electron_heat_capacity,
+         nonlinear_electron_heat_capacity
+      };
+
       extern bool enabled; // bool to enable module
       extern std::vector<sld::internal::mp_t> mp; // array of material properties
 
@@ -173,6 +184,16 @@ namespace sld{
       extern exchange_function_t exchange_function;
       extern spin_hamiltonian_t spin_hamiltonian;
       extern bool exchange_offset;
+      extern thermostat_t thermostat;
+      extern electron_heat_capacity_t electron_heat_capacity_model;
+      extern double initial_electron_temperature;
+      extern bool initial_electron_temperature_set;
+      extern double electron_temperature;
+      extern double electron_spin_coupling;
+      extern double electron_phonon_coupling;
+      extern double electron_heat_capacity;
+      extern double electron_heat_capacity_coefficient;
+      extern bool sled_production_initialized;
 
       extern double dr_init;
       extern double th_velo;
@@ -196,6 +217,10 @@ namespace sld{
       extern snap_potential_t snap_potential;
 
       bool lattice_potential_is_mlip();
+
+      void prepare_sled_thermostat();
+      void update_sled_thermostat();
+      double get_electron_heat_capacity(const double temperature);
 
       void print_force_debug_summary(const std::string& label,
                                      const int call,

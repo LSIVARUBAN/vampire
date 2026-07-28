@@ -292,6 +292,91 @@ namespace sld{
          return true;
       }
 
+      test = "thermostat"; // SLED or standard thermostat, if not specified, default is standard thermostat
+      if( word == test ){
+         if(value == "standard"){
+            sld::internal::thermostat =
+               sld::internal::standard_thermostat;
+            return true;
+         }
+         if(value == "sled"){
+            sld::internal::thermostat = sld::internal::sled_thermostat;
+            return true;
+         }
+         err::zexit("spin-lattice:thermostat must be standard or sled");
+      }
+
+      test = "electron-temperature"; // initial electron temperature for SLED thermostat
+      if( word == test ){
+         double temperature = vin::str_to_double(value);
+         vin::check_for_valid_value(temperature, word, line, prefix, unit,
+                                    "none", 0.0, 1.0e6, "input",
+                                    "0 - 1,000,000 K");
+         sld::internal::initial_electron_temperature = temperature;
+         sld::internal::initial_electron_temperature_set = true;
+         return true;
+      }
+
+      test = "electron-spin-coupling"; // G_es [W m^-3 K^-1] for SLED thermostat
+      if( word == test ){
+         double coupling = vin::str_to_double(value);
+         vin::check_for_valid_value(coupling, word, line, prefix, unit,
+                                    "none", 0.0, 1.0e40, "input",
+                                    "0 - 1E40 W m^-3 K^-1");
+         sld::internal::electron_spin_coupling = coupling;
+         return true;
+      }
+
+      test = "electron-phonon-coupling"; // G_ep [W m^-3 K^-1] for SLED thermostat
+      if( word == test ){
+         double coupling = vin::str_to_double(value);
+         vin::check_for_valid_value(coupling, word, line, prefix, unit,
+                                    "none", 0.0, 1.0e40, "input",
+                                    "0 - 1E40 W m^-3 K^-1");
+         sld::internal::electron_phonon_coupling = coupling;
+         return true;
+      }
+
+      test = "electron-heat-capacity-model"; // constant, linear or non-linear electron heat capacity model for SLED thermostat
+      if( word == test ){
+         if(value == "constant"){
+            sld::internal::electron_heat_capacity_model =
+               sld::internal::constant_electron_heat_capacity;
+            return true;
+         }
+         if(value == "linear"){
+            sld::internal::electron_heat_capacity_model =
+               sld::internal::linear_electron_heat_capacity;
+            return true;
+         }
+         if(value == "non-linear"){
+            sld::internal::electron_heat_capacity_model =
+               sld::internal::nonlinear_electron_heat_capacity;
+            return true;
+         }
+         err::zexit("spin-lattice:electron-heat-capacity-model must be constant, linear or non-linear");
+      }
+
+      test = "electron-heat-capacity"; // C_e [J m^-3 K^-1] for SLED thermostat, only used if electron-heat-capacity-model = constant
+      if( word == test ){
+         double heat_capacity = vin::str_to_double(value);
+         vin::check_for_valid_positive_value(
+            heat_capacity, word, line, prefix, unit, "none", 1.0e-30,
+            1.0e40, "input", "greater than zero in J m^-3 K^-1");
+         sld::internal::electron_heat_capacity = heat_capacity;
+         return true;
+      }
+
+      test = "electron-heat-capacity-coefficient"; // gamma [J m^-3 K^-2] for SLED thermostat, only used if electron-heat-capacity-model = linear
+      if( word == test ){
+         double coefficient = vin::str_to_double(value);
+         vin::check_for_valid_positive_value(
+            coefficient, word, line, prefix, unit, "none", 1.0e-30,
+            1.0e40, "input", "greater than zero in J m^-3 K^-2");
+         sld::internal::electron_heat_capacity_coefficient = coefficient;
+         return true;
+      }
+
       test = "potential-cutoff-range";
       if( word == test ){
          double r_c = vin::str_to_double(value);

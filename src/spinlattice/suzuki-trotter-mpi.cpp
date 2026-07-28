@@ -148,7 +148,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                       std::vector<double> &z_spin_array,
                       std::vector<int> &type_array){
 
-
+       sld::internal::prepare_sled_thermostat(); // prep the SLED thermostat for the current step
 
 
 
@@ -987,6 +987,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
 
    }}*/
+
+ sld::internal::update_sled_thermostat(); // update the sled thermostat variables
 
  // Swap timers compute -> wait
  vmpi::TotalComputeTime+=vmpi::SwapTimer(vmpi::ComputeTime, vmpi::WaitTime);

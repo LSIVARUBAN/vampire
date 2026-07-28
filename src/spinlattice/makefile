@@ -12,6 +12,7 @@ snap.o\
 fields.o\
 suzuki-trotter.o\
 temperatures.o\
+thermostat.o\
 energy.o\
 suzuki-trotter-mpi.o\
 tests.o

@@ -90,6 +90,7 @@ namespace sld{
 
    int suzuki_trotter(){
       const int num_atoms=atoms::num_atoms;
+      sld::internal::prepare_sled_thermostat(); // prep the SLED thermostat for the current step
       double cay_dt=-mp::dt/4.0;//-dt4*consts::gyro - mp::dt contains gamma;
       double dt2=0.5*mp::dt_SI*1e12;
 
@@ -534,7 +535,7 @@ namespace sld{
 
                      }}*/
 
-
+      sld::internal::update_sled_thermostat(); // update the SLED thermostat for the current step
       return EXIT_SUCCESS;
   }
 

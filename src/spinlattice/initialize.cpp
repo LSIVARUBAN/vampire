@@ -23,6 +23,7 @@
 #include "material.hpp"
 #include "constants.hpp"
 #include "errors.hpp"
+#include "sim.hpp"
 
 // sld module headers
 #include "internal.hpp"
@@ -103,6 +104,28 @@ namespace sld{
       std::cout << "Exchange function: " << (use_bethe_slater ? "Bethe-Slater" : "cubic") << std::endl;
       std::cout << "Spin Hamiltonian: " << (use_biquadratic ? "biquadratic" : "bilinear") << std::endl;
       std::cout << "Exchange Hamiltonian offset: " << (sld::internal::exchange_offset ? "enabled" : "disabled") << std::endl;
+
+      if(sld::internal::thermostat == sld::internal::sled_thermostat){
+         if(!sld::internal::initial_electron_temperature_set){
+            // if the initial electron temperature is not set, use the equilibration temperature as the initial value
+            sld::internal::initial_electron_temperature = sim::temperature;
+         }
+         sld::internal::electron_temperature = sim::Teq; 
+         sld::internal::sled_production_initialized = false;
+
+         const double initial_heat_capacity = sld::internal::get_electron_heat_capacity(sld::internal::initial_electron_temperature);
+         if(initial_heat_capacity <= 0.0){
+            err::zexit("The SLED electron heat capacity must be greater than zero");
+         }
+
+         std::cout << "Thermostat: SLED" << std::endl;
+         std::cout << "Initial electron temperature: " << sld::internal::initial_electron_temperature << " K" << std::endl;
+         std::cout << "Electron-spin coupling (G_es): " << sld::internal::electron_spin_coupling << " W m^-3 K^-1" << std::endl;
+         std::cout << "Electron-phonon coupling (G_ep): " << sld::internal::electron_phonon_coupling << " W m^-3 K^-1" << std::endl;
+      }
+      else{
+         std::cout << "Thermostat: standard" << std::endl;
+      }
 
       switch(sld::internal::lattice_potential){
          case sld::internal::harmonic_lattice_potential:

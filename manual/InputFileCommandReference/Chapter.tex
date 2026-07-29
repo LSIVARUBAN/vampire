@@ -446,7 +446,43 @@ Sets $C_0$ in $\mathrm{J\,m^{-3}\,K^{-1}}$ for the constant heat-capacity model.
 Sets $\gamma_e$ in $\mathrm{J\,m^{-3}\,K^{-2}}$ for the linear heat-capacity model.
 
 {\zicf spin-lattice:coupling=string}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:coupling=string}
- Flag that sets up the type of spin-lattice coupling. Possible values are : pseudodipolar, {neel-full};
+Selects the spin coupling used to exchange energy and angular momentum between the spin and lattice systems. 
+The values are \textit{pseudodipolar} or \textit{full-neel}. 
+Both models act on pairs inside \textit{spin-lattice:fields-cutoff-range}.
+
+Let
+\[
+\mathbf{e}_{ij}=\frac{\mathbf{r}_i-\mathbf{r}_j}{r_{ij}},\qquad
+a_i=\mathbf{s}_i\cdot\mathbf{e}_{ij},\qquad
+a_j=\mathbf{s}_j\cdot\mathbf{e}_{ij},\qquad
+q_{ij}=\mathbf{s}_i\cdot\mathbf{s}_j ,
+\]
+where $\mathbf{s}_i$ and $\mathbf{s}_j$ are spin unit vectors. The radial
+coupling strength is
+\[
+f(r_{ij})=C J_0\left(\frac{a_0}{r_{ij}}\right)^4,\qquad a_0=1\,\text{\AA}.
+\]
+where $C$ is set by \textit{material:coupling-C0} and $J_0$ by \textit{material:exchange-J0}. 
+
+The coupling Hamiltonian is
+\[
+\mathcal{H}_{\mathrm{c}}
+=-\frac{1}{2}\sum_{i,j}f(r_{ij})\Phi_{ij}.
+\]
+For \textit{pseudodipolar} coupling, the angular term is
+\[
+\Phi_{ij}^{\mathrm{PD}}=a_i a_j-\frac{1}{3}q_{ij},
+\]
+For the \textit{full-neel} option, the angular term is
+\[
+\begin{split}
+\Phi_{ij}^{\mathrm{N}}={}&
+\frac{12}{35}\left(a_i a_j-\frac{q_{ij}}{3}\right)
++\frac{9}{5}\left(a_i^2-\frac{q_{ij}}{3}\right)
+                 \left(a_j^2-\frac{q_{ij}}{3}\right)\\
+&-\frac{2}{5}\left(a_i a_j^3+a_j a_i^3\right),
+\end{split}
+\]
 
  {\zicf spin-lattice:potential=string}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:potential=string}
  Flag that sets up the type of potential. Possible values are \textit{harmonic}, \textit{morse}, \textit{snap}, and \textit{snapzbl}.

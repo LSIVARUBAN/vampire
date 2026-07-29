@@ -307,7 +307,8 @@ Sets the positive length coefficient $\delta_K$. The default unit is Angstrom.
 
 {\zicf material:harmonic-potential-V0=float [ 0-1 : default 0.15 !eV]}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-J0}  prefactor for the harmonic potential for SLD module;
 
-{\zicf material:coupling-C0=float [ 0-1 : default 0.5]}\phantomsection\addcontentsline{toc}{subsection}{material:coupling-C0}  prefactor for the coupling function for SLD module; various coupling options available such as pseudodipolar or full-neel.
+{\zicf material:coupling-C0=float [0-1; default 0.5]}\phantomsection\addcontentsline{toc}{subsection}{material:coupling-C0}
+Sets the spin-lattice coupling coefficient $C$ used by \textit{spin-lattice:coupling=pseudodipolar} and \textit{spin-lattice:coupling=full-neel}. 
 
 
 %\section*{Example material files}

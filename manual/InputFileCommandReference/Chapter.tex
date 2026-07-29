@@ -506,11 +506,50 @@ The wavelength ($\lambda_z$) of the force wave in the z-direction. Units are in 
 
 {\zicf phonon:wave-direction-z = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-z = float} The z-component of the unit vector that defines the direction of propagation. 
 
+\section*{Spin-wave and phonon spectra}
+\phantomsection\addcontentsline{toc}{section}{Spin-wave and phonon spectra}
+The spin-waves program calculates a space-time Fourier transform of spin or velocity components. 
+Spin components produce spin-wave spectra and velocity components can be used to obtain phonon spectra. 
+The program must is selected with \textit{sim:program = spin-waves}. The sampling interval is controlled by \textit{sim:time-steps-increment}.
 
+{\zicf spinwaves:kfile = string}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:kfile}
+Text file containing three reduced reciprocal-space coordinates per line. 
+For \textit{spinwaves:filetype = path}, each pair of lines defines the start and end of one path segment.
+If this is omitted, a built-in path is used if available for the selected crystal structure.
 
+{\zicf spinwaves:filetype = string [path, specific-k; default path]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:filetype}
+Controls how \textit{spinwaves:kfile} is interpreted. The \textit{path} option constructs the path between each pair of supplied end points. 
+The \textit{specific-k} option evaluates just the wave vectors listed in the file.
 
+{\zicf spinwaves:num-spectrums = integer [1--20]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:num-spectrums}
+Sets the number of spectra calculated in the same run.
 
+{\zicf spinwaves[n]:component = string [sx, sy, sz, vx, vy, vz; default sx]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves[n]:component}
+Selects the quantity transformed for spectrum $n$. The options \textit{sx}, \textit{sy}, and \textit{sz} are spin components while \textit{vx}, \textit{vy}, and \textit{vz} are velocity components.
 
+{\zicf spinwaves[n]:material = integer list}\phantomsection\addcontentsline{toc}{subsection}{spinwaves[n]:material}
+Selects the materials contributing to spectrum $n$. Multiple materials are given as a comma-separated list.
+
+{\zicf spinwaves[n]:complex-magnitude = bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves[n]:complex-magnitude}
+If true, writes the squared magnitude of the complex Fourier transform to the real spectrum file. 
+If false, writes separate real and imaginary spectrum files.
+
+{\zicf spinwaves[n]:normalise-each-k = bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves[n]:normalise-each-k}
+If true, this normalises the spectrum.
+
+{\zicf spinwaves[n]:one-sided = bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves[n]:one-sided}
+If true, produces a one-sided frequency spectrum and a two-sided spectrum when false.
+
+{\zicf spinwaves:reduction-method = string [rank0, direct-scatter; default rank0]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:reduction-method}
+Selects the MPI reduction method. \textit{rank0} first collects the spatial Fourier series on rank zero and then distributes wave vectors for the temporal FFTs. 
+\textit{direct-scatter} reduces each wave vector directly to the rank that will perform its temporal FFT. 
+
+{\zicf spinwaves:fourier-prefactor = bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:fourier-prefactor}
+If true, precomputes the sine and cosine position factors used by the spatial Fourier transform. 
+This increases initial memory use but avoids recalculating the factors at every sample.
+
+{\zicf spinwaves:intermediate-structure-factor = bool [default false]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:intermediate-structure-factor}
+If true, also writes the squared magnitude of the spatial Fourier series before the temporal Fourier transform.
 
 \section*{Simulation Control}
 \phantomsection\addcontentsline{toc}{section}{Simulation Control}
@@ -531,6 +570,10 @@ The following commands control the simulation, including the program, maximum te
 {\zicf sim:program = benchmark}\phantomsection\addcontentsline{toc}{subsubsection}{benchmark} Program which integrates the system for 10,000 time steps and exits. Used primarily for quick performance comparisons for different system architectures, processors and during code performance optimisation.
 
 {\zicf sim:program = time-series}\phantomsection\addcontentsline{toc}{subsubsection}{time-series} Program to perform a single time series typically used for switching calculations, ferromagnetic resonance or to find equilibrium magnetic configurations. The system is usually simulated with constant temperature and applied field. The system is first equilibrated for \textit{sim:equilibration-time-steps} time steps and is then integrated for \textit{sim:time-steps} time steps.
+
+{\zicf sim:program = spin-waves}\phantomsection\addcontentsline{toc}{subsubsection}{spin-waves}
+Program to calculate spectra from spin or velocity time series. The system first evolves for \textit{sim:equilibration-time-steps} at \textit{sim:equilibration-temperature}.
+Then it then records the components selected by the \textit{spinwaves[n]} commands for \textit{sim:total-time-steps}.
 
 {\zicf sim:program = hysteresis-loop}\phantomsection\addcontentsline{toc}{subsubsection}{hysteresis-loop} Program to simulate a dynamic hysteresis loop in user defined field range and precision. The system temperature is fixed and defined by \textit{sim:temperature}. The system is first equilibrated for \textit{sim:equilibration time-steps} time steps at \textit{sim:maximum-applied-field-strength} applied field. For normal loops \textit{sim:maximum-applied-field-strength} should be a saturating field. After equilibration the system is integrated for \textit{sim:loop-time-steps} at each field point. The field increments from +\textit{sim:maximum-applied-field-strength} to =\textit{sim:maximum-applied -field-strength} in steps of \textit{sim:applied-field-increment}, and data is output after each field step.
 

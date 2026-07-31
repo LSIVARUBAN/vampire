@@ -101,6 +101,7 @@ namespace spinwaves{
       extern std::vector<int> mat, mat_in_spec;
       extern bool prefactor;
       extern bool isf;
+      extern bool phonon_dos;
       extern int nspec;
       extern std::vector<int> super_index_values;
 

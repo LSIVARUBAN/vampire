@@ -70,6 +70,7 @@ namespace spinwaves{
       std::vector<int> mat;
       int nspec = 1;
       bool prefactor = true;
+      bool phonon_dos = false;
 
 
       std::vector<double> cos_k;

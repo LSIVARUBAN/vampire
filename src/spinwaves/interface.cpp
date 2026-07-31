@@ -69,6 +69,23 @@ namespace spinwaves{
                return false;
             }
          }
+         test="phonon-dos"; // per atom velocity FFT mode to calculate a phonon DOS directly
+         if(word==test){
+            if(value == "false"){
+               internal::phonon_dos = false;
+               return true;
+            }
+            else if(value == "true"){
+               internal::phonon_dos = true;
+               return true;
+            }
+            else{
+               terminaltextcolor(RED);
+               std::cerr << "Error - Unknown value in control statement \'spinwaves:" << word << " = " << value << "\' on line " << line << " of input file" << std::endl;
+               terminaltextcolor(WHITE);
+               return false;
+            }
+         }
          test="filetype";
          if(word==test){
             std::string filetype_temp=value;

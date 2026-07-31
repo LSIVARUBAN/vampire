@@ -51,6 +51,12 @@ namespace spinwaves{
 
    void fft_in_time();
 
+   // per atom velocity FFT mode to calculate a phonon DOS
+   bool phonon_dos_enabled();
+   void initialise_phonon_dos();
+   void record_phonon_dos_sample(const int sample);
+   void calculate_phonon_dos();
+
    //-----------------------------------------------------------------------------
    // Function to initialise spinwaves module
    //-----------------------------------------------------------------------------

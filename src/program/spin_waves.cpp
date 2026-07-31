@@ -74,6 +74,9 @@ void spin_waves(){
    }
 
 	// Perform Time Series
+	const bool calculate_phonon_dos = spinwaves::phonon_dos_enabled();
+	if(calculate_phonon_dos) spinwaves::initialise_phonon_dos();
+
 	while(sim::time<sim::equilibration_time+sim::total_time){
 
 		// Integrate system
@@ -83,10 +86,16 @@ void spin_waves(){
 		//const int step = (sim::time-sim::equilibration_time)/sim::partial_time-1;
 
 		// std::cout << "calling spinwave function." << std::endl;
-		spinwaves::fft_in_space(atoms::x_coord_array,
-										atoms::y_coord_array,
-										atoms::z_coord_array,
-										(sim::time-sim::equilibration_time)/sim::partial_time-1);
+		const int sample = (sim::time-sim::equilibration_time)/sim::partial_time-1;
+		if(calculate_phonon_dos){
+			spinwaves::record_phonon_dos_sample(sample);
+		}
+		else{
+			spinwaves::fft_in_space(atoms::x_coord_array,
+											atoms::y_coord_array,
+											atoms::z_coord_array,
+											sample);
+		}
 
 		// Calculate magnetisation statistics
 		stats::update();
@@ -96,7 +105,8 @@ void spin_waves(){
 
 	}
 
-	spinwaves::fft_in_time();
+	if(calculate_phonon_dos) spinwaves::calculate_phonon_dos();
+	else spinwaves::fft_in_time();
 
 }
 

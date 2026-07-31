@@ -12,6 +12,7 @@ interface.o \
 fft_in_time.o \
 fft_in_time_options.o \
 fft_in_space.o \
+phonon_dos.o \
 util.o
 
 # Append module objects to global tree

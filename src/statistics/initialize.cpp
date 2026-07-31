@@ -343,11 +343,8 @@ namespace stats{
       //------------------------------------------------------------------------
       if(stats::calculate_system_lattice_temp){
        for(int atom=0; atom < stats::num_atoms; ++atom){
-
-          // ignore non-magnetic atoms in stats calculation by assigning them to last mask
-          if(non_magnetic_materials_array[material_type_array[atom]]) mask[atom] = 1;
-          // all other atoms are included
-          else mask[atom] = 0;
+          // every atom with a lattice mass contributes, including atoms with no magnetic moment.
+          mask[atom] = 0;
        }
        stats::system_lattice_temp.set_mask(1+1,mask,magnetic_moment_array);
       }
@@ -357,10 +354,7 @@ namespace stats{
       //------------------------------------------------------------------------
       if(stats::calculate_grain_lattice_temp){
        for(int atom=0; atom < stats::num_atoms; ++atom){
-          // ignore non-magnetic atoms in stats calculation by assigning them to last mask
-          if(non_magnetic_materials_array[material_type_array[atom]]) mask[atom] = num_grains;
-          // all other atoms are included
-          else mask[atom] = grain_array[atom];
+          mask[atom] = grain_array[atom];
        }
        stats::grain_lattice_temp.set_mask(num_grains+1, mask, magnetic_moment_array);
       }
@@ -370,10 +364,7 @@ namespace stats{
       //------------------------------------------------------------------------
       if(stats::calculate_material_lattice_temp){
        for(int atom=0; atom < stats::num_atoms; ++atom){
-          // ignore non-magnetic atoms in stats calculation by assigning them to last mask
-          if(non_magnetic_materials_array[material_type_array[atom]]) mask[atom] =  num_materials;
-          // other atoms assigned to material level masks
-          else mask[atom] = material_type_array[atom];
+          mask[atom] = material_type_array[atom];
        }
        stats::material_lattice_temp.set_mask(num_materials+1,mask,magnetic_moment_array);
       }

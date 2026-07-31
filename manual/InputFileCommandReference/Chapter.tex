@@ -1000,7 +1000,40 @@ Outputs the fractional electric field strngth (or voltage) during an \textit{ele
 
 {\zicf output:spin-temperature}\phantomsection\addcontentsline{toc}{subsection}{output:spin-temperature} outputs the spin-temperature. Also possible to output the time-averaged values: mean-spin-temperature and material specific values: material-spin-temperature, mean-material-spin-temperature
 
-{\zicf output:lattice-temperature}\phantomsection\addcontentsline{toc}{subsection}{output:lattice-temperature} outputs the lattice-temperature. Also possible to output the time-averaged values: mean-lattice-temperature and material specific values: material-lattice-temperature, mean-material-lattice-temperature
+{\zicf output:lattice-temperature}\phantomsection\addcontentsline{toc}{subsection}{output:lattice-temperature}
+Outputs the mass weighted lattice temperature. The centre-of-mass velocity is removed for periodic and non-periodic systems:
+\[
+\mathbf{v}_{\mathrm{cm}}=\frac{\sum_i m_i\mathbf{v}_i}{\sum_i m_i}.
+\]
+If one or more directions have periodic boundary conditions only the centre-of-mass translation is removed, and the lattice temperature is
+\[
+T_{\mathrm{l}}=\frac{1}{(3N-3)k_{\mathrm B}}
+\sum_i m_i\left|\mathbf{v}_i-\mathbf{v}_{\mathrm{cm}}\right|^2.
+\]
+If there are no periodic directions, the rigid-body rotation of the system is also removed. Let
+\[
+\mathbf{r}_{\mathrm{cm}}=\frac{\sum_i m_i\mathbf{r}_i}{\sum_i m_i},\qquad
+\mathbf{L}=\sum_i(\mathbf{r}_i-\mathbf{r}_{\mathrm{cm}})\times
+m_i(\mathbf{v}_i-\mathbf{v}_{\mathrm{cm}}),
+\]
+\[
+\mathbf{I}=\sum_i m_i\left[
+|\mathbf{r}_i-\mathbf{r}_{\mathrm{cm}}|^2\mathbf{1}
+-(\mathbf{r}_i-\mathbf{r}_{\mathrm{cm}})(\mathbf{r}_i-\mathbf{r}_{\mathrm{cm}})^{\mathrm T}
+\right],
+\]
+the angular velocity and rotational velocity are
+\[
+\boldsymbol{\omega}=\mathbf{I}^{-1}\mathbf{L},\qquad
+\mathbf{v}_{\mathrm{rot},i}=\boldsymbol{\omega}\times
+(\mathbf{r}_i-\mathbf{r}_{\mathrm{cm}}).
+\]
+Therefore, the lattice temperature is
+\[
+T_{\mathrm{l}}=\frac{1}{(3N-6)k_{\mathrm B}}
+\sum_i m_i\left|\mathbf{v}_i-\mathbf{v}_{\mathrm{cm}}-\mathbf{v}_{\mathrm{rot},i}\right|^2.
+\]
+\textit{mean-lattice-temperature} and \textit{mean-material-lattice-temperature} can be specified for time-averaged values.
 
 
 

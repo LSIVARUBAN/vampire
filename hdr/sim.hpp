@@ -85,6 +85,17 @@ namespace sim{
 	extern uint64_t loop_time;
 	extern uint64_t partial_time;
 	extern uint64_t equilibration_time;
+
+	// optional early simulation end conditions for time series simulations
+	enum end_condition_component_t { end_condition_component_unset = -1, end_condition_mx = 0, end_condition_my = 1, end_condition_mz = 2 };
+	enum end_condition_trigger_method_t { end_condition_method_unset = -1, end_condition_leq = 0, end_condition_geq = 1 };
+	extern bool end_condition_enabled;
+	extern end_condition_component_t end_condition_component;
+	extern end_condition_trigger_method_t end_condition_trigger_method;
+	extern double end_condition_trigger;
+	extern bool end_condition_trigger_set;
+	extern uint64_t end_condition_buffer;
+	extern bool end_condition_buffer_set;
 	extern int runs;
 	extern int64_t parity;
 	extern uint64_t output_atoms_file_counter;

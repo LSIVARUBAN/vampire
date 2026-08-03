@@ -683,6 +683,18 @@ Number of timesteps between recalculation of the demag field. Default value is s
 
 {\zicf sim:total-time-steps}\phantomsection\addcontentsline{toc}{subsection}{sim:total-time-steps} The total number of time steps the program will run for.
 
+{\zicf sim:end-condition-component = component}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-component}
+Selects a system magnetisation component for early termination of a time-series production run. Valid values are the normalised magnetisation components: \textit{magnetisation\_x}, \textit{magnetisation\_y}, \textit{magnetisation\_z}. Useful for magnetisation switching simulations to avoid uneccessary computation after a single switch is observed.
+
+{\zicf sim:end-condition-trigger = real}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-trigger}
+Sets the dimensionless magnetisation component threshold in the range $[-1,1]$.
+
+{\zicf sim:end-condition-trigger-method = leq|geq}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-trigger-method}
+Sets the required threshold comparison. \textit{leq} or \textit{geq} can be specified, which triggers when the selected component is less than or equal to, or greater than or equal to the trigger threshold, respectively.
+
+{\zicf sim:end-condition-buffer = integer}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-buffer}
+Sets the number of additional integration time steps to be carried out after the trigger condition is satisfied. For simulations with an end condition,\textit{sim:total-time-steps} is used as the abolute maximum number of time steps.
+
 {\zicf sim:loop-time-steps}\phantomsection\addcontentsline{toc}{subsection}{sim:loop-time-steps} The number of time steps that statistics are taken over, including the \textit{mean-magnetisation} and \textit{material-standard-deviation}. This takes place after sim:equilibration time steps have passed in simulations such as \textit{program:curie-temperature}.
 
 {\zicf sim:time-steps-increment}\phantomsection\addcontentsline{toc}{subsection}{sim:time-steps-increment}

@@ -202,6 +202,20 @@ int run(){
 	// Check for calling of function
 	if(err::check==true) std::cout << "sim::run has been called" << std::endl;
 
+	// allow early simulation termination conditions to be specified for time-series program. Useful for simulating switching events when only one switch needs to be observed.
+	if(sim::end_condition_enabled){
+		if(sim::end_condition_component == sim::end_condition_component_unset)
+			err::zexit("sim:end-condition-component is required when using a time-series simulation end condition");
+		if(!sim::end_condition_trigger_set)
+			err::zexit("sim:end-condition-trigger is required when using a time-series simulation end condition");
+		if(sim::end_condition_trigger_method == sim::end_condition_method_unset)
+			err::zexit("sim:end-condition-trigger-method is required when using a time-series simulation end condition");
+		if(!sim::end_condition_buffer_set)
+			err::zexit("sim:end-condition-buffer is required when using a time-series simulation end condition");
+		if(program::program != 1)
+			err::zexit("Simulation end conditions compatible with time-series program only.");
+	}
+
 	// Initialise simulation data structures
 	sim::initialize(mp::num_materials);
 

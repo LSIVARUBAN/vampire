@@ -63,6 +63,14 @@ namespace sim{
    uint64_t partial_time = 1000; // same as time-step-increment
    uint64_t equilibration_time = 0; // equilibration time steps
 
+   bool end_condition_enabled = false; // flag to enable early simulation termination condition checking
+   end_condition_component_t end_condition_component = end_condition_component_unset; // component of magnetisation to check for end condition
+   end_condition_trigger_method_t end_condition_trigger_method = end_condition_method_unset; // leq or geq trigger method
+   double end_condition_trigger = 0.0; // threshold value for end condition trigger
+   bool end_condition_trigger_set = false; 
+   uint64_t end_condition_buffer = 0; // number of additional time steps to be carried out after the trigger condition is met
+   bool end_condition_buffer_set = false;
+
    int domain_wall_axis = 0;
    double domain_wall_position = 0.25;
    double domain_wall_discretisation = 10;

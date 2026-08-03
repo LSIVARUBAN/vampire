@@ -114,6 +114,45 @@ namespace sim{
          sim::partial_time = tt;
          return true;
       }
+      //--------------------------------------------------------------------
+      test="end-condition-component";
+      if(word==test){
+         if(value=="magnetisation_x") sim::end_condition_component = sim::end_condition_mx;
+         else if(value=="magnetisation_y") sim::end_condition_component = sim::end_condition_my;
+         else if(value=="magnetisation_z") sim::end_condition_component = sim::end_condition_mz;
+         else err::zexit("sim:end-condition-component must be magnetisation_x, magnetisation_y or magnetisation_z");
+         sim::end_condition_enabled = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="end-condition-trigger";
+      if(word==test){
+         double trigger = vin::str_to_double(value);
+         vin::check_for_valid_value(trigger, word, line, prefix, unit, "none", -1.0, 1.0,"input","-1 - 1");
+         sim::end_condition_trigger = trigger;
+         sim::end_condition_trigger_set = true;
+         sim::end_condition_enabled = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="end-condition-trigger-method";
+      if(word==test){
+         if(value=="leq") sim::end_condition_trigger_method = sim::end_condition_leq;
+         else if(value=="geq") sim::end_condition_trigger_method = sim::end_condition_geq;
+         else err::zexit("sim:end-condition-trigger-method must be leq or geq");
+         sim::end_condition_enabled = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="end-condition-buffer";
+      if(word==test){
+         uint64_t buffer = vin::str_to_uint64(value);
+         vin::check_for_valid_int(buffer, word, line, prefix, 0, max_time,"input","0 - "+max_time_str);
+         sim::end_condition_buffer = buffer;
+         sim::end_condition_buffer_set = true;
+         sim::end_condition_enabled = true;
+         return true;
+      }
       test = "integrator";
       if( word == test ){
          //--------------------------------------------------------------------

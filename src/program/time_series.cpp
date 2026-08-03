@@ -70,8 +70,11 @@ void time_series(){
 
    }
 
-	// Perform Time Series
-	while(sim::time<sim::equilibration_time+sim::total_time){
+	// Perform Time Series with optional early termination according to sim:end-condition. The number of total time steps are the maximum production length even when an end condition is enabled.
+	const uint64_t production_end_time = sim::equilibration_time + sim::total_time;
+	uint64_t requested_end_time = production_end_time;
+	bool end_condition_triggered = false;
+	while(sim::time<requested_end_time){
 
 		// Integrate system
 		sim::integrate(sim::partial_time);
@@ -81,6 +84,27 @@ void time_series(){
 
 		// Output data
 		vout::data();
+
+		// check the global magnetisation direction once per stats incrment
+		if(sim::end_condition_enabled && !end_condition_triggered && sim::time < production_end_time){
+			const std::vector<double>& magnetisation = stats::system_magnetization.get_magnetization();
+			const int component = static_cast<int>(sim::end_condition_component);
+			const double component_value = magnetisation[component];
+			const bool trigger_reached = sim::end_condition_trigger_method == sim::end_condition_leq ? component_value <= sim::end_condition_trigger : component_value >= sim::end_condition_trigger; // check if the trigger condition is met
+
+			if(trigger_reached){
+				end_condition_triggered = true;
+				const uint64_t remaining_time = production_end_time - sim::time;
+				if(sim::end_condition_buffer < remaining_time)
+					requested_end_time = sim::time + sim::end_condition_buffer; // set the end time to the current time plus the buffer
+
+				if(vmpi::my_rank==0){
+					const char* component_names[3] = {"magnetisation_x", "magnetisation_y", "magnetisation_z"};
+					std::cout << "Simulation end condition triggered at time step " << sim::time << " (" << component_names[component] << " = " << component_value << "). Continuing to final simulation step: " << requested_end_time << std::endl;
+					zlog << zTs() << "Simulation end condition triggered at time step " << sim::time << " (" << component_names[component] << " = " << component_value << "). Continuing to final simulation step: " << requested_end_time << std::endl; 
+				}
+			}
+		}
 
 	}
 

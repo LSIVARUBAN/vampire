@@ -120,10 +120,13 @@ int main(int argc, char* argv[]){
       vmpi::finalise();
    #endif
 
-   zlog << zTs() << "Simulation ended gracefully." << std::endl;
-   terminaltextcolor(GREEN);
-   std::cout << "Simulation ended gracefully." << std::endl;
-   terminaltextcolor(WHITE);
+   // make sure only the root rank sets the terminal text colour (fixes bug with green screen text when using sim:end-condition in parallel)
+   if(vmpi::my_rank == 0){
+      zlog << zTs() << "Simulation ended gracefully." << std::endl;
+      terminaltextcolor(GREEN);
+      std::cout << "Simulation ended gracefully." << std::endl;
+      terminaltextcolor(WHITE);
+   }
 
 
    return EXIT_SUCCESS;

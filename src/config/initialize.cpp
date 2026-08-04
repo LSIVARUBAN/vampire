@@ -54,8 +54,11 @@ namespace config{
 
             const double cc[3] = {atoms::x_coord_array[atom], atoms::y_coord_array[atom], atoms::z_coord_array[atom]};
 
-            // check atom within local bounds (except for SLD)
-            if(!sld::enabled){
+            // if SLD is enabled, output all atoms, else output atoms within boundaries
+            if(sld::enabled){
+               config::internal::local_output_atom_list.push_back(atom);
+            }
+            else{
                if ((cc[0] >= minB[0]) && (cc[0] <= maxB[0]))
                {
                   if ((cc[1] >= minB[1]) && (cc[1] <= maxB[1]))
@@ -66,7 +69,7 @@ namespace config{
                      }
                   }
                }
-            } // end of sld check
+            }
 
          }
 

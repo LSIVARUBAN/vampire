@@ -578,6 +578,7 @@ namespace vin{
             double H=atof(value.c_str());
             check_for_valid_value(H, word, line, prefix, unit, "field", 0.0, 1.0e3,"input","0 - 1,000 T");
             sim::Heq=H;
+            sim::equilibration_applied_field_set=true;
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------

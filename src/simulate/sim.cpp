@@ -99,6 +99,7 @@ namespace sim{
 	double Hmax=+1.0; // T
 	double Hinc= 0.1; // T
 	double Heq=0.0;
+	bool equilibration_applied_field_set=false;
 	double applied_field_angle_phi=0.0;
 	double applied_field_angle_theta=0.0;
 	bool applied_field_set_by_angle=false;

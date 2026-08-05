@@ -71,12 +71,16 @@ void time_series(){
 	if(err::check==true) std::cout << "program::time_series has been called" << std::endl;
 
 	double temp=sim::temperature;
+	double applied_field=sim::H_applied;
 
-   // Set equilibration temperature only if continue checkpoint not loaded
+   // Set equilibration conditions only if continue checkpoint not loaded
    if(sim::load_checkpoint_flag && sim::load_checkpoint_continue_flag){}
    else{
 	   // Set equilibration temperature
 	   sim::temperature=sim::Teq;
+
+	   // if requested, equilibrate in a different field strength
+	   if(sim::equilibration_applied_field_set) sim::H_applied=sim::Heq;
    }
 
 	// Output data
@@ -102,8 +106,9 @@ void time_series(){
    if(sim::load_checkpoint_flag && sim::load_checkpoint_continue_flag){}
    else{
 
-      // set simulation temperature
+      // set production temperature and applied field
 	   sim::temperature = temp;
+	   sim::H_applied = applied_field;
 
       // Reset mean magnetisation counters
       stats::reset();

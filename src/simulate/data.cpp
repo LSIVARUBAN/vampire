@@ -64,6 +64,7 @@ namespace sim{
    uint64_t equilibration_time = 0; // equilibration time steps
 
    bool end_condition_enabled = false; // flag to enable early simulation termination condition checking
+   bool end_condition_nan_enabled = false; // stop a time-series simulation if the global magnetisation becomes NaN
    end_condition_component_t end_condition_component = end_condition_component_unset; // component of magnetisation to check for end condition
    end_condition_trigger_method_t end_condition_trigger_method = end_condition_method_unset; // leq or geq trigger method
    double end_condition_trigger = 0.0; // threshold value for end condition trigger

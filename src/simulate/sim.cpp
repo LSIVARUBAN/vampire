@@ -216,6 +216,13 @@ int run(){
 			err::zexit("Simulation end conditions compatible with time-series program only.");
 	}
 
+	if(sim::end_condition_nan_enabled && program::program != 1)
+		err::zexit("sim:end-condition-nan is compatible with the time-series program only");
+
+	// make sure magnetisation is calculated if either end condition is enabled
+	if(sim::end_condition_enabled || sim::end_condition_nan_enabled)
+		stats::calculate_system_magnetization = true;
+
 	// Initialise simulation data structures
 	sim::initialize(mp::num_materials);
 

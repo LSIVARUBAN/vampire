@@ -90,6 +90,7 @@ namespace sim{
 	enum end_condition_component_t { end_condition_component_unset = -1, end_condition_mx = 0, end_condition_my = 1, end_condition_mz = 2 };
 	enum end_condition_trigger_method_t { end_condition_method_unset = -1, end_condition_leq = 0, end_condition_geq = 1 };
 	extern bool end_condition_enabled;
+	extern bool end_condition_nan_enabled;
 	extern end_condition_component_t end_condition_component;
 	extern end_condition_trigger_method_t end_condition_trigger_method;
 	extern double end_condition_trigger;

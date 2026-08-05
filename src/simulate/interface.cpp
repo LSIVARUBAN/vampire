@@ -115,6 +115,12 @@ namespace sim{
          return true;
       }
       //--------------------------------------------------------------------
+      test="end-condition-nan";
+      if(word==test){
+         sim::end_condition_nan_enabled = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
       test="end-condition-component";
       if(word==test){
          if(value=="magnetisation_x") sim::end_condition_component = sim::end_condition_mx;

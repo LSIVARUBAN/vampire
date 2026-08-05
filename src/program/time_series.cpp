@@ -9,6 +9,7 @@
 //
 
 // Standard Libraries
+#include <cmath>
 #include <iostream>
 
 // Vampire Header files
@@ -25,6 +26,41 @@
 #include "spinwaves.hpp" // JRH
 
 namespace program{
+
+namespace{
+
+// if sim:end-condition-nan then stop simulation if all components of the system magnetisation are NaN
+bool magnetisation_is_nan(const std::vector<double>& magnetisation){
+
+	return std::isnan(magnetisation[0]) &&
+	       std::isnan(magnetisation[1]) &&
+	       std::isnan(magnetisation[2]) &&
+	       std::isnan(magnetisation[3]);
+
+}
+
+void report_nan_magnetisation(const std::vector<double>& magnetisation){
+
+	if(vmpi::my_rank==0){
+		std::cout << "Simulation stopped at time step " << sim::time << " because the system magnetisation contains NaN" << std::endl;
+		zlog << zTs() << "Simulation stopped at time step " << sim::time << " because the system magnetisation contains NaN" << std::endl;
+	}
+
+}
+
+bool stop_for_nan_magnetisation(){
+
+	if(!sim::end_condition_nan_enabled) return false;
+
+	const std::vector<double>& magnetisation = stats::system_magnetization.get_magnetization();
+	if(!magnetisation_is_nan(magnetisation)) return false;
+
+	report_nan_magnetisation(magnetisation);
+	return true;
+
+}
+
+} // end of anonymous namespace
 
 //------------------------------------------------------------------------------
 // Program to calculate a simple time series
@@ -45,6 +81,7 @@ void time_series(){
 
 	// Output data
 	vout::data();
+	if(stop_for_nan_magnetisation()) return;
 
 	// Equilibrate system
 	while(sim::time<sim::equilibration_time){
@@ -56,6 +93,9 @@ void time_series(){
 
 		// Output data
 		vout::data();
+
+		// stop simulation if magnetisation is nan
+		if(stop_for_nan_magnetisation()) return;
 	}
 
    // Set temperature and reset stats only if continue checkpoint not loaded
@@ -85,7 +125,9 @@ void time_series(){
 		// Output data
 		vout::data();
 
-		// check the global magnetisation direction once per stats incrment
+		// apply the optional nan termination check
+		if(stop_for_nan_magnetisation()) return;
+
 		if(sim::end_condition_enabled && !end_condition_triggered && sim::time < production_end_time){
 			const std::vector<double>& magnetisation = stats::system_magnetization.get_magnetization();
 			const int component = static_cast<int>(sim::end_condition_component);

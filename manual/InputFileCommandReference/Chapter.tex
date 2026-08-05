@@ -683,6 +683,8 @@ Number of timesteps between recalculation of the demag field. Default value is s
 
 {\zicf sim:total-time-steps}\phantomsection\addcontentsline{toc}{subsection}{sim:total-time-steps} The total number of time steps the program will run for.
 
+{\zicf sim:end-condition-nan}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-nan} Enables immediate termination of a time-series simulation if $m_x$, $m_y$, $m_z$ and $M/M_{\mathrm{s}}$ are all NaN at any point. This is useful for Spin-Lattice simulations in extreme conditions.
+
 {\zicf sim:end-condition-component = component}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-component}
 Selects a system magnetisation component for early termination of a time-series production run. Valid values are the normalised magnetisation components: \textit{magnetisation\_x}, \textit{magnetisation\_y}, \textit{magnetisation\_z}. Useful for magnetisation switching simulations to avoid uneccessary computation after a single switch is observed.
 

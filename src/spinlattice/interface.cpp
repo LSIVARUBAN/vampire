@@ -241,13 +241,80 @@ namespace sld{
          test="pseudodipolar";
          if( value == test ){
             sld::internal::pseudodipolar=true;
+            sld::internal::full_neel=false;
             return true;
          }
          test="full-neel";
          if( value == test ){
             sld::internal::full_neel=true;
+            sld::internal::pseudodipolar=false;
             return true;
          }
+      }
+
+      // inverse fourth or bethe-slater radial functions for the full Neel coupling
+      test = "neel-radial-function";
+      if( word == test ){
+         if(value == "inverse-fourth"){
+            sld::internal::neel_radial_function = sld::internal::inverse_fourth_neel_radial_function;
+            return true;
+         }
+         if(value == "bethe-slater"){
+            sld::internal::neel_radial_function = sld::internal::bethe_slater_neel_radial_function;
+            return true;
+         }
+         err::zexit("spin-lattice:neel-radial-function must be inverse-fourth or bethe-slater");
+      }
+
+      // hard or smooth cutoff fns for the full neel coupling
+      test = "neel-cutoff-function";
+      if( word == test ){
+         if(value == "hard"){
+            sld::internal::neel_cutoff_function = sld::internal::hard_neel_cutoff_function;
+            return true;
+         }
+         if(value == "smooth"){
+            sld::internal::neel_cutoff_function = sld::internal::smooth_neel_cutoff_function;
+            return true;
+         }
+         err::zexit("spin-lattice:neel-cutoff-function must be hard or smooth");
+      }
+
+      // Separate cutoff and switch distances for the full Neel coupling
+      test = "neel-l-cutoff-range";
+      if( word == test ){
+         double cutoff = vin::str_to_double(value);
+         vin::check_for_valid_value(cutoff, word, line, prefix, unit, "length", 0.1, 20.0, "input", "0.1 - 20 A");
+         sld::internal::r_cut_neel_l = cutoff;
+         sld::internal::r_cut_neel_l_set = true;
+         return true;
+      }
+
+      test = "neel-q-cutoff-range";
+      if( word == test ){
+         double cutoff = vin::str_to_double(value);
+         vin::check_for_valid_value(cutoff, word, line, prefix, unit, "length", 0.1, 20.0, "input", "0.1 - 20 A");
+         sld::internal::r_cut_neel_q = cutoff;
+         sld::internal::r_cut_neel_q_set = true;
+         return true;
+      }
+
+      test = "neel-l-switch-range";
+      if( word == test ){
+         double switch_distance = vin::str_to_double(value);
+         vin::check_for_valid_value(switch_distance, word, line, prefix, unit, "length", 0.1, 20.0, "input", "0.1 - 20 A");
+         sld::internal::r_switch_neel_l = switch_distance;
+         sld::internal::r_switch_neel_l_set = true;
+         return true;
+      }
+
+      test = "neel-q-switch-range";
+      if( word == test ){
+         double switch_distance = vin::str_to_double(value);
+         vin::check_for_valid_value(switch_distance, word, line, prefix, unit, "length", 0.1, 20.0, "input", "0.1 - 20 A");
+         sld::internal::r_switch_neel_q = switch_distance;
+         sld::internal::r_switch_neel_q_set = true;
+         return true;
       }
 
       test = "exchange-function";
@@ -390,6 +457,18 @@ namespace sld{
          double r_cf = vin::str_to_double(value);
          vin::check_for_valid_value(r_cf, word, line, prefix, unit, "length", 2, 20.0,"input","2 - 20 A");
          sld::internal::r_cut_fields= r_cf;
+         if(!sld::internal::r_cut_exchange_set) sld::internal::r_cut_exchange = r_cf; // default to same cutoff for exchange if not set
+         if(!sld::internal::r_cut_neel_l_set) sld::internal::r_cut_neel_l = r_cf;
+         if(!sld::internal::r_cut_neel_q_set) sld::internal::r_cut_neel_q = r_cf;
+         return true;
+      }
+
+      test = "exchange-cutoff-range";
+      if( word == test ){
+         double cutoff = vin::str_to_double(value);
+         vin::check_for_valid_value(cutoff, word, line, prefix, unit, "length", 0.1, 20.0, "input", "0.1 - 20 A");
+         sld::internal::r_cut_exchange = cutoff;
+         sld::internal::r_cut_exchange_set = true;
          return true;
       }
       /* test = "fixed-lattice";
@@ -537,6 +616,70 @@ bool match_material_parameter(std::string const word, std::string const value, s
       double c0 = vin::str_to_double(value);
       vin::check_for_valid_value(c0, word, line, prefix, unit, "mass", 0, 1,"input","0 - 1");
       sld::internal::mp[super_index].C0.set(c0);
+      return true;
+   }
+
+   test = "neel-C-l";
+   if( word == test ){
+      double coefficient = vin::str_to_double(value);
+      vin::check_for_valid_value(coefficient, word, line, prefix, unit, "none", -10.0, 10.0, "material", "-10 - 10");
+      sld::internal::mp[super_index].neel_C_l.set(coefficient);
+      return true;
+   }
+
+   test = "neel-C-q";
+   if( word == test ){
+      double coefficient = vin::str_to_double(value);
+      vin::check_for_valid_value(coefficient, word, line, prefix, unit, "none", -10.0, 10.0, "material", "-10 - 10");
+      sld::internal::mp[super_index].neel_C_q.set(coefficient);
+      return true;
+   }
+
+   test = "neel-alpha-l";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "energy", -5.0, 5.0, "material", "+/- 5 eV");
+      sld::internal::mp[super_index].neel_alpha_l.set(parameter);
+      return true;
+   }
+
+   test = "neel-gamma-l";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "none", -100.0, 100.0, "material", "+/- 100");
+      sld::internal::mp[super_index].neel_gamma_l.set(parameter);
+      return true;
+   }
+
+   test = "neel-delta-l";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_positive_value(parameter, word, line, prefix, unit, "length", 0.01, 100.0, "material", "0.01 - 100 A");
+      sld::internal::mp[super_index].neel_delta_l.set(parameter);
+      return true;
+   }
+
+   test = "neel-alpha-q";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "energy", -5.0, 5.0, "material", "+/- 5 eV");
+      sld::internal::mp[super_index].neel_alpha_q.set(parameter);
+      return true;
+   }
+
+   test = "neel-gamma-q";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_value(parameter, word, line, prefix, unit, "none", -100.0, 100.0, "material", "+/- 100");
+      sld::internal::mp[super_index].neel_gamma_q.set(parameter);
+      return true;
+   }
+
+   test = "neel-delta-q";
+   if( word == test ){
+      double parameter = vin::str_to_double(value);
+      vin::check_for_valid_positive_value(parameter, word, line, prefix, unit, "length", 0.01, 100.0, "material", "0.01 - 100 A");
+      sld::internal::mp[super_index].neel_delta_q.set(parameter);
       return true;
    }
 

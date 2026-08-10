@@ -103,6 +103,7 @@ void spin_temp_statistic_t::get_mask(std::vector<int>& out_mask, std::vector<dou
 }
 
 //------------------------------------------------------------------------------------------------------
+// calculate the spin temperature with non linear Hamiltonian corrections
 //------------------------------------------------------------------------------------------------------
 void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, // spin unit vector
                                           const std::vector<double>& sy,
@@ -115,7 +116,7 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
                                           const std::vector<double>& bze,
                                           const std::vector<double>& mm){
 
-   //std::fill(spin_temp.begin(),spin_temp.end(),0.0);
+                                                //std::fill(spin_temp.begin(),spin_temp.end(),0.0);
    //const int64_t num_atoms = sx.size();
    //double SxH2=0.0;
    //double SH=0.0;
@@ -124,12 +125,16 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
    //sim::calculate_spin_fields(0, num_atoms);
 
    // SLD version
+   std::fill(spin_temp.begin(),spin_temp.end(),0.0);
    std::fill(SxH2.begin(),SxH2.end(),0.0);
    std::fill(SH.begin(),SH.end(),0.0);
 
    std::fill(atoms::x_total_spin_field_array.begin(), atoms::x_total_spin_field_array.end(), 0.0);
    std::fill(atoms::y_total_spin_field_array.begin(), atoms::y_total_spin_field_array.end(), 0.0);
    std::fill(atoms::z_total_spin_field_array.begin(), atoms::z_total_spin_field_array.end(), 0.0);
+   std::fill(atoms::x_total_spin_forces_array.begin(), atoms::x_total_spin_forces_array.end(), 0.0);
+   std::fill(atoms::y_total_spin_forces_array.begin(), atoms::y_total_spin_forces_array.end(), 0.0);
+   std::fill(atoms::z_total_spin_forces_array.begin(), atoms::z_total_spin_forces_array.end(), 0.0);
 
    sld::compute_fields(0, // first atom for exchange interactions to be calculated
                      num_atoms, // last +1 atom to be calculated
@@ -150,6 +155,8 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
                      atoms::y_total_spin_field_array,
                      atoms::z_total_spin_field_array);
 
+   const std::vector<double>& hessian_trace = sld::spin_temperature_hessian_trace();
+
    // calculate contributions of spins to each magetization category
    for(int atom=0; atom < num_atoms; ++atom){
 
@@ -158,23 +165,32 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
       // get atomic moment
 		const double mu = mm[atom];
 
-		// Store local spin in Sand local field in H
+		// Store local spin in S and the rebuilt total field in H
 		const double S[3] = {sx[atom],         sy[atom],         sz[atom]        };
-		const double B[3] = {bxs[atom], bys[atom], bzs[atom]};
+		const double B[3] = {atoms::x_total_spin_field_array[atom],
+                           atoms::y_total_spin_field_array[atom],
+                           atoms::z_total_spin_field_array[atom]};
 
       double SxHx = S[1]*B[2]-S[2]*B[1];
       double SxHy = S[2]*B[0]-S[0]*B[2];
       double SxHz = S[0]*B[1]-S[1]*B[0];
-      SxH2[mask_id]  = SxH2[mask_id]+ mu*(SxHx*SxHx + SxHy*SxHy + SxHz*SxHz);
-      SH[mask_id]  = SH[mask_id] + S[0]*B[0] + S[1]*B[1] + S[2]*B[2];
-      spin_temp[mask_id]= SxH2[mask_id] / SH[mask_id];
+      SxH2[mask_id] += mu*(SxHx*SxHx + SxHy*SxHy + SxHz*SxHz);
+
+      // D_i=2 s_i.H_i-Tr[(I-s_i s_i^T)dH_i/ds_i]
+      SH[mask_id] += 2.0*(S[0]*B[0] + S[1]*B[1] + S[2]*B[2]);
+      SH[mask_id] -= hessian_trace[atom]; 
 
 	}
 
-   // Reduce on all CPUS
+   // Reduce the numerator and denominator independently
    #ifdef MPICF
-      MPI_Allreduce(MPI_IN_PLACE, &spin_temp[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(MPI_IN_PLACE, &SxH2[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(MPI_IN_PLACE, &SH[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
    #endif
+
+   for(int mask_id=0; mask_id<mask_size; ++mask_id){
+      spin_temp[mask_id] = SH[mask_id] > 0.0 ? SxH2[mask_id]/SH[mask_id] : 0.0;
+   }
 
    // Zero empty mask id's
    for(unsigned int id=0; id<zero_list.size(); ++id) spin_temp[zero_list[id]]=0.0;
@@ -243,7 +259,7 @@ std::string spin_temp_statistic_t::output_spin_temp(bool header){
          result << name + std::to_string(mask_id) + "_Ts";
       }
       else{
-         result << 0.5*constants::muB/constants::kB * spin_temp[mask_id ] / vmpi::num_processors;
+         result << constants::muB/constants::kB * spin_temp[mask_id];
       }
    }
 
@@ -265,8 +281,8 @@ std::string spin_temp_statistic_t::output_mean_spin_temp(bool header){
    }
    vout::fixed_width_output result(res,vout::fw_size);
 
-   // inverse number of data samples * muB
-   const double ic = constants::muB / mean_counter;
+   // inverse number of data samples and conversion from mu_B T to kelvin
+   const double ic = constants::muB / (constants::kB*mean_counter);
 
    for(int mask_id=0; mask_id<mask_size; ++mask_id){
       if(header){

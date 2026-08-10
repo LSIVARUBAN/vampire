@@ -57,6 +57,15 @@ namespace anisotropy
                const int end_index,
                const double temperature);
 
+   // add uniaxial and fourth-order cubic contributions to spin temperature curvature
+   void spin_temperature_curvature(const std::vector<double>& spin_array_x,
+                                   const std::vector<double>& spin_array_y,
+                                   const std::vector<double>& spin_array_z,
+                                   const std::vector<int>& type_array,
+                                   std::vector<double>& curvature_array,
+                                   const int start_index,
+                                   const int end_index);
+
    //-----------------------------------------------------------------------------
    // function to calculate anisotropy energy for a single spin
    //-----------------------------------------------------------------------------

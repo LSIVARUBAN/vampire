@@ -159,7 +159,10 @@ namespace sld{
 //
    extern double lattice_temperature;
    extern double spin_temperature;
+   // return the current SLED electron temperature
    double electron_temperature();
+   // return the nonlinear field curvature terms used by the spin temperature calculation
+   const std::vector<double>& spin_temperature_hessian_trace();
 
 /*
    extern double potential_energy;

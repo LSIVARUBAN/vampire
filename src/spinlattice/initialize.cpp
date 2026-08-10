@@ -23,7 +23,9 @@
 #include "material.hpp"
 #include "constants.hpp"
 #include "errors.hpp"
+#include "random.hpp"
 #include "sim.hpp"
+#include "vmpi.hpp"
 
 // sld module headers
 #include "internal.hpp"
@@ -61,8 +63,29 @@ namespace sld{
          err::zexit("SNAP potential cutoff exceeds spin-lattice:fields-cutoff-range");
       }
 
+      // check that exchange and neel cutoffs are smaller than the fields cutoff
+      if(sld::internal::r_cut_exchange > sld::internal::r_cut_fields){
+         err::zexit("spin-lattice:exchange-cutoff-range exceeds spin-lattice:fields-cutoff-range");
+      }
+      if(sld::internal::full_neel && (sld::internal::r_cut_neel_l > sld::internal::r_cut_fields || sld::internal::r_cut_neel_q > sld::internal::r_cut_fields)){
+         err::zexit("Full-Neel cutoff exceeds spin-lattice:fields-cutoff-range");
+      }
+
+      const bool use_smooth_neel_cutoff = sld::internal::neel_cutoff_function == sld::internal::smooth_neel_cutoff_function;
+      if(sld::internal::full_neel && use_smooth_neel_cutoff){
+         if(!sld::internal::r_switch_neel_l_set ||
+            !sld::internal::r_switch_neel_q_set){
+            err::zexit("Smooth full Neel cutoff needs neel-l and neel-q ranges to be set");
+         }
+         if(sld::internal::r_switch_neel_l >= sld::internal::r_cut_neel_l ||
+            sld::internal::r_switch_neel_q >= sld::internal::r_cut_neel_q){
+            err::zexit("The full Neel range must be smaller than its cutoff range");
+         }
+      }
+
       std::cout<<"Potential Cutoff: "<<sld::internal::r_cut_pot<<std::endl;
-      std::cout<<"Fields Cutoff: "<<sld::internal::r_cut_fields<<std::endl;
+      std::cout<<"Maximum fields cutoff: "<<sld::internal::r_cut_fields<<std::endl;
+      std::cout<<"Exchange cutoff: "<<sld::internal::r_cut_exchange<<std::endl;
       std::cout<<"Mass: "<<sld::internal::mp[0].mass.get()<<std::endl;
       std::cout<<"Lattice damping: "<<sld::internal::mp[0].damp_lat.get()<<std::endl;
       std::cout<<"Coupling C0 "<<sld::internal::mp[0].C0.get()<<std::endl;
@@ -98,6 +121,23 @@ namespace sld{
          for(int mat = 0; mat < mp::num_materials; ++mat){
             if(!sld::internal::mp[mat].K0.is_set()){
                err::zexit("Cubic biquadratic exchange requires exchange-K0 in every material");
+            }
+         }
+      }
+
+      const bool use_bethe_slater_neel = sld::internal::neel_radial_function == sld::internal::bethe_slater_neel_radial_function;
+      if(sld::internal::full_neel && use_bethe_slater_neel){
+         for(int mat = 0; mat < mp::num_materials; ++mat){
+            const bool l_parameters_set =
+               sld::internal::mp[mat].neel_alpha_l.is_set() &&
+               sld::internal::mp[mat].neel_gamma_l.is_set() &&
+               sld::internal::mp[mat].neel_delta_l.is_set();
+            const bool q_parameters_set =
+               sld::internal::mp[mat].neel_alpha_q.is_set() &&
+               sld::internal::mp[mat].neel_gamma_q.is_set() &&
+               sld::internal::mp[mat].neel_delta_q.is_set();
+            if(!l_parameters_set || !q_parameters_set){
+               err::zexit("Bethe-Slater full Neel coupling needs complete alpha/gamma/delta sets for l and q in every material");
             }
          }
       }
@@ -152,7 +192,15 @@ namespace sld{
       }
 
       if(sld::internal::pseudodipolar)std::cout<<"Pseudodipolar coupling is used of strength C0="<<sld::internal::mp[0].C0.get()<<std::endl;
-      if(sld::internal::full_neel)std::cout<<"Full Neel coupling is used of strength C0="<<sld::internal::mp[0].C0.get()<<std::endl;
+      if(sld::internal::full_neel){
+         std::cout<<"Full Neel coupling is used with " << (use_bethe_slater_neel ? "Bethe-Slater" : "inverse-fourth") << " radial functions and " << (use_smooth_neel_cutoff ? "smooth" : "hard") <<" cutoffs"<<std::endl;
+         std::cout<<"Full Neel l cutoff: "<<sld::internal::r_cut_neel_l << " Angstrom"<<std::endl;
+         std::cout<<"Full Neel q cutoff: "<<sld::internal::r_cut_neel_q <<" Angstrom"<<std::endl;
+         if(!use_bethe_slater_neel){
+            std::cout<<"Full Neel C_l: "<<sld::internal::mp[0].neel_C_l.get()<<std::endl;
+            std::cout<<"Full Neel C_q: "<<sld::internal::mp[0].neel_C_q.get()<<std::endl;
+         }
+      }
 
       std::cout<<"*******************************************************"<<std::endl;
 
@@ -160,6 +208,7 @@ namespace sld{
       sld::internal::coupling_field_x.resize(atoms::num_atoms, 0.0);
       sld::internal::coupling_field_y.resize(atoms::num_atoms, 0.0);
       sld::internal::coupling_field_z.resize(atoms::num_atoms, 0.0);
+      sld::internal::spin_hessian_trace.resize(atoms::num_atoms, 0.0); // for spin temperature calculation
 
       // Author: Muhammad Hamza Asim
       // Calculate phonon wavevector components (k) from wavelength and direction
@@ -205,10 +254,6 @@ namespace sld{
      sld::internal::morse_beta=exp( sld::internal::alpha_m * sld::internal::r0_m);
      sld::internal::morse_factor=-2.0 *sld::internal::morse_D * sld::internal::alpha_m;
 
-
-     //sld::internal::thermal_velocity(atoms::x_velo_array, atoms::y_velo_array,atoms::z_velo_array);
-
-
      //initialise for Parallel simulations
      //Initialize parallel mc variables
      suzuki_trotter_parallel_initialized = false;
@@ -228,10 +273,11 @@ namespace sld{
                   atoms::z_coord_array,
                   sld::internal::dr_init);
 
-     //sld::internal::thermal_velocity(atoms::x_velo_array, atoms::y_velo_array,atoms::z_velo_array);
-
-
-
+     if(sld::internal::th_velo > 0.0){ // initialise thermal velocities
+        sld::internal::thermal_velocity(atoms::x_velo_array,
+                                        atoms::y_velo_array,
+                                        atoms::z_velo_array);
+     }
 
     // sld::tests();
 
@@ -296,62 +342,85 @@ namespace sld{
    }//end of initialise initialise_positions
 
 
+   // generate mass dependent thermal velocities with zero com motion for faster equilibration
    void thermal_velocity(std::vector<double>& x_velo_array, // velocities vectors
                          std::vector<double>& y_velo_array,
-                         std::vector<double>& z_velo_array)
+                         std::vector<double>& z_velo_array){
+      int number_of_local_atoms = atoms::num_atoms;
+      #ifdef MPICF
+         number_of_local_atoms = vmpi::num_core_atoms+vmpi::num_bdry_atoms;
+      #endif
 
-   {    sld::internal::th_velo=10;
-       const double v_therm = sqrt( 3.0 * constants::kB_eV * sld::internal::th_velo / sld::internal::mp[0].mass.get());
-       int N=atoms::num_atoms;
-       double rx,ry,s;
-       //double net_v[] = {0.0, 0.0, 0.0};
+      double total_mass = 0.0;
+      double momentum_x = 0.0;
+      double momentum_y = 0.0;
+      double momentum_z = 0.0;
+      double number_of_atoms = 0.0;
 
-       std::cout<<"velocities before "<<x_velo_array[0]<<"\t"<<x_velo_array[10]<<"\t"<<th_velo<<std::endl;
+      // <v_alpha^2>=k_B T/m using velocities in Angstrom/ps
+      for(int atom=0; atom<number_of_local_atoms; ++atom){
+         const unsigned int material = atoms::type_array[atom];
+         const double mass = sld::internal::mp[material].mass.get();
+         const double sigma = std::sqrt(constants::kB_eV*sld::internal::th_velo/mass);
+         x_velo_array[atom] = sigma*mtrandom::gaussian();
+         y_velo_array[atom] = sigma*mtrandom::gaussian();
+         z_velo_array[atom] = sigma*mtrandom::gaussian();
 
-       for( int i = 0; i < N; i++)
-       {
-           /*s = 2.0;
-           while( s >= 1.0)
-           {
-               rx = 2.0;//2.0* (rand()/double(RAND_MAX)) - 1.0;
-               ry = 2.0;//2.0* (rand()/double(RAND_MAX)) - 1.0;
+         total_mass += mass;
+         momentum_x += mass*x_velo_array[atom];
+         momentum_y += mass*y_velo_array[atom];
+         momentum_z += mass*z_velo_array[atom];
+         number_of_atoms += 1.0;
+      }
 
-               s = rx*rx + ry*ry;
+      #ifdef MPICF
+         double sums[5] = {
+            total_mass, momentum_x, momentum_y, momentum_z, number_of_atoms
+         };
+         MPI_Allreduce(MPI_IN_PLACE, sums, 5, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         total_mass = sums[0];
+         momentum_x = sums[1];
+         momentum_y = sums[2];
+         momentum_z = sums[3];
+         number_of_atoms = sums[4];
+      #endif
 
-           }*/
+      if(total_mass <= 0.0 || number_of_atoms <= 1.0) return;
 
-            s=0.5;
-            rx=2.0;
-            ry=2.0;
+      const double centre_of_mass_velocity_x = momentum_x/total_mass;
+      const double centre_of_mass_velocity_y = momentum_y/total_mass;
+      const double centre_of_mass_velocity_z = momentum_z/total_mass;
+      double thermal_mass_velocity_squared = 0.0;
+      for(int atom=0; atom<number_of_local_atoms; ++atom){
+         x_velo_array[atom] -= centre_of_mass_velocity_x;
+         y_velo_array[atom] -= centre_of_mass_velocity_y;
+         z_velo_array[atom] -= centre_of_mass_velocity_z;
 
-           x_velo_array[i] = v_therm * 2.0 * rx * sqrt( 1.0 - s);
-           y_velo_array[i] = v_therm * 2.0 * ry * sqrt( 1.0 - s);
-           z_velo_array[i] = v_therm * ( 1.0 - 2.0 * s);
+         const unsigned int material = atoms::type_array[atom];
+         const double mass = sld::internal::mp[material].mass.get();
+         thermal_mass_velocity_squared += mass*(
+            x_velo_array[atom]*x_velo_array[atom]+
+            y_velo_array[atom]*y_velo_array[atom]+
+            z_velo_array[atom]*z_velo_array[atom]);
+      }
 
-          // net_v[0] += x_velo_array[i];
-          // net_v[1] += y_velo_array[i];
-          // net_v[2] += z_velo_array[i];
-       }
+      #ifdef MPICF
+         MPI_Allreduce(MPI_IN_PLACE, &thermal_mass_velocity_squared, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      #endif
 
-       //net_v[0] /= double(N);
-       //net_v[1] /= double(N);
-       //net_v[2] /= double(N);
-
-      /* for( int i = 0; i < N; i++)
-       {
-           x_velo_array[i] -= net_v[0];
-           y_velo_array[i] -= net_v[1];
-           z_velo_array[i] -= net_v[2];
-       }
-       */
-       std::cout<<"velocities after"<<x_velo_array[0]<<"\t"<<y_velo_array[0]<<"\t"<<std::endl;
-       return;
+      // removing com translation leaves 3n-3 kinetic DOFs
+      const double degrees_of_freedom = 3.0*number_of_atoms-3.0;
+      const double scale = std::sqrt(
+         degrees_of_freedom*constants::kB_eV*sld::internal::th_velo/
+         thermal_mass_velocity_squared);
+      for(int atom=0; atom<number_of_local_atoms; ++atom){
+         x_velo_array[atom] *= scale;
+         y_velo_array[atom] *= scale;
+         z_velo_array[atom] *= scale;
+      }
+      return;
 
    }
-
-
-
-
 
    void initialise_sld_parameters(){
 
@@ -387,13 +456,12 @@ namespace sld{
             sld::internal::mp[mat].K0_ms.set(
                sld::internal::mp[mat].K0.get()/mp::material[mat].mu_s_SI);
             sld::internal::mp[mat].K0_prime.set(
-               3.0*sld::internal::mp[mat].K0.get()/sld::internal::r_cut_fields);
+               3.0*sld::internal::mp[mat].K0.get()/sld::internal::r_cut_exchange);
          }
          sld::internal::mp[mat].C0_ms.set(sld::internal::mp[mat].C0.get()/mp::material[mat].mu_s_SI);
-         sld::internal::mp[mat].J0_prime.set(3.0*sld::internal::mp[mat].J0.get()/sld::internal::r_cut_fields);
+         sld::internal::mp[mat].J0_prime.set(3.0*sld::internal::mp[mat].J0.get()/sld::internal::r_cut_exchange);
          sld::internal::mp[mat].F_th_sigma.set(sqrt(2.0*sld::internal::mp[mat].damp_lat.get()*constants::kB_eV / (sld::internal::mp[mat].mass.get()*mp::dt_SI*1e12)));
          sld::internal::mp[mat].F_th_sigma_eq.set(sqrt(2.0*sld::internal::mp[mat].eq_damp_lat.get()*constants::kB_eV / (sld::internal::mp[mat].mass.get()*mp::dt_SI*1e12)));
-
          //now change to ev the following
          sld::internal::mp[mat].V0.set(sld::internal::mp[mat].V0.get()*6.242e18);
 

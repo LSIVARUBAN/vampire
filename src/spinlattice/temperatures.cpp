@@ -80,6 +80,7 @@ bool calculate_angular_velocity(const double inertia[6],
 } // end of anonymous namespace
 
 
+   // Calculate the spin temperature from fields
    double compute_spin_temperature(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,
                const std::vector<int>& type_array, // type for atom
@@ -92,7 +93,7 @@ bool calculate_angular_velocity(const double inertia[6],
                const std::vector <double>& mu_s_array){
 
                 double SxH2=0.0;
-                double SH=0.0;
+                double denominator=0.0;
                 for (int at=start_index;at<end_index;at++){
                     double Sx = x_spin_array[at];
                     double Sy = y_spin_array[at];
@@ -104,20 +105,23 @@ bool calculate_angular_velocity(const double inertia[6],
                      double SxHx = Sy * Hz - Sz * Hy;
                      double SxHy = Sz * Hx - Sx * Hz;
                      double SxHz = Sx * Hy - Sy * Hx;
-                     // weight each atom separately so multi material systems use the correct moment rather than the moment of material zero
+                     // weight each atom by its own material moment
                      SxH2 += mu_s_array[type_array[at]] * (SxHx*SxHx + SxHy*SxHy + SxHz*SxHz);
-                     SH  = SH +  Sx * Hx + Sy * Hy + Sz*Hz;
+                     // D_i=2 s_i.H_i-Tr[(I-s_i s_i^T)dH_i/ds_i].  The trace is zero for Hamiltonians linear in each spin and is accumulated for supported nonlinear terms including full neel coupling, second order uniaxial anisotropy and fourth order cubic anisotropy
+                     denominator += 2.0*(Sx*Hx + Sy*Hy + Sz*Hz);
+                     denominator -= sld::internal::spin_hessian_trace[at];
 
                 }
                #ifdef MPICF
-                  double sums[2] = {SxH2, SH};
+                  double sums[2] = {SxH2, denominator};
                   MPI_Allreduce(MPI_IN_PLACE, sums, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   SxH2 = sums[0];
-                  SH = sums[1];
+                  denominator = sums[1];
                #endif
 
-               if(SH <= 0.0) return 0.0;
-               double T_spin = 0.5 * constants::muB / constants::kB * SxH2 / SH;
+               if(denominator <= 0.0) return 0.0; 
+               // T_s=mu_B Sum_i m_i|s_i x H_i|^2/(k_B Sum_i D_i)
+               double T_spin = constants::muB / constants::kB * SxH2 / denominator;
 
       return T_spin;
 

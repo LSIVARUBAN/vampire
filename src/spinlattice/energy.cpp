@@ -44,7 +44,7 @@ namespace sld{
 
    }//end of potential energy
 //
-double compute_kinetic_energy(const int start_index, // first atom for exchange interactions to be calculated
+   double compute_kinetic_energy(const int start_index, // first atom for exchange interactions to be calculated
             const int end_index,
             const std::vector<int>& type_array, // type for atom
             std::vector<double>& velo_array_x, // coord vectors for atoms
@@ -95,17 +95,19 @@ double compute_effective_C(const int start_index, // first atom for exchange int
 
 }//end of compute eff coupling
 
+// calculate the mean spin lattice coupling energy in electronvolts
 double compute_coupling_energy(const int start_index, // first atom for exchange interactions to be calculated
             const int end_index){
 
-
+             const double joules_per_electron_volt = 1.602176634e-19;
              double sumC=0.0;
              for (int at=start_index;at<end_index;at++){
-                 sumC += sld::internal::coupl_eng[at];
+                 const unsigned int material = atoms::type_array[at];
+                 // coupl_energy is in units of T, convert to eV and use magnetic moment of the atom for conversion
+                 sumC += sld::internal::coupl_eng[at]*mp::material[material].mu_s_SI/joules_per_electron_volt;
              }
 
              sumC /= (end_index-start_index);
-             sumC *= mp::material[0].mu_s_SI/1.602176634e-19; //in eV at the moment
 
    return sumC;
 

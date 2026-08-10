@@ -156,4 +156,51 @@ namespace anisotropy{
 
    }
 
+   // add supported nonlinear anisotropy terms to the spin temperature curvature
+   void spin_temperature_curvature(const std::vector<double>& spin_array_x,
+                                   const std::vector<double>& spin_array_y,
+                                   const std::vector<double>& spin_array_z,
+                                   const std::vector<int>& type_array,
+                                   std::vector<double>& curvature_array,
+                                   const int start_index,
+                                   const int end_index){
+
+      if(!internal::enable_uniaxial_second_order &&
+         !internal::enable_cubic_fourth_order) return;
+
+      for(int atom=start_index; atom<end_index; ++atom){
+         const int material = type_array[atom];
+         const double sx = spin_array_x[atom];
+         const double sy = spin_array_y[atom];
+         const double sz = spin_array_z[atom];
+         double curvature = 0.0;
+
+         if(internal::enable_uniaxial_second_order){
+            const double ex = internal::ku_vector[material].x;
+            const double ey = internal::ku_vector[material].y;
+            const double ez = internal::ku_vector[material].z;
+            const double spin_dot_axis = sx*ex+sy*ey+sz*ez;
+
+            // H_u=-K_u(s.e)^2 gives chi_u=2(K_u/mu)[1-(s.e)^2]
+            curvature += 2.0*internal::ku2[material]*
+                         (1.0-spin_dot_axis*spin_dot_axis);
+         }
+
+         if(internal::enable_cubic_fourth_order){
+            const double spin_squared = sx*sx+sy*sy+sz*sz;
+            const double spin_fourth = sx*sx*sx*sx+
+                                       sy*sy*sy*sy+
+                                       sz*sz*sz*sz;
+
+            // H_c=-(K_c/2)sum_a s_a^4 gives chi_c=6(K_c/mu)(1-sum_a s_a^4)
+            curvature += 6.0*internal::kc4[material]*
+                         (spin_squared-spin_fourth);
+         }
+
+         curvature_array[atom] += curvature;
+      }
+
+      return;
+   }
+
 } // end of anisotropy namespace

@@ -51,6 +51,7 @@ namespace sld{
       std::vector<double> coupling_field_x; 
       std::vector<double> coupling_field_y; 
       std::vector<double> coupling_field_z;
+      std::vector<double> spin_hessian_trace;
 
 
       bool enabled; // bool to enable module
@@ -58,9 +59,21 @@ namespace sld{
       std::vector<internal::mp_t> mp; // array of material properties
 
       double r_cut_pot; // mechanical potential cutoff
-      double r_cut_fields;
+      double r_cut_fields = 3.75; // default cutoff for exchange and Neel fields
+      double r_cut_exchange = 3.75;
+      double r_cut_neel_l = 3.75;
+      double r_cut_neel_q = 3.75;
+      double r_switch_neel_l = 0.0;
+      double r_switch_neel_q = 0.0;
+      bool r_cut_exchange_set = false;
+      bool r_cut_neel_l_set = false;
+      bool r_cut_neel_q_set = false;
+      bool r_switch_neel_l_set = false;
+      bool r_switch_neel_q_set = false;
       exchange_function_t exchange_function = cubic_exchange_function; // default exchange function
       spin_hamiltonian_t spin_hamiltonian = bilinear_spin_hamiltonian; // default spin hamiltonian
+      neel_radial_function_t neel_radial_function = inverse_fourth_neel_radial_function;
+      neel_cutoff_function_t neel_cutoff_function = hard_neel_cutoff_function;
       bool exchange_offset = false; // by default don't offset the hamiltonian
       thermostat_t thermostat = standard_thermostat;
       electron_heat_capacity_t electron_heat_capacity_model = linear_electron_heat_capacity;
@@ -74,7 +87,7 @@ namespace sld{
       bool sled_production_initialized = false;
 
       double dr_init; // initial conditions
-      double th_velo;
+      double th_velo = 0.0;
 
       double morse_beta;
       double morse_factor;
@@ -149,5 +162,10 @@ namespace sld{
 
 
    } // end of internal namespace
+
+   // nonlinear field curvature array
+   const std::vector<double>& spin_temperature_hessian_trace(){
+      return internal::spin_hessian_trace;
+   }
 
 } // end of sld namespace

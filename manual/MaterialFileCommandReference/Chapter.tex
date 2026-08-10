@@ -308,7 +308,31 @@ Sets the positive length coefficient $\delta_K$. The default unit is Angstrom.
 {\zicf material:harmonic-potential-V0=float [ 0-1 : default 0.15 !eV]}\phantomsection\addcontentsline{toc}{subsection}{material:exchange-J0}  prefactor for the harmonic potential for SLD module;
 
 {\zicf material:coupling-C0=float [0-1; default 0.5]}\phantomsection\addcontentsline{toc}{subsection}{material:coupling-C0}
-Sets the spin-lattice coupling coefficient $C$ used by \textit{spin-lattice:coupling=pseudodipolar} and \textit{spin-lattice:coupling=full-neel}. 
+Sets the dimensionless coupling coefficient $C$ used by \textit{spin-lattice:coupling=pseudodipolar}.
+
+{\zicf material:neel-C-l=float [default 1.0e-2]}\phantomsection\addcontentsline{toc}{subsection}{material:neel-C-l}
+Sets the dimensionless $C_l$ coefficient in $l(r)=C_lJ_0(1\,\text{\AA}/r)^4$ for the inverse-fourth full N\'eel coupling.
+
+{\zicf material:neel-C-q=float [default -1.0e-4]}\phantomsection\addcontentsline{toc}{subsection}{material:neel-C-q}
+Sets the dimensionless $C_q$ coefficient in $q(r)=C_qJ_0(1\,\text{\AA}/r)^4$ for the inverse-fourth full N\'eel coupling.
+
+{\zicf material:neel-alpha-l=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-alpha-l}
+Sets the energy coefficient $\alpha_l$ of the N\'eel Bethe--Slater $l(r)$ curve. 
+
+{\zicf material:neel-gamma-l=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-gamma-l}
+Sets the dimensionless $\gamma_l$ coefficient. 
+
+{\zicf material:neel-delta-l=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-delta-l}
+Sets the $\delta_l$ length. 
+
+{\zicf material:neel-alpha-q=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-alpha-q}
+Sets the energy coefficient $\alpha_q$ of the N\'eel Bethe--Slater $q(r)$ curve. 
+
+{\zicf material:neel-gamma-q=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-gamma-q}
+Sets the dimensionless $\gamma_q$ coefficient.
+
+{\zicf material:neel-delta-q=float}\phantomsection\addcontentsline{toc}{subsection}{material:neel-delta-q}
+Sets the $\delta_q$ length. 
 
 
 %\section*{Example material files}

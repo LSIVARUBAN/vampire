@@ -374,9 +374,15 @@ sim:integrator=suzuki-trotter.
 {\zicf spin-lattice:potential-cutoff-range=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:potential-cutoff-range=float}
 Distance cutoff for the interatomic potential calculations. Units is Angstrom.  Default value is 7.8 !A;
 
+{\zicf spin-lattice:initial-thermal-velocity=float [default 0 K]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:initial-thermal-velocity=float}
+Initialises mass dependent Boltzmann lattice velocities at the specified temperature in kelvin.
+
 {\zicf spin-lattice:fields-cutoff-range=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:fields-cutoff-range=float}
-Distance cutoff for the spin-lattice exchange and coupling calculations. Units are Angstrom. The default value is 3.75 !A. 
-MLIPs currently filter the exchange-derived neighbour list; therefore, a \textit{snap} or \textit{snapzbl} calculation stops during initialisation if its cutoff is larger than this value.
+Sets the maximum distance for the spin-lattice neighbour list. Units are Angstrom and the default is 3.75 !A.
+The exchange and N\'eel cutoffs must not exceed this value. MLIPs currently filter the neighbour list; therefore, a \textit{snap} or \textit{snapzbl} calculation stops during initialisation if its potential cutoff is larger than this value.
+
+{\zicf spin-lattice:exchange-cutoff-range=float [default 3.75 !A]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:exchange-cutoff-range=float}
+Sets the cutoff of the distance dependent exchange independently of the N\'eel coupling cutoff. If omitted, it follows \textit{spin-lattice:fields-cutoff-range}.
 
 {\zicf spin-lattice:exchange-function=string [default cubic]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:exchange-function=string}
 Selects the radial exchange function. The accepted values are \textit{cubic} (default) and \textit{bethe-slater}.
@@ -391,7 +397,7 @@ The Bethe--Slater form is
 f(r)=4\alpha_f x_f(1-\gamma_f x_f)\exp(-x_f),\qquad
 x_f=(r/\delta_f)^2,
 \]
-where $f$ is $J$ or $K$. It is evaluated inside \textit{spin-lattice:fields-cutoff-range}. A complete $J$ parameter triplet is
+where $f$ is $J$ or $K$. It is evaluated inside \textit{spin-lattice:exchange-cutoff-range}. A complete $J$ parameter triplet is
 required for every material; the $K$ triplet is also required when the biquadratic Hamiltonian is selected.
 
 {\zicf spin-lattice:spin-hamiltonian=string [default bilinear]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:spin-hamiltonian=string}
@@ -448,7 +454,7 @@ Sets $\gamma_e$ in $\mathrm{J\,m^{-3}\,K^{-2}}$ for the linear heat-capacity mod
 {\zicf spin-lattice:coupling=string}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:coupling=string}
 Selects the spin coupling used to exchange energy and angular momentum between the spin and lattice systems. 
 The values are \textit{pseudodipolar} or \textit{full-neel}. 
-Both models act on pairs inside \textit{spin-lattice:fields-cutoff-range}.
+The pseudodipolar option acts inside \textit{spin-lattice:fields-cutoff-range} and the full N\'eel option uses separate cutoffs.
 
 Let
 \[
@@ -457,32 +463,61 @@ a_i=\mathbf{s}_i\cdot\mathbf{e}_{ij},\qquad
 a_j=\mathbf{s}_j\cdot\mathbf{e}_{ij},\qquad
 q_{ij}=\mathbf{s}_i\cdot\mathbf{s}_j ,
 \]
-where $\mathbf{s}_i$ and $\mathbf{s}_j$ are spin unit vectors. The radial
-coupling strength is
+where $\mathbf{s}_i$ and $\mathbf{s}_j$ are spin unit vectors. For the pseudodipolar model the radial coupling strength is
 \[
 f(r_{ij})=C J_0\left(\frac{a_0}{r_{ij}}\right)^4,\qquad a_0=1\,\text{\AA}.
 \]
-where $C$ is set by \textit{material:coupling-C0} and $J_0$ by \textit{material:exchange-J0}. 
+Here $C$ is set by \textit{material:coupling-C0} and $J_0$ by \textit{material:exchange-J0}.
 
-The coupling Hamiltonian is
+The pseudodipolar Hamiltonian is
 \[
-\mathcal{H}_{\mathrm{c}}
-=-\frac{1}{2}\sum_{i,j}f(r_{ij})\Phi_{ij}.
+\mathcal{H}_{\mathrm{PD}}=-\frac{1}{2}\sum_{i\ne j}f(r_{ij})
+\left(a_i a_j-\frac{q_{ij}}{3}\right).
 \]
-For \textit{pseudodipolar} coupling, the angular term is
+The full non-collinear N\'eel Hamiltonian is
 \[
-\Phi_{ij}^{\mathrm{PD}}=a_i a_j-\frac{1}{3}q_{ij},
+\mathcal{H}_{\mathrm{N}}=-\frac{1}{2}\sum_{i\ne j}
+\left[l_1(r_{ij})A_{ij}+q_1(r_{ij})B_{ij}+q_2(r_{ij})C_{ij}\right],
 \]
-For the \textit{full-neel} option, the angular term is
+with
 \[
-\begin{split}
-\Phi_{ij}^{\mathrm{N}}={}&
-\frac{12}{35}\left(a_i a_j-\frac{q_{ij}}{3}\right)
-+\frac{9}{5}\left(a_i^2-\frac{q_{ij}}{3}\right)
-                 \left(a_j^2-\frac{q_{ij}}{3}\right)\\
-&-\frac{2}{5}\left(a_i a_j^3+a_j a_i^3\right),
-\end{split}
+\begin{gathered}
+A_{ij}=a_i a_j-q_{ij}/3,\qquad
+B_{ij}=(a_i^2-q_{ij}/3)(a_j^2-q_{ij}/3),\\
+C_{ij}=a_i a_j^3+a_j a_i^3,\\
+l_1=l+12q/35,\qquad q_1=9q/5,\qquad q_2=-2q/5.
+\end{gathered}
 \]
+For collinear spins this reduces to
+\[
+l(r)(c^2-1/3)+q(r)(c^4-6c^2/7+3/35),\qquad c=\mathbf e_{ij}\cdot\mathbf s.
+\]
+Setting $q=0$ and $l=CJ_0(a_0/r)^4$ exactly recovers the pseudodipolar Hamiltonian.
+
+{\zicf spin-lattice:neel-radial-function=string [default inverse-fourth]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-radial-function=string}
+Selects \textit{inverse-fourth} or \textit{bethe-slater} radial functions for $l(r)$ and $q(r)$. The inverse-fourth forms are
+\[
+l(r)=C_lJ_0(a_0/r)^4,\qquad q(r)=C_qJ_0(a_0/r)^4,
+\]
+whereas each Bethe--Slater curve is $f(r)=4\alpha_f x_f(1-\gamma_f x_f)e^{-x_f}$ with $x_f=(r/\delta_f)^2$.
+
+{\zicf spin-lattice:neel-l-cutoff-range=float [default 3.75 !A]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-l-cutoff-range=float}
+Sets the independent cutoff for $l(r)$. If omitted, it follows \textit{spin-lattice:fields-cutoff-range}.
+
+{\zicf spin-lattice:neel-q-cutoff-range=float [default 3.75 !A]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-q-cutoff-range=float}
+Sets the independent cutoff for $q(r)$. If omitted, it follows \textit{spin-lattice:fields-cutoff-range}.
+
+{\zicf spin-lattice:neel-cutoff-function=string [default hard]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-cutoff-function=string}
+Selects a \textit{hard} cutoff or a \textit{smooth} cutoff. For the smooth option, each curve is multiplied between its switch and cutoff distances by
+\[
+S(x)=1-10x^3+15x^4-6x^5,\qquad x=\frac{r-r_{\mathrm{switch}}}{r_{\mathrm{cut}}-r_{\mathrm{switch}}}.
+\]
+
+{\zicf spin-lattice:neel-l-switch-range=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-l-switch-range=float}
+Sets the start of smooth switching for $l(r)$ and must be smaller than its cutoff.
+
+{\zicf spin-lattice:neel-q-switch-range=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:neel-q-switch-range=float}
+Sets the start of smooth switching for $q(r)$ and must be smaller than its cutoff. 
 
  {\zicf spin-lattice:potential=string}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:potential=string}
  Flag that sets up the type of potential. Possible values are \textit{harmonic}, \textit{morse}, \textit{snap}, and \textit{snapzbl}.
@@ -1065,7 +1100,7 @@ Outputs the fractional electric field strngth (or voltage) during an \textit{ele
 
 {\zicf output:column-headers= flag [default false]}\phantomsection\addcontentsline{toc}{subsection}{output:column-headers} Controls the headers at the top of output columns in the output file. The default is false which writes no headers.
 
-{\zicf output:mean-coupling-field-vec}\phantomsection\addcontentsline{toc}{subsection}{output:mean-coupling-field-vec}Outputs the three vector components of the mean pseudodipolar coupling field ($H_c$) averaged over all atoms. The output consists of three columns: Mean\_Hc\_x(T), Mean\_Hc\_y(T), and Mean\_Hc\_z(T). Units are Tesla (T).
+{\zicf output:mean-coupling-field-vec}\phantomsection\addcontentsline{toc}{subsection}{output:mean-coupling-field-vec}Outputs the three vector components of the mean pseudodipolar or full N\'eel coupling field ($H_c$) averaged over all atoms. The output consists of three columns: Mean\_Hc\_x(T), Mean\_Hc\_y(T), and Mean\_Hc\_z(T). Units are Tesla (T).
 
 
 \section*{Configuration output}

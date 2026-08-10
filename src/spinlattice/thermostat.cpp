@@ -17,6 +17,7 @@
 #include "atoms.hpp"
 #include "constants.hpp"
 #include "create.hpp"
+#include "errors.hpp"
 #include "material.hpp"
 #include "sim.hpp"
 #include "sld.hpp"
@@ -33,6 +34,55 @@ namespace sld{
    }
 
 namespace internal{
+
+namespace{
+
+   double sled_volume_m3 = 0.0;
+
+   // Ma et al., Phys. Rev. B 85, 184301 (2012), Eq. (33):
+   // G_es = 2 k_B/(hbar V) sum_i gamma_es,i <s_i . H_i>.
+   // In VAMPIRE units this becomes
+   // G_es = 2 k_B gamma/V sum_i [alpha_i/(1+alpha_i^2)] s_i.H_i.
+   double get_dynamic_electron_spin_coupling(const int start_index,
+                                              const int end_index){
+
+      double weighted_spin_field = 0.0;
+      for(int atom = start_index; atom < end_index; ++atom){
+         const int material = atoms::type_array[atom];
+         const double alpha = ::mp::material[material].alpha;
+         const double spin_dot_field =
+              atoms::x_spin_array[atom] * fields_array_x[atom]
+            + atoms::y_spin_array[atom] * fields_array_y[atom]
+            + atoms::z_spin_array[atom] * fields_array_z[atom];
+         weighted_spin_field +=
+            alpha / (1.0 + alpha * alpha) * spin_dot_field;
+      }
+
+      #ifdef MPICF
+         MPI_Allreduce(MPI_IN_PLACE, &weighted_spin_field, 1,
+                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      #endif
+
+      const double coupling =
+         2.0 * constants::kB * ::mp::gamma_SI * weighted_spin_field /
+         sled_volume_m3;
+
+      return std::max(0.0, coupling); // keep above zero
+   }
+
+} // end of anonymous namespace
+
+   // Validate the SLED coupling inputs
+   void initialise_sled_couplings(){
+
+      if(electron_spin_coupling_dynamic && electron_spin_coupling_set){
+         err::zexit("Specify either spin-lattice:electron-spin-coupling or spin-lattice:electron-spin-coupling-dynamic");
+      }
+      // coupling coefficients and heat capacities are volume densities... use the same simulation box volume as the SLED heat capacity model
+      sled_volume_m3 =
+         cs::system_dimensions[0] * cs::system_dimensions[1] *
+         cs::system_dimensions[2] * 1.0e-30;
+   }
 
    // return the current electron heat capacity
    double get_electron_heat_capacity(const double temperature){
@@ -154,6 +204,11 @@ namespace internal{
          electron_temperature = sim::Teq;
          sim::temperature = electron_temperature;
          return;
+      }
+
+      if(electron_spin_coupling_dynamic){
+         electron_spin_coupling =
+            get_dynamic_electron_spin_coupling(0, end_index); 
       }
 
       // calculate the heat capacity

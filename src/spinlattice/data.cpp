@@ -82,6 +82,8 @@ namespace sld{
       double electron_temperature = 300.0; // T_e [K]
       double electron_spin_coupling = 0.0; // G_es [W m^-3 K^-1]
       double electron_phonon_coupling = 0.0; // G_ep [W m^-3 K^-1]
+      bool electron_spin_coupling_dynamic = false; // derive G_es from Ma et al. Eq. (33)
+      bool electron_spin_coupling_set = false;
       double electron_heat_capacity = 1.0; // [J m^-3 K^-1]
       double electron_heat_capacity_coefficient = 225.0; // [J m^-3 K^-2]
       bool sled_production_initialized = false;

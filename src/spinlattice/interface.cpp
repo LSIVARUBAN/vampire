@@ -391,6 +391,14 @@ namespace sld{
                                     "none", 0.0, 1.0e40, "input",
                                     "0 - 1E40 W m^-3 K^-1");
          sld::internal::electron_spin_coupling = coupling;
+         sld::internal::electron_spin_coupling_set = true;
+         return true;
+      }
+
+      test = "electron-spin-coupling-dynamic"; // derive G_es from the instantaneous spin state using Ma et al. Eq. (33)
+      if( word == test ){
+         sld::internal::electron_spin_coupling_dynamic =
+            vin::check_for_valid_bool(value, word, line, prefix, "input");
          return true;
       }
 

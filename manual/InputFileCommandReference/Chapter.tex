@@ -434,9 +434,17 @@ Sets the initial electron temperature in Kelvin for the SLED thermostat. If omit
 {\zicf spin-lattice:electron-spin-coupling=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:electron-spin-coupling=float}
 Sets $G_{es}$ in $\mathrm{W\,m^{-3}\,K^{-1}}$.
 
-{\zicf spin-lattice:electron-phonon-coupling=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:electron-phonon-coupling=float}
-Sets $G_{ep}$ in $\mathrm{W\,m^{-3}\,K^{-1}}$.
+{\zicf spin-lattice:electron-spin-coupling-dynamic=bool [default false]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:electron-spin-coupling-dynamic=bool}
+Calculates $G_{es}$ from the instantaneous spin state using
+\[
+G_{es}=\frac{2k_{\mathrm B}\gamma}{V}
+\sum_i\frac{\alpha_i}{1+\alpha_i^2}
+\mathbf{s}_i\cdot\mathbf{H}_i,
+\]
+where $\gamma$ is the gyromagnetic ratio, $\alpha_i$ is the spin damping, and $V$ is the simulation box volume.
 
+{\zicf spin-lattice:electron-phonon-coupling=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:electron-phonon-coupling=float}
+Sets the constant $G_{ep}$ in $\mathrm{W\,m^{-3}\,K^{-1}}$. 
 {\zicf spin-lattice:electron-heat-capacity-model=string [default linear]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:electron-heat-capacity-model=string}
 Selects \textit{constant}, \textit{linear}, or \textit{non-linear}. The constant model uses $C_e=C_0$, and the linear model uses
 $C_e=\gamma_eT_e$. The non-linear Fe model uses

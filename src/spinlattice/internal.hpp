@@ -417,6 +417,8 @@ namespace sld{
       extern double electron_temperature;
       extern double electron_spin_coupling;
       extern double electron_phonon_coupling;
+      extern bool electron_spin_coupling_dynamic;
+      extern bool electron_spin_coupling_set;
       extern double electron_heat_capacity;
       extern double electron_heat_capacity_coefficient;
       extern bool sled_production_initialized;
@@ -446,6 +448,7 @@ namespace sld{
 
       void prepare_sled_thermostat();
       void update_sled_thermostat();
+      void initialise_sled_couplings();
       double get_electron_heat_capacity(const double temperature);
 
       void print_force_debug_summary(const std::string& label,

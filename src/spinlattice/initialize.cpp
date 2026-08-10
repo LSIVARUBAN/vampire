@@ -152,6 +152,7 @@ namespace sld{
          }
          sld::internal::electron_temperature = sim::Teq; 
          sld::internal::sled_production_initialized = false;
+         sld::internal::initialise_sled_couplings();
 
          const double initial_heat_capacity = sld::internal::get_electron_heat_capacity(sld::internal::initial_electron_temperature);
          if(initial_heat_capacity <= 0.0){
@@ -160,7 +161,12 @@ namespace sld{
 
          std::cout << "Thermostat: SLED" << std::endl;
          std::cout << "Initial electron temperature: " << sld::internal::initial_electron_temperature << " K" << std::endl;
-         std::cout << "Electron-spin coupling (G_es): " << sld::internal::electron_spin_coupling << " W m^-3 K^-1" << std::endl;
+         if(sld::internal::electron_spin_coupling_dynamic){
+            std::cout << "Electron-spin coupling (G_es): dynamic" << std::endl;
+         }
+         else{
+            std::cout << "Electron-spin coupling (G_es): " << sld::internal::electron_spin_coupling << " W m^-3 K^-1" << std::endl;
+         }
          std::cout << "Electron-phonon coupling (G_ep): " << sld::internal::electron_phonon_coupling << " W m^-3 K^-1" << std::endl;
       }
       else{

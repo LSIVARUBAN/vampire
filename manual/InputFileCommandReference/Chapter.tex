@@ -418,6 +418,9 @@ The factor of one half removes pair double counting. Here $\Delta=1$ when \texti
 Selects the shifted exchange Hamiltonian. Enabling it sets $\Delta=1$ in the Hamiltonians above. This removes the exchange energy and corresponding mechanical force in
 the aligned ground state without changing the spin field. When disabled, $\Delta=0$ and the original unshifted Hamiltonian is retained.
 
+{\zicf spin-lattice:spin-temperature-correction=bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:spin-temperature-correction=bool}
+Includes the nonlinear field correction in the spin temperature calculation. The correction covers the full N\'eel coupling, biquadratic exchange, second-order uniaxial anisotropy and fourth-order cubic anisotropy. With the standard thermostat this changes only the measured spin temperature. With the SLED thermostat the measured spin temperature also feeds the electron temperature equation.
+
 {\zicf spin-lattice:thermostat=string [default standard]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:thermostat=string}
 Selects the thermal bath used by the spin-lattice integrator. The accepted values are \textit{standard} and \textit{sled}. The standard thermostat uses
 \textit{sim:temperature}. The SLED thermostat evolves an electron temperature according to

@@ -52,6 +52,7 @@ namespace sld{
       std::vector<double> coupling_field_y; 
       std::vector<double> coupling_field_z;
       std::vector<double> spin_hessian_trace;
+      bool spin_temperature_correction = true;
 
 
       bool enabled; // bool to enable module
@@ -168,6 +169,11 @@ namespace sld{
    // nonlinear field curvature array
    const std::vector<double>& spin_temperature_hessian_trace(){
       return internal::spin_hessian_trace;
+   }
+
+   // return whether nonlinear spin temperature corrections are enabled
+   bool spin_temperature_correction_enabled(){
+      return internal::spin_temperature_correction;
    }
 
 } // end of sld namespace

@@ -163,6 +163,8 @@ namespace sld{
    double electron_temperature();
    // return the nonlinear field curvature terms used by the spin temperature calculation
    const std::vector<double>& spin_temperature_hessian_trace();
+   // return whether nonlinear spin temperature corrections are enabled
+   bool spin_temperature_correction_enabled();
 
 /*
    extern double potential_energy;

@@ -109,7 +109,9 @@ bool calculate_angular_velocity(const double inertia[6],
                      SxH2 += mu_s_array[type_array[at]] * (SxHx*SxHx + SxHy*SxHy + SxHz*SxHz);
                      // D_i=2 s_i.H_i-Tr[(I-s_i s_i^T)dH_i/ds_i].  The trace is zero for Hamiltonians linear in each spin and is accumulated for supported nonlinear terms including full neel coupling, second order uniaxial anisotropy and fourth order cubic anisotropy
                      denominator += 2.0*(Sx*Hx + Sy*Hy + Sz*Hz);
-                     denominator -= sld::internal::spin_hessian_trace[at];
+                     if(sld::internal::spin_temperature_correction){
+                        denominator -= sld::internal::spin_hessian_trace[at]; // deduct the nonlinear term by defualt
+                     }
 
                 }
                #ifdef MPICF

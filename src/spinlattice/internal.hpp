@@ -340,6 +340,7 @@ namespace sld{
       extern std::vector<double> coupling_field_z;
       // sum of Tr[(I-ss^T)dB/ds] in tesla over the supported nonlinear hamiltonian terms used for spin temperature calculations
       extern std::vector<double> spin_hessian_trace;
+      extern bool spin_temperature_correction;
 
       // NEW: Intermediate storage for wave parameters from the input file
       extern double phonon_wave_lambda[3];   // For λ_x, λ_y, λ_z

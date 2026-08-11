@@ -156,6 +156,7 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
                      atoms::z_total_spin_field_array);
 
    const std::vector<double>& hessian_trace = sld::spin_temperature_hessian_trace();
+   const bool apply_correction = sld::spin_temperature_correction_enabled();
 
    // calculate contributions of spins to each magetization category
    for(int atom=0; atom < num_atoms; ++atom){
@@ -178,7 +179,9 @@ void spin_temp_statistic_t::calculate_spin_temp(const std::vector<double>& sx, /
 
       // D_i=2 s_i.H_i-Tr[(I-s_i s_i^T)dH_i/ds_i]
       SH[mask_id] += 2.0*(S[0]*B[0] + S[1]*B[1] + S[2]*B[2]);
-      SH[mask_id] -= hessian_trace[atom]; 
+      if(apply_correction){
+         SH[mask_id] -= hessian_trace[atom];
+      }
 
 	}
 

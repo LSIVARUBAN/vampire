@@ -106,11 +106,6 @@ namespace sld{
 
 }
 
-double PBC_wrap ( double dx, double L, bool bounds){
-    return (bounds) ? dx - floor( (dx/L) + 0.5) * L : dx;
-}
-
-
 namespace internal{
 
 namespace{

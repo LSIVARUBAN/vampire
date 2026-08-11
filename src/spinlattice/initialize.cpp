@@ -442,6 +442,21 @@ namespace sld{
       sld::internal::velo_array_y.resize(atoms::num_atoms,0);
       sld::internal::velo_array_z.resize(atoms::num_atoms,0);
 
+      // allocate atom indexed buffers once instead of on every integration step. Integrators overwrite each entry with new random nos before using them
+      sld::internal::spin_noise_array_x.resize(atoms::num_atoms,0);
+      sld::internal::spin_noise_array_y.resize(atoms::num_atoms,0);
+      sld::internal::spin_noise_array_z.resize(atoms::num_atoms,0);
+      sld::internal::lattice_noise_array_x.resize(atoms::num_atoms,0);
+      sld::internal::lattice_noise_array_y.resize(atoms::num_atoms,0);
+      sld::internal::lattice_noise_array_z.resize(atoms::num_atoms,0);
+
+      // allocate one set of integration coefficients per material (removes sqrts, unit conversions and parameter selection from the atom loops)
+      sld::internal::spin_damping_array.resize(mp::num_materials,0);
+      sld::internal::spin_noise_scale_array.resize(mp::num_materials,0);
+      sld::internal::lattice_damping_factor_array.resize(mp::num_materials,0);
+      sld::internal::lattice_noise_scale_array.resize(mp::num_materials,0);
+      sld::internal::lattice_dt2_over_mass_array.resize(mp::num_materials,0);
+
       sld::internal::potential_eng.resize(atoms::num_atoms,0);
       sld::internal::sumJ.resize(atoms::num_atoms,0);
       sld::internal::sumC.resize(atoms::num_atoms,0);
@@ -488,6 +503,24 @@ namespace sld{
 
 
    return;
+   }
+
+   // record repeated integrator coefficients for each material to avoid repeated caluclations in the integrator loops
+   void prepare_integrator_coefficients(){
+
+      const bool equilibrating = sim::time < sim::equilibration_time; // so we know which set of params to use
+      const double sqrt_temperature = std::sqrt(sim::temperature); // both spin and lattice noise scale with sqrt(T)
+      const double half_dt_ps = 0.5*mp::dt_SI*1.0e12; // lattice velocities are in ps and the integrator advances in half time steps
+
+      // compute each value once per material since all atoms of the material share these params
+      for(int mat = 0; mat < mp::num_materials; ++mat){
+         spin_damping_array[mat] = equilibrating ? ::mp::material[mat].alpha_eq : ::mp::material[mat].alpha; // gilbert damping for current stage
+         spin_noise_scale_array[mat] = sqrt_temperature*(equilibrating ? ::mp::material[mat].H_th_sigma_eq : ::mp::material[mat].H_th_sigma); // this scales the spin field to its amplitude for the current stage
+         const double damping = equilibrating ? sld::internal::mp[mat].eq_damp_lat.get() : sld::internal::mp[mat].damp_lat.get(); // select the lattice damping for the current stage
+         lattice_damping_factor_array[mat] = 1.0 - half_dt_ps*damping; // 1-gamma*dt/2
+         lattice_noise_scale_array[mat] = sqrt_temperature*(equilibrating ? sld::internal::mp[mat].F_th_sigma_eq.get() : sld::internal::mp[mat].F_th_sigma.get()); // this scales the lattice force
+         lattice_dt2_over_mass_array[mat] = half_dt_ps/sld::internal::mp[mat].mass.get(); // dt_2_m=dt/(2m) converts force into the velocity change for one half timestep
+      }
    }
 
 } //end of internal

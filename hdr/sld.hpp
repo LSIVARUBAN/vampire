@@ -109,7 +109,6 @@ namespace sld{
 
    extern std::vector<double> forces_array_x;
    extern double var_test;
-   double PBC_wrap ( double dx, double L, bool bounds);
 
    double compute_spin_temperature(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,

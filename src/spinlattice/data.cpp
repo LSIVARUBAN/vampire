@@ -148,6 +148,21 @@ namespace sld{
       std::vector<double> velo_array_y;
       std::vector<double> velo_array_z;
 
+      // store atom indexed random numbers which are reused at every step to avoid repeated allocation and deallocation
+      std::vector<double> spin_noise_array_x;
+      std::vector<double> spin_noise_array_y;
+      std::vector<double> spin_noise_array_z;
+      std::vector<double> lattice_noise_array_x;
+      std::vector<double> lattice_noise_array_y;
+      std::vector<double> lattice_noise_array_z;
+
+      // material dependent integrator coefficients recalculated once at the start of each step
+      std::vector<double> spin_damping_array;
+      std::vector<double> spin_noise_scale_array;
+      std::vector<double> lattice_damping_factor_array;
+      std::vector<double> lattice_noise_scale_array;
+      std::vector<double> lattice_dt2_over_mass_array;
+
       std::vector<double> potential_eng;
       std::vector<double> sumJ;
       std::vector<double> sumC;

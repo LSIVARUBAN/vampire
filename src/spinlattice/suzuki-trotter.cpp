@@ -91,24 +91,26 @@ namespace sld{
    int suzuki_trotter(){
       const int num_atoms=atoms::num_atoms;
       sld::internal::prepare_sled_thermostat(); // prep the SLED thermostat for the current step
+       // record coefficients after any SLED update so all ranks use the current thermostat bath temperature
+      sld::internal::prepare_integrator_coefficients();
       double cay_dt=-mp::dt/4.0;//-dt4*consts::gyro - mp::dt contains gamma;
       double dt2=0.5*mp::dt_SI*1e12;
 
 
 
-      //vectors for thermal noise spin plus lattice
-      std::vector <double> Hx_th(atoms::x_spin_array.size());
-   	  std::vector <double> Hy_th(atoms::x_spin_array.size());
-   	  std::vector <double> Hz_th(atoms::x_spin_array.size());
+      // access the preallocated spin noise arrays rather than constructing three vectors on every rank and step
+      std::vector<double>& Hx_th = sld::internal::spin_noise_array_x;
+      std::vector<double>& Hy_th = sld::internal::spin_noise_array_y;
+      std::vector<double>& Hz_th = sld::internal::spin_noise_array_z;
 
       generate (Hx_th.begin(),Hx_th.end(), mtrandom::gaussian);
       generate (Hy_th.begin(),Hy_th.end(), mtrandom::gaussian);
       generate (Hz_th.begin(),Hz_th.end(), mtrandom::gaussian);
 
-      //vectors for thermal forces
-      std::vector <double> Fx_th(atoms::x_spin_array.size());
-      std::vector <double> Fy_th(atoms::x_spin_array.size());
-      std::vector <double> Fz_th(atoms::x_spin_array.size());
+      // access the equivalent preallocated lattice noise buffers
+      std::vector<double>& Fx_th = sld::internal::lattice_noise_array_x;
+      std::vector<double>& Fy_th = sld::internal::lattice_noise_array_y;
+      std::vector<double>& Fz_th = sld::internal::lattice_noise_array_z;
 
       generate (Fx_th.begin(),Fx_th.end(), mtrandom::gaussian);
       generate (Fy_th.begin(),Fy_th.end(), mtrandom::gaussian);
@@ -287,15 +289,10 @@ namespace sld{
       for(int atom=0;atom<num_atoms;atom++){
 
       const unsigned int imat = atoms::type_array[atom];
-      double dt2_m=0.5*mp::dt_SI*1e12/sld::internal::mp[imat].mass.get();
-      double f_eta=1.0-0.5*sld::internal::mp[imat].damp_lat.get()*mp::dt_SI*1e12;
-      double velo_noise=sld::internal::mp[imat].F_th_sigma.get()*sqrt(sim::temperature);
-
-       //if during equilibration:
-       if (sim::time < sim::equilibration_time) {
-              f_eta=1.0-0.5*sld::internal::mp[imat].eq_damp_lat.get()*mp::dt_SI*1e12;
-              velo_noise=sld::internal::mp[imat].F_th_sigma_eq.get()*sqrt(sim::temperature);
-       }
+      // look up the coefficients stored once for this material instead of recomputing them per atom
+      const double dt2_m=sld::internal::lattice_dt2_over_mass_array[imat];
+      const double f_eta=sld::internal::lattice_damping_factor_array[imat];
+      const double velo_noise=sld::internal::lattice_noise_scale_array[imat];
 
              atoms::x_velo_array[atom] =  f_eta*atoms::x_velo_array[atom]+ dt2_m * sld::internal::forces_array_x[atom]+dt2*velo_noise*Fx_th[atom];
              atoms::y_velo_array[atom] =  f_eta*atoms::y_velo_array[atom]+ dt2_m * sld::internal::forces_array_y[atom]+dt2*velo_noise*Fy_th[atom];
@@ -357,16 +354,10 @@ namespace sld{
       for(int atom=0;atom<num_atoms;atom++){
 
         const unsigned int imat = atoms::type_array[atom];
-        double dt2_m=0.5*mp::dt_SI*1e12/sld::internal::mp[imat].mass.get();
-        double f_eta=1.0-0.5*sld::internal::mp[imat].damp_lat.get()*mp::dt_SI*1e12;
-        double velo_noise=sld::internal::mp[imat].F_th_sigma.get()*sqrt(sim::temperature);
-
-
-          //if during equilibration:
-          if (sim::time < sim::equilibration_time) {
-                f_eta=1.0-0.5*sld::internal::mp[imat].eq_damp_lat.get()*mp::dt_SI*1e12;
-                velo_noise=sld::internal::mp[imat].F_th_sigma_eq.get()*sqrt(sim::temperature);
-          }
+        // reuse the stored coefficients for the second velocity half step
+        const double dt2_m=sld::internal::lattice_dt2_over_mass_array[imat];
+        const double f_eta=sld::internal::lattice_damping_factor_array[imat];
+        const double velo_noise=sld::internal::lattice_noise_scale_array[imat];
 
 
          atoms::x_velo_array[atom] =  f_eta*atoms::x_velo_array[atom] + dt2_m * sld::internal::forces_array_x[atom]+dt2*velo_noise*Fx_th[atom];
@@ -596,17 +587,11 @@ void add_spin_noise(const int start_index,
      for( int i = start_index; i<end_index; i++)
 
     {
-        const unsigned int imat = atoms::type_array[i];
-
-        double lambda=mp::material[imat].alpha;
-        double spin_noise=mp::material[imat].H_th_sigma*sqrt(sim::temperature);
-
-
-        //if during equilibration:
-        if (sim::time < sim::equilibration_time) {
-        lambda=mp::material[imat].alpha_eq;
-        spin_noise=mp::material[imat].H_th_sigma_eq*sqrt(sim::temperature);
-        }
+        // use the material index passed with this spin array
+        const unsigned int imat = type_array[i];
+        // these values are already filtered based on equilibration or production stages
+        const double lambda=sld::internal::spin_damping_array[imat];
+        const double spin_noise=sld::internal::spin_noise_scale_array[imat];
 
 
 

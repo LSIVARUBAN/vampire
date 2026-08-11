@@ -34,6 +34,11 @@
 
 namespace sld{
 
+   inline double PBC_wrap ( double dx, double L, bool bounds){
+       return (bounds) ? dx - floor( (dx/L) + 0.5) * L : dx;
+   }
+
+
    namespace internal{
 
       struct radial_result_t{
@@ -491,6 +496,19 @@ namespace sld{
       extern std::vector<double> velo_array_x;
       extern std::vector<double> velo_array_y;
       extern std::vector<double> velo_array_z;
+
+      extern std::vector<double> spin_noise_array_x;
+      extern std::vector<double> spin_noise_array_y;
+      extern std::vector<double> spin_noise_array_z;
+      extern std::vector<double> lattice_noise_array_x;
+      extern std::vector<double> lattice_noise_array_y;
+      extern std::vector<double> lattice_noise_array_z;
+
+      extern std::vector<double> spin_damping_array;
+      extern std::vector<double> spin_noise_scale_array;
+      extern std::vector<double> lattice_damping_factor_array;
+      extern std::vector<double> lattice_noise_scale_array;
+      extern std::vector<double> lattice_dt2_over_mass_array;
       extern std::vector<double> potential_eng;
       extern std::vector<double> exch_eng;
       extern std::vector<double> coupl_eng;
@@ -513,8 +531,11 @@ namespace sld{
                  std::vector<double>& y_velo_array,
                  std::vector<double>& z_velo_array);
 
-//function to resize vectors and initialise rest of parameters
+      //function to resize vectors and initialise rest of parameters
       void initialise_sld_parameters();
+
+      // function to record material dependent integrator coefficients
+      void prepare_integrator_coefficients();
 
 //functions to compute potentials
       void compute_forces_harmonic(const int start_index,

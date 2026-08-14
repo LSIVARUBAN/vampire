@@ -259,12 +259,11 @@ int run(){
       stats::initialize(num_atoms_for_statistics, mp::num_materials, grains::num_grains, atoms::m_spin_array, atoms::type_array, atoms::grain_array, atoms::category_array, non_magnetic_materials_array);
    }
 
-	// Check for load spin configurations from checkpoint
+   // Check for loading a checkpoint
    if(sim::load_checkpoint_flag) load_checkpoint();
+   else stats::update(); // only update if not loading a checkpoint, since that already updates the statistics
 
-   // Precalculate initial statistics and then reset averages if not continuing a previous simulation
-   // RE technically this double counts the last data point in the statistics, need to implement a reset_counter to fix.
-   stats::update();
+   // restart loads the atom state and begins new averages, continue loads the time, random state and accumulated checkpoint values
    if(!load_checkpoint_continue_flag) stats::reset();
 
    // For continuous checkpoints inform user about I/O

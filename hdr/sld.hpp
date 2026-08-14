@@ -160,6 +160,8 @@ namespace sld{
    extern double spin_temperature;
    // return the current SLED electron temperature
    double electron_temperature();
+   // restore the SLED thermostat after continuing from a checkpoint
+   void restore_thermostat_checkpoint();
    // return the nonlinear field curvature terms used by the spin temperature calculation
    const std::vector<double>& spin_temperature_hessian_trace();
    // return whether nonlinear spin temperature corrections are enabled

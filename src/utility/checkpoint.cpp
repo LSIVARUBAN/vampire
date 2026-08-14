@@ -21,6 +21,7 @@
 #include "sld.hpp"
 #include "stats.hpp"
 #include "vio.hpp"
+#include "vmpi.hpp"
 #include "program.hpp"
 
 //-----------------------------------------------------------------------------
@@ -241,6 +242,22 @@ void load_checkpoint(){
       chkfile.read((char*)&atoms::z_velo_array[0],sizeof(double)*natoms64);
 
    }
+
+   // restore the SLED thermostat state
+   if(sim::load_checkpoint_continue_flag) sld::restore_thermostat_checkpoint();
+
+   // refresh restored spins and coordinates
+   #ifdef MPICF
+      if(sld::enabled){
+         vmpi::mpi_init_halo_swap();
+         vmpi::mpi_complete_halo_swap();
+         vmpi::mpi_init_halo_swap_coords();
+         vmpi::mpi_complete_halo_swap_coords();
+      }
+   #endif
+   
+   // calculate the instantaneous statistics from the restored atom state
+   stats::update();
 
    // load statistical properties from file
    stats::system_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);

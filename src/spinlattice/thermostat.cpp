@@ -33,6 +33,14 @@ namespace sld{
       return internal::electron_temperature;
    }
 
+   // restore the SLED thermostat state after continuing from a checkpoint
+   void restore_thermostat_checkpoint(){
+      if(internal::thermostat != internal::sled_thermostat) return;
+      // sim::temperature is T_e so the checkpointed temperature is the recorded T_e
+      internal::electron_temperature = sim::temperature;
+      internal::sled_production_initialized = sim::time > sim::equilibration_time; 
+   }
+
 namespace internal{
 
 namespace{

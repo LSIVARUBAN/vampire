@@ -145,7 +145,8 @@ namespace sld{
       std::cout << "Spin Hamiltonian: " << (use_biquadratic ? "biquadratic" : "bilinear") << std::endl;
       std::cout << "Exchange Hamiltonian offset: " << (sld::internal::exchange_offset ? "enabled" : "disabled") << std::endl;
 
-      if(sld::internal::thermostat == sld::internal::sled_thermostat){
+      const bool use_sled_thermostat = sld::internal::thermostat == sld::internal::sled_thermostat || sld::internal::thermostat == sld::internal::sled_energy_thermostat;
+      if(use_sled_thermostat){
          if(!sld::internal::initial_electron_temperature_set){
             // if the initial electron temperature is not set, use the equilibration temperature as the initial value
             sld::internal::initial_electron_temperature = sim::temperature;
@@ -159,7 +160,7 @@ namespace sld{
             err::zexit("The SLED electron heat capacity must be greater than zero");
          }
 
-         std::cout << "Thermostat: SLED" << std::endl;
+         std::cout << "Thermostat: " << (sld::internal::thermostat == sld::internal::sled_energy_thermostat ? "SLED energy" : "SLED") << std::endl;
          std::cout << "Initial electron temperature: " << sld::internal::initial_electron_temperature << " K" << std::endl;
          if(sld::internal::electron_spin_coupling_dynamic){
             std::cout << "Electron-spin coupling (G_es): dynamic" << std::endl;

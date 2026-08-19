@@ -35,7 +35,7 @@ namespace sld{
 
    // restore the SLED thermostat state after continuing from a checkpoint
    void restore_thermostat_checkpoint(){
-      if(internal::thermostat != internal::sled_thermostat) return;
+      if(internal::thermostat != internal::sled_thermostat && internal::thermostat != internal::sled_energy_thermostat) return;
       // sim::temperature is T_e so the checkpointed temperature is the recorded T_e
       internal::electron_temperature = sim::temperature;
       internal::sled_production_initialized = sim::time > sim::equilibration_time; 
@@ -46,6 +46,25 @@ namespace internal{
 namespace{
 
    double sled_volume_m3 = 0.0;
+   double electron_number_density = 0.0;
+
+   // return the fixed number density used by the SLED heat capacity
+   double get_electron_number_density(){
+
+      if(electron_number_density != 0.0) 
+         return electron_number_density;
+
+      double number_of_atoms = 0.0;
+      #ifdef MPICF
+         number_of_atoms = static_cast<double>(vmpi::num_core_atoms+vmpi::num_bdry_atoms);
+         MPI_Allreduce(MPI_IN_PLACE, &number_of_atoms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      #else
+         number_of_atoms = static_cast<double>(atoms::num_atoms);
+      #endif
+
+      electron_number_density = number_of_atoms/sled_volume_m3;
+      return electron_number_density;
+   }
 
    // Ma et al., Phys. Rev. B 85, 184301 (2012), Eq. (33):
    // G_es = 2 k_B/(hbar V) sum_i gamma_es,i <s_i . H_i>.
@@ -103,36 +122,102 @@ namespace{
             return electron_heat_capacity_coefficient * temperature;
 
          case nonlinear_electron_heat_capacity:{
-            // NV simulations so just calculate the density once
-            static double number_density = 0.0;
-            if(number_density == 0.0){
-               double number_of_atoms = 0.0;
-               #ifdef MPICF
-                  number_of_atoms = static_cast<double>(vmpi::num_core_atoms+vmpi::num_bdry_atoms);
-                  MPI_Allreduce(MPI_IN_PLACE, &number_of_atoms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-               #else
-                  number_of_atoms = static_cast<double>(atoms::num_atoms);
-               #endif
-
-               const double volume_m3 =
-                  cs::system_dimensions[0] * cs::system_dimensions[1] * cs::system_dimensions[2] * 1.0e-30;
-               number_density = number_of_atoms/volume_m3;
-            }
-
             // Non-linear Fe heat capacity from Ma et al.,
             // Phys. Rev. B 85, 184301 (2012):
             // https://doi.org/10.1103/PhysRevB.85.184301
-            return 3.0 * constants::kB * number_density * std::tanh(2.0e-4 * temperature);
+            return 3.0 * constants::kB * get_electron_number_density() * std::tanh(2.0e-4 * temperature);
          }
       }
 
       return 0.0;
    }
 
+namespace{
+
+   // return u_e(T)=integral_0^T C_e(T')dT' in J m^-3
+   double get_electron_energy_density(const double temperature){
+
+      switch(electron_heat_capacity_model){
+         case constant_electron_heat_capacity:
+            return electron_heat_capacity * temperature;
+
+         case linear_electron_heat_capacity:
+            return 0.5 * electron_heat_capacity_coefficient * temperature * temperature;
+
+         case nonlinear_electron_heat_capacity:{
+            const double heat_capacity_limit = 3.0 * constants::kB * get_electron_number_density();
+            const double coefficient = 2.0e-4;
+            const double scaled_temperature = coefficient * temperature;
+            double log_cosh = 0.0;
+            if(scaled_temperature < 20.0){
+               log_cosh = std::log(std::cosh(scaled_temperature));
+            }
+            else{
+               log_cosh = scaled_temperature - std::log(2.0) + std::log1p(std::exp(-2.0*scaled_temperature));
+            }
+            return heat_capacity_limit/coefficient * log_cosh;
+         }
+      }
+
+      return 0.0;
+   }
+
+   // solve the electron energy equation for T_e at the end of the step
+   double update_electron_temperature_from_energy(const double temperature, const double spin_temperature, const double lattice_temperature){
+
+      const double total_coupling = electron_spin_coupling + electron_phonon_coupling;
+      if(total_coupling == 0.0) 
+         return temperature;
+
+      const double target_temperature = (electron_spin_coupling*spin_temperature + electron_phonon_coupling*lattice_temperature) / total_coupling;
+      if(target_temperature == temperature) 
+         return temperature;
+
+      // u_e(T_e^{n+1})+dt(G_es+G_ep)T_e^{n+1}
+      // =u_e(T_e^n)+dt(G_es T_s+G_ep T_l)
+      const double right_hand_side = get_electron_energy_density(temperature) + mp::dt_SI * total_coupling * target_temperature;
+
+      double lower_temperature = std::min(temperature, target_temperature);
+      double upper_temperature = std::max(temperature, target_temperature);
+      double new_temperature = 0.5*(lower_temperature+upper_temperature);
+
+      for(int iteration = 0; iteration < 32; ++iteration){
+         const double residual = get_electron_energy_density(new_temperature) + mp::dt_SI * total_coupling * new_temperature - right_hand_side;
+
+         if(residual == 0.0) 
+            return new_temperature;
+
+         if(residual > 0.0) 
+            upper_temperature = new_temperature;
+         else lower_temperature = new_temperature;
+
+         if(upper_temperature-lower_temperature <= 1.0e-12*std::max(1.0, upper_temperature)){
+            return 0.5*(lower_temperature+upper_temperature);
+         }
+
+         const double derivative = get_electron_heat_capacity(new_temperature) + mp::dt_SI * total_coupling;
+         const double newton_temperature = new_temperature-residual/derivative;
+
+         if(newton_temperature > lower_temperature && newton_temperature < upper_temperature){
+            if(std::abs(newton_temperature-new_temperature) <= 1.0e-12*std::max(1.0, new_temperature)){
+               return newton_temperature;
+            }
+            new_temperature = newton_temperature;
+         }
+         else{
+            new_temperature = 0.5*(lower_temperature+upper_temperature);
+         }
+      }
+
+      return new_temperature;
+   }
+
+} // end of anonymous namespace
+
    // prepare the SLED thermostat for the current time step, setting the electron temperature to the equilibration temperature during equilibration and to the initial electron temperature at the start of production
    void prepare_sled_thermostat(){
 
-      if(thermostat != sled_thermostat) return;
+      if(thermostat != sled_thermostat && thermostat != sled_energy_thermostat) return;
 
       // set the electron temperature to the equilibration temperature during equilibration
       if(sim::time < sim::equilibration_time){
@@ -152,7 +237,7 @@ namespace{
    // update the SLED thermostat, calculating the new electron temperature based on the current spin and lattice temperatures
    void update_sled_thermostat(){
 
-      if(thermostat != sled_thermostat) return;
+      if(thermostat != sled_thermostat && thermostat != sled_energy_thermostat) return;
 
       const int end_index =
          #ifdef MPICF
@@ -215,19 +300,19 @@ namespace{
       }
 
       if(electron_spin_coupling_dynamic){
-         electron_spin_coupling =
-            get_dynamic_electron_spin_coupling(0, end_index); 
+         electron_spin_coupling = get_dynamic_electron_spin_coupling(0, end_index);
       }
 
-      // calculate the heat capacity
-      const double heat_capacity = get_electron_heat_capacity(electron_temperature);
-      // calculate the energy transfer between the electron, spin and lattice systems based on the current temperatures and coupling constants
-      const double energy_transfer = electron_spin_coupling * (electron_temperature - sld::spin_temperature) 
-                                 + electron_phonon_coupling * (electron_temperature - sld::lattice_temperature);
-
-      // update the electron temperature
-      electron_temperature -= mp::dt_SI * energy_transfer / heat_capacity; 
-      electron_temperature = std::max(0.0, electron_temperature);
+      if(thermostat == sled_energy_thermostat){
+         electron_temperature = update_electron_temperature_from_energy(electron_temperature, sld::spin_temperature, sld::lattice_temperature);
+      }
+      else{
+         // retain the original explicit Euler SLED temperature update
+         const double heat_capacity = get_electron_heat_capacity(electron_temperature);
+         const double energy_transfer = electron_spin_coupling * (electron_temperature-sld::spin_temperature) + electron_phonon_coupling * (electron_temperature-sld::lattice_temperature);
+         electron_temperature -= mp::dt_SI * energy_transfer/heat_capacity;
+         electron_temperature = std::max(0.0, electron_temperature);
+      }
       sim::temperature = electron_temperature;
    }
 

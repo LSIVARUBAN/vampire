@@ -387,7 +387,8 @@ namespace sld{
 
       enum thermostat_t{
          standard_thermostat,
-         sled_thermostat
+         sled_thermostat,
+         sled_energy_thermostat
       };
 
       enum electron_heat_capacity_t{

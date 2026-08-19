@@ -377,7 +377,11 @@ namespace sld{
             sld::internal::thermostat = sld::internal::sled_thermostat;
             return true;
          }
-         err::zexit("spin-lattice:thermostat must be standard or sled");
+         if(value == "sled-energy"){
+            sld::internal::thermostat = sld::internal::sled_energy_thermostat;
+            return true;
+         }
+         err::zexit("spin-lattice:thermostat must be standard, sled or sled-energy");
       }
 
       test = "electron-temperature"; // initial electron temperature for SLED thermostat

@@ -34,8 +34,7 @@ static_hysteresis.o \
 setting.o \
 time_series.o \
 temperature_pulse.o \
-spin_waves.o \
-many_spin_macrospin.o
+spin_waves.o
 
 # Append module objects to global tree
 OBJECTS+=$(addprefix obj/program/,$(program_objects))

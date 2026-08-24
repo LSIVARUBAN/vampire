@@ -43,6 +43,9 @@ void time_series(){
 	   sim::temperature=sim::Teq;
    }
 
+	// Initialise optional per-spin geofencing statistics
+	stats::per_spin_geofencing::initialize();
+
 	// Output data
 	vout::data();
 
@@ -70,6 +73,9 @@ void time_series(){
 
    }
 
+	// Reset state before production phase
+	stats::per_spin_geofencing::reset();
+
 	// Perform Time Series
 	while(sim::time<sim::equilibration_time+sim::total_time){
 
@@ -78,6 +84,12 @@ void time_series(){
 
 		// Calculate magnetisation statistics
 		stats::update();
+
+		// Geofence every local magnetic spin at the simulation sampling rate
+		stats::per_spin_geofencing::update();
+		if(vout::output_rate > 0 && sim::time % vout::output_rate == 0){
+			stats::per_spin_geofencing::synchronize();
+		}
 
 		// Output data
 		vout::data();

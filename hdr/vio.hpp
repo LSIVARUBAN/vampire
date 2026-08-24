@@ -120,23 +120,24 @@ namespace vin{
 
 namespace vout{
 
-  // geofencing params needed for ms macrospin program
+  // Geofencing parameters
   extern double cubic_geofencing_threshold;
-  extern int cubic_geofencing_material_id;
+  extern int cubic_geofencing_material_id; // negative selects global magnetisation
   extern bool cubic_geofencing_output_dot;
+  extern bool cubic_geofencing_111_hard;
   extern double uniaxial_geofencing_threshold;
-  extern int uniaxial_geofencing_material_id;
+  extern int uniaxial_geofencing_material_id; // negative selects global magnetisation
   extern bool uniaxial_geofencing_output_dot;
   extern double uniaxial_axis_x;
   extern double uniaxial_axis_y;
   extern double uniaxial_axis_z;
 
-  // many spin macrospin outputs
-  extern std::vector<double> ms_macrospin_geofencing_thresholds;
-  extern std::vector<double> ms_macrospin_tau_avg;
-  extern std::vector<double> ms_macrospin_lost_time_avg;
-  extern std::vector<uint64_t> ms_macrospin_total_transitions;
-  
+  // Per-spin geofencing outputs
+  extern std::vector<double> per_spin_geofencing_thresholds;
+  extern std::vector<double> per_spin_geofencing_tau_avg;
+  extern std::vector<double> per_spin_geofencing_lost_time_avg;
+  extern std::vector<uint64_t> per_spin_geofencing_total_transitions;
+
    extern bool custom_precision; // enable user selectable precision for data output
    extern unsigned int precision; // variable to control output precision (digits)
    extern bool fixed; // fixed precision output

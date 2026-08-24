@@ -1597,10 +1597,11 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
-        test="cubic-geofencing";
+        test="geofencing-cubic";
         if(word==test){
-            stats::calculate_material_magnetization=true;
-            output_list.push_back(91); 
+            // The global magnetisation is the default magnetisation for geofencing, material statistics are enabled separately if needed
+            stats::calculate_system_magnetization=true;
+            output_list.push_back(91);
 
             if(value == "no-product"){
                 vout::cubic_geofencing_output_dot = false; // output only the magnetic state column (and not the best dot product)
@@ -1618,9 +1619,10 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
-        test="uniaxial-geofencing";
+        test="geofencing-uniaxial";
         if(word==test){
-            stats::calculate_material_magnetization=true;
+            // The global magnetisation is the default magnetisation for geofencing, material statistics are enabled separately if needed
+            stats::calculate_system_magnetization=true;
             output_list.push_back(92);
 
             if(value == "no-product"){
@@ -1639,7 +1641,7 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
-        test="cubic-geofencing-threshold"; // In a state if: m dot ea >= threshold
+        test="geofencing-cubic-threshold"; // In a state if: m dot ea >= threshold
         if(word==test){
             double threshold = atof(value.c_str());
             check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
@@ -1648,16 +1650,35 @@ namespace vin{
         }
         else
         //--------------------------------------------------------------------
-        test="cubic-geofencing-material-id"; // Material ID for cubic geofencing
+        test="geofencing-cubic-mode"; // Select <111> easy or hard cubic anisotropy
         if(word==test){
-            int mat_id = atoi(value.c_str());
-            vin::check_for_valid_int(mat_id, word, line, prefix, 0, 100, "input", "0 - 100");
-            vout::cubic_geofencing_material_id = mat_id;
+            if(value == "111-easy"){
+                vout::cubic_geofencing_111_hard = false;
+            }
+            else if(value == "111-hard"){
+                vout::cubic_geofencing_111_hard = true;
+            }
+            else{
+                terminaltextcolor(RED);
+                std::cerr << "Error - value for \'" << prefix << word << "\' must be \"111-easy\" or \"111-hard\" on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
             return EXIT_SUCCESS;
         }
         else
         //--------------------------------------------------------------------
-        test="uniaxial-geofencing-threshold"; // In a state if: m dot ea >= threshold
+        test="geofencing-cubic-material-id"; // Material ID for cubic geofencing, if not specified the global magnetisation is used
+        if(word==test){
+            int mat_id = atoi(value.c_str());
+            vin::check_for_valid_int(mat_id, word, line, prefix, 0, 100, "input", "0 - 100");
+            vout::cubic_geofencing_material_id = mat_id;
+            stats::calculate_material_magnetization=true;
+            return EXIT_SUCCESS;
+        }
+        else
+        //--------------------------------------------------------------------
+        test="geofencing-uniaxial-threshold"; // In a state if: m dot ea >= threshold
         if(word==test){
             double threshold = atof(value.c_str());
             vin::check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
@@ -1666,16 +1687,17 @@ namespace vin{
         }
         else
         //--------------------------------------------------------------------
-        test="uniaxial-geofencing-material-id"; // Material ID for uniaxial geofencing
+        test="geofencing-uniaxial-material-id"; // Material ID for uniaxial geofencing, if not specified the global magnetisation is used
         if(word==test){
             int mat_id = atoi(value.c_str());
             vin::check_for_valid_int(mat_id, word, line, prefix, 0, 100, "input", "0 - 100");
             vout::uniaxial_geofencing_material_id = mat_id;
+            stats::calculate_material_magnetization=true;
             return EXIT_SUCCESS;
         }
         else
         //--------------------------------------------------------------------
-        test="uniaxial-geofencing-axis"; // ea vector for uniaxial geofencing 
+        test="geofencing-uniaxial-axis"; // easy axis vector for uniaxial geofencing
         if(word==test){
             std::vector<double> u(3);
             u = doubles_from_string(value);
@@ -1695,24 +1717,53 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
-        test="ms-macrospin-tau";
+        test="geofencing-per-spin-thresholds";
         if(word==test){
+            std::vector<double> thresholds = doubles_from_string(value);
+            if(thresholds.empty()){
+                terminaltextcolor(RED);
+                std::cerr << "Error - value for '" << prefix << word << "' must include at least one threshold on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+            for(double threshold : thresholds){
+                check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
+            }
+            vout::per_spin_geofencing_thresholds = thresholds;
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="geofencing-cubic-per-spin";
+        if(word==test){
+            const stats::per_spin_geofencing::mode_t current_mode = stats::per_spin_geofencing::get_mode();
+            if(current_mode != stats::per_spin_geofencing::disabled && current_mode != stats::per_spin_geofencing::cubic){
+                terminaltextcolor(RED);
+                std::cerr << "Error - cubic and uniaxial per-spin geofencing cannot both be enabled on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+            stats::per_spin_geofencing::set_mode(stats::per_spin_geofencing::cubic);
             output_list.push_back(93);
-            return EXIT_SUCCESS;
-        }
-        //--------------------------------------------------------------------
-        test="ms-macrospin-lost-time";
-        if(word==test){
             output_list.push_back(94);
-            return EXIT_SUCCESS;
-        }
-        //--------------------------------------------------------------------
-        test="ms-macrospin-total-transitions";
-        if(word==test){
             output_list.push_back(95);
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
+        test="geofencing-uniaxial-per-spin";
+        if(word==test){
+            const stats::per_spin_geofencing::mode_t current_mode = stats::per_spin_geofencing::get_mode();
+            if(current_mode != stats::per_spin_geofencing::disabled && current_mode != stats::per_spin_geofencing::uniaxial){
+                terminaltextcolor(RED);
+                std::cerr << "Error - cubic and uniaxial per-spin geofencing cannot both be enabled on line " << line << " of input file" << std::endl;
+                terminaltextcolor(WHITE);
+                err::vexit();
+            }
+            stats::per_spin_geofencing::set_mode(stats::per_spin_geofencing::uniaxial);
+            output_list.push_back(93);
+            output_list.push_back(94);
+            output_list.push_back(95);
+            return EXIT_SUCCESS;
+        }
         // keyword not found
         //--------------------------------------------------------------------
         else{

@@ -56,6 +56,19 @@ namespace stats
 	// Function to reset average statistics counters
    void reset();
 
+   // Per-spin geofencing statistics for time-series simulations
+   namespace per_spin_geofencing{
+      enum mode_t { disabled = 0, cubic = 1, uniaxial = 2 };
+
+      void set_mode(mode_t mode);
+      mode_t get_mode();
+      bool is_enabled();
+      void initialize();
+      void reset();
+      void update();
+      void synchronize();
+   }
+
 	// Statistics control flags (to be moved internally when long-awaited refactoring of vio is done)
 	extern bool calculate_system_energy;
 	extern bool calculate_grain_energy;

@@ -182,18 +182,6 @@ namespace program{
             program::program=75;
             return true;
          }
-         test="ms-macrospin-cubic-geofencing";
-         if(value==test){
-            program::program = 76;
-            program::internal::ms_macrospin_geofencing_mode = program::internal::ms_macrospin_geofencing_cubic;
-            return true;
-         }
-         test="ms-macrospin-uniaxial-geofencing";
-         if(value==test){
-            program::program = 76;
-            program::internal::ms_macrospin_geofencing_mode = program::internal::ms_macrospin_geofencing_uniaxial;
-            return true;
-         }
          else{
             terminaltextcolor(RED);
             std::cout << word << '\t' << test << std::endl;
@@ -216,8 +204,6 @@ namespace program{
             std::cerr << "\t\"hybrid-cmc\"" << std::endl;
             std::cerr << "\t\"reverse-hybrid-cmc\"" << std::endl;
             std::cerr << "\t\"static-hysteresis-loop\"" << std::endl;
-            std::cerr << "\t\"ms-macrospin-cubic-geofencing\"" << std::endl;
-            std::cerr << "\t\"ms-macrospin-uniaxial-geofencing\"" << std::endl;
             terminaltextcolor(WHITE);
             err::vexit();
          }
@@ -295,44 +281,6 @@ namespace program{
          vin::check_for_valid_positive_value(pt, word, line, prefix, unit, "time", 0.0, 1.0,"input","0.0 - 1s");
          // save sanitized value
          program::internal::field_pulse_time = pt;
-         return true;
-      }
-      //-------------------------------------------------------------------
-      test = "ms-macrospin-geofencing-threshold";
-      if(word == test){
-         std::vector<double> thresholds = vin::doubles_from_string(value); // convert string to vector of doubles
-         if(thresholds.empty()){
-            terminaltextcolor(RED);
-            std::cerr << "Error - value for '" << prefix << word << "' must include at least one threshold on line " << line << " of input file" << std::endl;
-            terminaltextcolor(WHITE);
-            err::vexit();
-         }
-         for(double threshold : thresholds){
-            vin::check_for_valid_value(threshold, word, line, prefix, "", "none", 0.0, 1.0, "input", "0.0 - 1.0");
-         }
-         vout::ms_macrospin_geofencing_thresholds = thresholds;
-         vout::cubic_geofencing_threshold = thresholds.front(); // just use the first threshold for usual cubic geofencing outputs 
-         vout::uniaxial_geofencing_threshold = thresholds.front();
-         return true;
-      }
-      //-------------------------------------------------------------------
-      test = "ms-macrospin-uniaxial-axis";
-      if(word == test){
-         std::vector<double> u(3);
-         u = vin::doubles_from_string(value);
-         vin::check_for_valid_three_vector(u, word, line, prefix, "input");
-
-         const double ulen = sqrt(u.at(0)*u.at(0) + u.at(1)*u.at(1) + u.at(2)*u.at(2));
-         if(ulen <= 0.0){
-            terminaltextcolor(RED);
-            std::cerr << "Error - value for '" << prefix << word << "' must be a non-zero vector on line " << line << " of input file" << std::endl;
-            terminaltextcolor(WHITE);
-            err::vexit();
-         }
-
-         vout::uniaxial_axis_x = u.at(0) / ulen;
-         vout::uniaxial_axis_y = u.at(1) / ulen;
-         vout::uniaxial_axis_z = u.at(2) / ulen;
          return true;
       }
       //--------------------------------------------------------------------

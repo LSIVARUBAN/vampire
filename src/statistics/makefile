@@ -19,7 +19,8 @@ update.o \
 energy_sld.o \
 spin_temperature.o \
 lattice_temperature.o \
-spin_length.o
+spin_length.o \
+per_spin_geofencing.o
 
 # Append module objects to global tree
 OBJECTS+=$(addprefix obj/statistics/,$(statistics_objects))

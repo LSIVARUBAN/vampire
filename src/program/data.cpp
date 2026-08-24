@@ -55,11 +55,6 @@ namespace program{
       double exchange_stiffness_delta_constraint_angle =  5; // 22.5 degrees
 
       //------------------------------------------------------------------------
-      // Many spin macrospin program
-      //------------------------------------------------------------------------
-      int ms_macrospin_geofencing_mode = ms_macrospin_geofencing_uniaxial; // default to uniaxial geofencing
-
-      //------------------------------------------------------------------------
       // Material specific program parameters
       //------------------------------------------------------------------------
       std::vector<internal::mp_t> mp; // array of material properties

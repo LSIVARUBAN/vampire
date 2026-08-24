@@ -4,8 +4,10 @@
 //   Free BSD licence (see licence file for details).
 //
 //   (c) Sam Westmoreland and Richard Evans 2017. All rights reserved.
+//   (c) Lennon Sivaruban 2026. All rights reserved.
 //
 //   Email: richard.evans@york.ac.uk
+//          lennon.sivaruban@postgrad.manchester.ac.uk
 //
 //------------------------------------------------------------------------------
 //

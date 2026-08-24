@@ -4,8 +4,10 @@
 //   Free BSD licence (see licence file for details).
 //
 //   (c) Richard F L Evans and Rory Pond 2016. All rights reserved.
+//   (c) Lennon Sivaruban 2026. All rights reserved.
 //
 //   Email: richard.evans@york.ac.uk and rory.pond@york.ac.uk
+//          lennon.sivaruban@postgrad.manchester.ac.uk
 //
 //------------------------------------------------------------------------------
 //

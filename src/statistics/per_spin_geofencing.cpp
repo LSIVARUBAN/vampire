@@ -5,6 +5,8 @@
 //
 //   (c) Lennon Sivaruban 2026. All rights reserved.
 //
+//   Email: lennon.sivaruban@postgrad.manchester.ac.uk
+//
 //------------------------------------------------------------------------------
 
 // C++ standard library headers

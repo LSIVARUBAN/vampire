@@ -332,6 +332,16 @@ int run(){
 	vmpi::TotalWaitTime=0.0;
 	#endif
 
+	// Only allow per-spin geofencing on the time-series program
+	if(stats::per_spin_geofencing::is_enabled() && program::program != 1){
+		if(vmpi::my_rank == 0){
+			terminaltextcolor(RED);
+			std::cerr << "Error - per-spin geofencing output requires sim:program = time-series" << std::endl;
+			terminaltextcolor(WHITE);
+		}
+		err::vexit();
+	}
+
 	// Select program to run
 	switch(program::program){
 		case 0:

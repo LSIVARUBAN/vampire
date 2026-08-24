@@ -334,6 +334,15 @@ namespace vout{
 			case 93:
 				vout::uniaxial_geofencing(stream,header);
 				break;
+			case 94:
+				vout::per_spin_geofencing_tau(stream,header);
+				break;
+			case 95:
+				vout::per_spin_geofencing_lost_time(stream,header);
+				break;
+			case 96:
+				vout::per_spin_geofencing_total_transitions_out(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;

@@ -66,12 +66,18 @@ namespace vout{
    }
 
    double cubic_geofencing_threshold = 0.95; // default dot product threshold
-   int cubic_geofencing_material_id = 0; // use material 0 magnetisation by default
+   int cubic_geofencing_material_id = -1; // use global magnetisation by default
    bool cubic_geofencing_output_dot = true; // output best dot product column by default
+   bool cubic_geofencing_111_hard = false; // use <111> easy axes by default
    double uniaxial_geofencing_threshold = 0.95; // default dot product threshold
-   int uniaxial_geofencing_material_id = 0; // use material 0 magnetisation by default
+   int uniaxial_geofencing_material_id = -1; // use global magnetisation by default
    bool uniaxial_geofencing_output_dot = true; // output best dot product column by default
-   double uniaxial_axis_x = 0.5773502691896258; // 1/sqrt(3) uniaxial easy axis components, default 111
-   double uniaxial_axis_y = 0.5773502691896258;
-   double uniaxial_axis_z = 0.5773502691896258;
+   double uniaxial_axis_x = 0.0; // uniaxial easy axis components, default 001
+   double uniaxial_axis_y = 0.0;
+   double uniaxial_axis_z = 1.0;
+
+   std::vector<double> per_spin_geofencing_thresholds = {0.95}; // default threshold
+   std::vector<double> per_spin_geofencing_tau_avg(1, 0.0);
+   std::vector<double> per_spin_geofencing_lost_time_avg(1, 0.0);
+   std::vector<uint64_t> per_spin_geofencing_total_transitions(1, 0u);
 }

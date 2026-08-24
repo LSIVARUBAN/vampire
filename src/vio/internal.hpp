@@ -65,14 +65,20 @@ namespace vout{
 
    // Geofencing parameters
    extern double cubic_geofencing_threshold; // m dot e_a threshold
-   extern int cubic_geofencing_material_id; // magnetisation material id
+   extern int cubic_geofencing_material_id; // magnetisation material id, negative selects global
    extern bool cubic_geofencing_output_dot; // output best dot product column aswell as state
+   extern bool cubic_geofencing_111_hard; // use <100> axes when <111> directions are hard
    extern double uniaxial_geofencing_threshold; // m dot e_a threshold
-   extern int uniaxial_geofencing_material_id; // magnetisation material id
+   extern int uniaxial_geofencing_material_id; // magnetisation material id, negative selects global
    extern bool uniaxial_geofencing_output_dot; // output best dot product column aswell as state
    extern double uniaxial_axis_x; // uniaxial easy axis components
    extern double uniaxial_axis_y;
    extern double uniaxial_axis_z;
+
+   extern std::vector<double> per_spin_geofencing_thresholds;
+   extern std::vector<double> per_spin_geofencing_tau_avg;
+   extern std::vector<double> per_spin_geofencing_lost_time_avg;
+   extern std::vector<uint64_t> per_spin_geofencing_total_transitions;
 
    // namespaced io lists (to avoid collisions)
    namespace grain{
@@ -235,6 +241,11 @@ namespace vout{
    // Geofencing output functions
    void cubic_geofencing(std::ostream& stream, bool header);
    void uniaxial_geofencing(std::ostream& stream, bool header);
+
+   // Per-spin geofencing output functions
+   void per_spin_geofencing_tau(std::ostream& stream, bool header);
+   void per_spin_geofencing_lost_time(std::ostream& stream, bool header);
+   void per_spin_geofencing_total_transitions_out(std::ostream& stream, bool header);
 
    //-------------------------------------------------------------------------
    // Function protypes for functions inside: datalog.cpp

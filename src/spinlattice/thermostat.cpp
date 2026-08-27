@@ -150,9 +150,12 @@ namespace{
             const double scaled_temperature = coefficient * temperature;
             double log_cosh = 0.0;
             if(scaled_temperature < 20.0){
-               log_cosh = std::log(std::cosh(scaled_temperature));
+               // at low temperatures, use log(cosh(x))=log1p(2*sinh(x/2)^2) to maintain precision
+               const double half_sinh = std::sinh(0.5*scaled_temperature);
+               log_cosh = std::log1p(2.0*half_sinh*half_sinh);
             }
             else{
+               // avoid overflow in cosh(x) at large temperatures
                log_cosh = scaled_temperature - std::log(2.0) + std::log1p(std::exp(-2.0*scaled_temperature));
             }
             return heat_capacity_limit/coefficient * log_cosh;

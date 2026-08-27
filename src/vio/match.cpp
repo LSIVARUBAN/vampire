@@ -683,9 +683,15 @@ namespace vin{
         //--------------------------------------------------------------------
         test="integrator-random-seed";
         if(word==test){
-            int is=atoi(value.c_str());
-            check_for_valid_int(is, word, line, prefix, 0, 2000000000,"input","0 - 2,000,000,000");
+            if(value=="random"){
+                // optionally use a random seed for integrator
+                mtrandom::integration_seed_random=true;
+                return EXIT_SUCCESS;
+            }
+            int is=vin::str_to_int(value);
+            check_for_valid_int(is, word, line, prefix, 0, 2147483647,"input","0 - 2,147,483,647");
             mtrandom::integration_seed=is;
+            mtrandom::integration_seed_random=false;
             return EXIT_SUCCESS;
         }
         test="track-Ms";

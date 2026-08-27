@@ -36,6 +36,8 @@ namespace mtrandom
 	
 	extern int voronoi_seed;
 	extern int integration_seed;
+	extern bool integration_seed_random;
+	extern int generate_integration_seed();
 }
 
 

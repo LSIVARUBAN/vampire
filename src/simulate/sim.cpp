@@ -241,6 +241,21 @@ int run(){
    }
    #endif
 
+   // If not continuing from a checkpoint, generate a random seed if requested and seed the random number generator
+   // RNG state is restored from checkpoint if continuing from a checkpoint, so do not generate a new seed in that case
+   const bool continuing_from_checkpoint = sim::load_checkpoint_flag && sim::load_checkpoint_continue_flag;
+
+   if(mtrandom::integration_seed_random && !continuing_from_checkpoint){
+      if(vmpi::master){
+        mtrandom::integration_seed = mtrandom::generate_integration_seed();
+		std::cout << "Integrator random seed: " << mtrandom::integration_seed << std::endl;
+      	zlog << zTs() << "Integrator random seed: " << mtrandom::integration_seed << std::endl;
+      }
+      #ifdef MPICF
+         MPI_Bcast(&mtrandom::integration_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      #endif
+   }
+
    // now seed generator
 	mtrandom::grnd.seed(vmpi::parallel_rng_seed(mtrandom::integration_seed));
 

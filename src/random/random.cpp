@@ -23,6 +23,8 @@
 // ----------------------------------------------------------------------------
 //
 #include "random.hpp"
+#include <chrono>
+#include <cstdint>
 #include <cmath>
 
 using std::log;
@@ -36,6 +38,7 @@ namespace mtrandom
 
 	int voronoi_seed=1951218893;
 	int integration_seed=2137082040;
+	bool integration_seed_random=false;
 
 	double x1,x2,w;
 	double number1;
@@ -43,6 +46,13 @@ namespace mtrandom
 	bool logic=false;
 	MTRand grnd; // single sequence of random numbers
 
+// Generate a time-based seed in the accepted range to be used by the Mersenne Twister random number generator
+int generate_integration_seed(){
+	const std::uint64_t now = static_cast<std::uint64_t>(
+		std::chrono::duration_cast<std::chrono::nanoseconds>(
+			std::chrono::system_clock::now().time_since_epoch()).count());
+	return static_cast<int>(now % 2147483648ULL);
+}
 
 double gaussian_old(){
 	using namespace mtrandom;

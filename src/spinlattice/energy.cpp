@@ -118,12 +118,14 @@ double compute_exchange_energy(const int start_index, // first atom for exchange
 
 //
              double sumJ=0.0;
+             const double joules_per_electron_volt = 1.602176634e-19;
              for (int at=start_index;at<end_index;at++){
-                 sumJ += sld::internal::exch_eng[at];
+                 const unsigned int material = atoms::type_array[at];
+                 // exch_eng is in field units... convert each atom with its own magnetic moment before averaging
+                 sumJ += sld::internal::exch_eng[at]*mp::material[material].mu_s_SI/joules_per_electron_volt;
              }
 
              sumJ /= (end_index-start_index);
-             sumJ *= mp::material[0].mu_s_SI/1.602176634e-19;//in eV at the moment
    return sumJ;
 
 }//end of potential energy

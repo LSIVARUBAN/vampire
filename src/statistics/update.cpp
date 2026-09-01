@@ -16,6 +16,7 @@
 #include "atoms.hpp"
 #include "gpu.hpp"
 #include "sim.hpp"
+#include "sld.hpp"
 #include "stats.hpp"
 
 namespace stats{
@@ -53,6 +54,8 @@ namespace stats{
             if(stats::calculate_material_energy)               stats::material_energy.calculate(sx, sy, sz, mm, mat, temperature);
 
             // update sld energy statistics
+            // refresh the exchange and spin-lattice coupling energies here so that they reflect the final spin configuration of the timestep (already done by sled thermostats)
+            if(stats::calculate_system_sld_energy || stats::calculate_grain_sld_energy || stats::calculate_material_sld_energy)   sld::stats_sld();
             if(stats::calculate_system_sld_energy)             stats::system_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);
             if(stats::calculate_grain_sld_energy)              stats::grain_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);
             if(stats::calculate_material_sld_energy)           stats::material_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);

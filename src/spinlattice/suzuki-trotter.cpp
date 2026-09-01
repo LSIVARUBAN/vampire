@@ -54,6 +54,9 @@ namespace sld{
       std::fill(sld::internal::fields_array_x.begin(), sld::internal::fields_array_x.end(), 0.0);
       std::fill(sld::internal::fields_array_y.begin(), sld::internal::fields_array_y.end(), 0.0);
       std::fill(sld::internal::fields_array_z.begin(), sld::internal::fields_array_z.end(), 0.0);
+      std::fill(sld::internal::forces_array_x.begin(), sld::internal::forces_array_x.end(), 0.0);
+      std::fill(sld::internal::forces_array_y.begin(), sld::internal::forces_array_y.end(), 0.0);
+      std::fill(sld::internal::forces_array_z.begin(), sld::internal::forces_array_z.end(), 0.0);
 
       sld::compute_fields(0, // first atom for exchange interactions to be calculated
                         num_atoms, // last +1 atom to be calculated

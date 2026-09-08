@@ -22,6 +22,7 @@
 
 // Vampire headers
 #include "sld.hpp"
+#include "atoms.hpp"
 #include "create.hpp"
 #include "sim.hpp"
 #include "errors.hpp"
@@ -904,6 +905,11 @@ void compute_forces_zbl_overlay(const int start_index,
    const double z = sld::internal::zbl_atomic_number;
    const zbl_coeff_t coeff = set_zbl_coeff(z, z, cut_inner, cut_outer);
 
+   // the spin lattice neighbour list can contain repeated entries or periodic/MPI copies of the same physical neighbour
+   // so filter by the physical identity rather than local index to ensure ZBL contributions are not added multiple times for the same neighbour
+   std::vector<int> seen_atom_identity(atoms::num_atoms, -1);
+   int central_atom_marker = 0;
+
    // loop over central atoms owned by this force call
    // the arrays contain field or SNAP contributions so accumulate with the zbl forces
    for(int i = start_index; i < end_index; i++){
@@ -916,6 +922,7 @@ void compute_forces_zbl_overlay(const int start_index,
       double fy = 0.0;
       double fz = 0.0;
       double energy = 0.0;
+      const int central_atom_identity = atoms::physical_atom_id_array[i];
 
       // use the spin-lattice neighbour list
       const int nbr_start = neighbour_list_start_index[i];
@@ -923,8 +930,13 @@ void compute_forces_zbl_overlay(const int start_index,
 
       for(int n = nbr_start; n < nbr_end; n++){
          const int j = neighbour_list_array[n];
+         const int neighbour_atom_identity = atoms::physical_atom_id_array[j];
 
-         if(j != i){
+         // exclude the central atom's own periodic/halo copies aswell as neighbours already visited for this central atom
+         if(neighbour_atom_identity != central_atom_identity && seen_atom_identity[neighbour_atom_identity] != central_atom_marker){
+
+            seen_atom_identity[neighbour_atom_identity] = central_atom_marker; // mark this neighbour as visited for this central atom
+
             // vector from neighbour j to central atom i
             double dx = rx - x_coord_array[j];
             double dy = ry - y_coord_array[j];
@@ -948,11 +960,12 @@ void compute_forces_zbl_overlay(const int start_index,
                fy += dy * fpair;
                fz += dz * fpair;
 
-               // each pair is encountered from both atoms so half the force on each central atom
+               // the central atom loop visits i->j and j->i, so each pair is counted twice, so half the zbl energy here
                energy += 0.5 * zbl_single_energy(r, cut_inner, coeff);
             }
          }
       }
+      central_atom_marker++;
 
       // overlay the ZBL contribution onto any previous force terms
       forces_array_x[i] += fx;

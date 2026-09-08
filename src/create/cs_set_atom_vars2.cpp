@@ -10,6 +10,10 @@
 //------------------------------------------------------------------------------
 //
 
+// C++ standard library headers
+#include <map>
+#include <utility>
+
 // VAMPIRE headers
 #include "anisotropy.hpp"
 #include "atoms.hpp"
@@ -64,6 +68,7 @@ void set_atom_vars(std::vector<cs::catom_t> & catom_array,
    atoms::category_array.resize( atoms::num_atoms,0);
    atoms::grain_array.resize(    atoms::num_atoms,0);
    atoms::cell_array.resize(     atoms::num_atoms,0);
+   atoms::physical_atom_id_array.resize(atoms::num_atoms,0); // store a unique identity for each physical atom
 
    atoms::magnetic.resize(       atoms::num_atoms,0);
 
@@ -108,6 +113,12 @@ void set_atom_vars(std::vector<cs::catom_t> & catom_array,
    MTRand random_spin_rng;
    random_spin_rng.seed(vmpi::parallel_rng_seed(create::internal::spin_init_seed));
 
+   // Identify a physical atom by its owning rank and atom number before MPI sorting 
+   #ifdef MPICF
+      std::map<std::pair<int,int>, int> physical_atom_identity_map;
+      int number_of_physical_atom_identities = 0;
+   #endif
+
 	for(int atom=0;atom<atoms::num_atoms;atom++){
 
 		atoms::x_coord_array[atom] = catom_array[atom].x;
@@ -118,6 +129,31 @@ void set_atom_vars(std::vector<cs::catom_t> & catom_array,
 		atoms::category_array[atom] = catom_array[atom].lh_category;
 		//std::cout << atom << " grain: " << catom_array[atom].grain << std::endl;
 		atoms::grain_array[atom] = catom_array[atom].grain;
+
+      #ifdef MPICF
+         // core and boundary atoms belong to this rank, use the saved pre-sort number to match their halo copies
+         int owner_cpu = vmpi::my_rank;
+         int owner_atom = catom_array[atom].mpi_old_atom_number;
+
+         if(catom_array[atom].mpi_type == 2){ // if halo atom
+            owner_cpu = catom_array[atom].mpi_cpuid; // get the cpu id of the owner of this halo atom
+            owner_atom = catom_array[atom].mpi_atom_number;
+         }
+
+         // Reuse an existing identity for each repeated key. Only an unseen physical atom gets a new identity
+         const std::pair<int,int> identity_key(owner_cpu, owner_atom);
+         std::map<std::pair<int,int>, int>::iterator identity = physical_atom_identity_map.find(identity_key);
+         if(identity == physical_atom_identity_map.end()){
+            physical_atom_identity_map[identity_key] = number_of_physical_atom_identities;
+            atoms::physical_atom_id_array[atom] = number_of_physical_atom_identities;
+            number_of_physical_atom_identities++;
+         }
+         else{
+            atoms::physical_atom_id_array[atom] = identity->second;
+         }
+      #else
+         atoms::physical_atom_id_array[atom] = atom;
+      #endif
 
 		// initialise atomic spin positions
       // Use a normalised gaussian for uniform distribution on a unit sphere

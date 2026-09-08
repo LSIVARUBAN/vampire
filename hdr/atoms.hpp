@@ -94,6 +94,7 @@ namespace atoms
 	extern std::vector <int> category_array;
 	extern std::vector <int> grain_array;
 	extern std::vector <int> cell_array;
+	extern std::vector <int> physical_atom_id_array; // identity for each physical atom ... periodic/mpi copies of the same physical atom share the same identity
 
 	extern std::vector <double> x_spin_array;
 	extern std::vector <double> y_spin_array;

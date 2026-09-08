@@ -53,6 +53,7 @@ namespace atoms{
 	std::vector <int> category_array(0);
 	std::vector <int> grain_array(0);
 	std::vector <int> cell_array(0);
+	std::vector <int> physical_atom_id_array(0);
 
 	std::vector <double> x_spin_array(0);
 	std::vector <double> y_spin_array(0);

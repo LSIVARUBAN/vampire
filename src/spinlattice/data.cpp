@@ -26,6 +26,7 @@ namespace sld{
    // Externally visible variables
    //------------------------------------------------------------------------------
    bool enabled = false;
+   bool output_force_debug = false;
    double var_test=0;
    double spin_temperature;
    double lattice_temperature;
@@ -104,6 +105,7 @@ namespace sld{
       bool harmonic_debug_enabled = false; // ouput force info
       int harmonic_debug_force_calls = 0; // number of calls to debug forces
       int harmonic_debug_max_force_calls = 5;
+      bool force_debug_written = false;
       double zbl_inner_cutoff = 4.0; // default cutoff for ZBL (bcc Fe)
       double zbl_outer_cutoff = 4.8;
       double zbl_atomic_number = 26.0;

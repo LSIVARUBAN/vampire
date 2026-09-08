@@ -1615,6 +1615,13 @@ namespace vin{
         }
 
         //--------------------------------------------------------------------
+        test="force-debug"; // output a per-atom force table for debugging sld mechanical potentials once at first force evaluation
+        if(word==test){
+            sld::output_force_debug = true;
+            return EXIT_SUCCESS;
+        }
+
+        //--------------------------------------------------------------------
         // keyword not found
         //--------------------------------------------------------------------
         else{

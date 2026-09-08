@@ -1101,6 +1101,8 @@ Outputs the fractional electric field strngth (or voltage) during an \textit{ele
 
 {\zicf output:mpi-timings}\phantomsection\addcontentsline{toc}{subsection}{output:mpi-timings}
 
+{\zicf output:force-debug}\phantomsection\addcontentsline{toc}{subsection}{output:force-debug} Writes a single per-atom mechanical-potential force table during the first force evaluation. 
+
 {\zicf output:gnuplot-array-format}\phantomsection\addcontentsline{toc}{subsection}{output:gnuplot-array-format}
 
 {\zicf output:output-rate = integer [default 1]}\phantomsection\addcontentsline{toc}{subsection}{output:output-rate} Controls the number of data points written to the output file or printed to screen. By default \vampire calculates statistics once every sim:time-steps-increment number of time steps. Usually you want to output the updated statistic (e.g. magnetization) every time, which is the default behaviour. However, sometimes you may want to plot the time evolution of an average, where you want to collect statistics much more frequently than you output to the output file, which is controlled by this keyword. For example, if output:output-rate = 10 and sim:time-steps-increment = 10 then statistics (and average values) will be updated once every 10 time steps, and the new statistics will be written to the output file every 100 time steps.

@@ -40,6 +40,11 @@ namespace sld{
       // check for sld module being enabled
       if(!sld::enabled) return;
 
+      if(sld::output_force_debug && vmpi::num_processors != 1){
+         err::zexit("output:force-debug can only be used in serial simulations");
+      }
+      sld::internal::force_debug_written = false;
+
       std::cout<<"Input parameters for Spin-lattice dynamics simulations:"<<std::endl;
       std::cout<<"*******************************************************"<<std::endl;
 

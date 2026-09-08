@@ -400,6 +400,8 @@ namespace sld{
       extern bool enabled; // bool to enable module
       extern std::vector<sld::internal::mp_t> mp; // array of material properties
 
+      extern bool force_debug_written; // force debug output has been written
+
       extern double r_cut_pot; // mechanical potential cutoff
       extern double r_cut_fields; // maximum exchange/coupling neighbour cutoff
       extern double r_cut_exchange;

@@ -14,6 +14,7 @@
 // C++ standard library headers
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -25,13 +26,49 @@
 #include "sim.hpp"
 #include "errors.hpp"
 #include "material.hpp"
-#include <fstream>
 
 // sld module headers
 #include "internal.hpp"
 
 
 namespace sld{
+
+   namespace{
+
+   // if requested output a force table for the first force evaluation containing contributions just from the mechanical potential
+   void write_force_debug_table(const int start_index,
+                                const int end_index,
+                                const std::vector<double>& x_coord_array,
+                                const std::vector<double>& y_coord_array,
+                                const std::vector<double>& z_coord_array,
+                                const std::vector<double>& initial_forces_x,
+                                const std::vector<double>& initial_forces_y,
+                                const std::vector<double>& initial_forces_z,
+                                const std::vector<double>& forces_array_x,
+                                const std::vector<double>& forces_array_y,
+                                const std::vector<double>& forces_array_z){
+
+      std::ofstream output("force-debug.data");
+      if(!output){
+         err::zexit("Unable to open force-debug.data");
+      }
+
+      output << "# VAMPIRE mechanical-potential force debug from the first force evaluation\n";
+      output << "# atom x_A y_A z_A fx_eV_per_A fy_eV_per_A fz_eV_per_A force_magnitude_eV_per_A\n";
+      output << std::setprecision(17);
+
+      for(int atom = start_index; atom < end_index; atom++){
+         const int local_atom = atom - start_index;
+         const double fx = forces_array_x[atom] - initial_forces_x[local_atom];
+         const double fy = forces_array_y[atom] - initial_forces_y[local_atom];
+         const double fz = forces_array_z[atom] - initial_forces_z[local_atom];
+         const double magnitude = std::sqrt(fx*fx + fy*fy + fz*fz);
+
+         output << atom << " " << x_coord_array[atom] << " " << y_coord_array[atom] << " " << z_coord_array[atom] << " " << fx << " " << fy << " " << fz << " " << magnitude << "\n";
+      }
+   }
+
+   } // end of anonymous namespace
 
    void compute_forces(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,
@@ -49,8 +86,23 @@ namespace sld{
                std::vector<double>& forces_array_y,
                std::vector<double>& forces_array_z,
                std::vector<double>& potential_eng){
-
-
+      const bool write_force_debug = sld::output_force_debug && !sld::internal::force_debug_written;
+      std::vector<double> initial_forces_x;
+      std::vector<double> initial_forces_y;
+      std::vector<double> initial_forces_z;
+      // save the forces before the potential adds its contribution, we later subtract these from the final forces to isolate the mechanical potential contribution
+      if(write_force_debug){
+         const int natoms = end_index - start_index;
+         initial_forces_x.resize(natoms);
+         initial_forces_y.resize(natoms);
+         initial_forces_z.resize(natoms);
+         for(int atom = start_index; atom < end_index; atom++){
+            const int local_atom = atom - start_index;
+            initial_forces_x[local_atom] = forces_array_x[atom];
+            initial_forces_y[local_atom] = forces_array_y[atom];
+            initial_forces_z[local_atom] = forces_array_z[atom];
+         }
+      }
 
       switch(sld::internal::lattice_potential){
          case sld::internal::harmonic_lattice_potential:
@@ -91,6 +143,15 @@ namespace sld{
 
          default:
             break;
+      }
+
+      // write forces from mechnical potential to file once, if requested
+      if(write_force_debug){
+         write_force_debug_table(start_index, end_index,
+                                 x_coord_array, y_coord_array, z_coord_array,
+                                 initial_forces_x, initial_forces_y, initial_forces_z,
+                                 forces_array_x, forces_array_y, forces_array_z);
+         sld::internal::force_debug_written = true;
       }
       
       // calculate THz pulse force

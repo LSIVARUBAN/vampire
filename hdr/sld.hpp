@@ -30,6 +30,7 @@ namespace sld{
    // Externally visible SLD variables
    //-----------------------------------------------------------------------------
    extern bool enabled; // bolean to enable and disable sld components
+   extern bool output_force_debug; // boolean to enable output of per atom mechanical potential force table
 
    //-----------------------------------------------------------------------------
    // Function to initialise sld module

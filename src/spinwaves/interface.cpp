@@ -181,11 +181,11 @@ namespace spinwaves{
                std::string test="one-sided";
                if(word==test){
                   if (value == "false"){
-                     internal::oss[i] = "false";
+                     internal::oss[i] = false;
                      return true;
                   }
                   else if (value == "true"){
-                     internal::oss[i] = "false";
+                     internal::oss[i] = true;
                      return true;
                   }
                   else {

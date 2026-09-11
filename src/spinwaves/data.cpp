@@ -36,7 +36,14 @@ namespace spinwaves{
    std::vector<double> skx_r_scatter;
    std::vector<double> skx_i_scatter;
 
+   bool phonon_vacf = false; 
+
    namespace internal{
+
+      // default phonon vacf parameters
+      int vacf_sample_rate = 5; // one recorded velocity frame per five integration steps
+      double vacf_max_correlation_time = 10.0e-12; // default ten-picosecond lag range, stored in seconds
+      bool vacf_remove_com = true; // exclude overall translation from the recorded velocities
 
       //------------------------------------------------------------------------
       // Shared variables inside sw module

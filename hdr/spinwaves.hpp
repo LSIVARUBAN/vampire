@@ -51,6 +51,10 @@ namespace spinwaves{
 
    void fft_in_time();
 
+   // Real-space velocity autocorrelation mode for dos calculations
+   extern bool phonon_vacf;
+   void run_phonon_vacf();
+
    //-----------------------------------------------------------------------------
    // Function to initialise spinwaves module
    //-----------------------------------------------------------------------------

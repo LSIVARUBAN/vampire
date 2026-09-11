@@ -66,6 +66,8 @@ namespace spinwaves{
 			err::vexit();
 		#endif
 
+      	if(spinwaves::phonon_vacf) return;
+
 		// check spectrum values in input file are in agreement with the spinwaves:number-of-spectrums
 		spinwaves::internal::check_numbering_of_spectrums();
 

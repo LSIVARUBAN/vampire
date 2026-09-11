@@ -38,7 +38,35 @@ namespace spinwaves{
       std::string prefix="spinwaves";
       if(key==prefix){
 
-         std::string test="kfile";
+         std::string test="phonon-vacf";
+         if(word==test){
+            spinwaves::phonon_vacf = vin::check_for_valid_bool(value, word, line, prefix, "input");
+            return true;
+         }
+
+         test="vacf-sample-rate";
+         if(word==test){
+            int rate = vin::str_to_int(value);
+            vin::check_for_valid_int(rate, word, line, prefix, 1, 1000000000, "input", "1 - 1,000,000,000 steps");
+            internal::vacf_sample_rate = rate;
+            return true;
+         }
+
+         test="vacf-max-correlation-time";
+         if(word==test){
+            double time = vin::str_to_double(value);
+            vin::check_for_valid_value(time, word, line, prefix, unit, "time", 1.0e-18, 1.0, "input", "1 attosecond - 1 second");
+            internal::vacf_max_correlation_time = time;
+            return true;
+         }
+
+         test="vacf-remove-centre-of-mass-velocity";
+         if(word==test){
+            internal::vacf_remove_com = vin::check_for_valid_bool(value, word, line, prefix, "input");
+            return true;
+         }
+
+         test="kfile";
          if(word==test){
             std::string kpath_file=value;
             // strip quotes

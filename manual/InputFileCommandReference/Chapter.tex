@@ -633,6 +633,18 @@ This increases initial memory use but avoids recalculating the factors at every 
 {\zicf spinwaves:intermediate-structure-factor = bool [default false]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:intermediate-structure-factor}
 If true, also writes the squared magnitude of the spatial Fourier series before the temporal Fourier transform.
 
+{\zicf spinwaves:phonon-vacf = bool [default false]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:phonon-vacf}
+Enables the real-space velocity autocorrelation mode of \textit{sim:program = spin-waves}.
+
+{\zicf spinwaves:vacf-sample-rate = integer [default 5]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:vacf-sample-rate}
+Number of integration steps between production velocity samples.
+
+{\zicf spinwaves:vacf-max-correlation-time = real [default 10 ps]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:vacf-max-correlation-time}
+Maximum lag between velocity frames.
+
+{\zicf spinwaves:vacf-remove-centre-of-mass-velocity = bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spinwaves:vacf-remove-centre-of-mass-velocity}
+Subtracts the global mass-weighted centre-of-mass velocity from each sampled velocity entering the VACF calculation.
+
 \section*{Simulation Control}
 \phantomsection\addcontentsline{toc}{section}{Simulation Control}
 The following commands control the simulation, including the program, maximum temperatures, applied field strength etc.

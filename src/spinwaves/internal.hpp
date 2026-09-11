@@ -67,6 +67,10 @@ namespace spinwaves{
 
       extern bool enabled; // bool to enable module
 
+      extern int vacf_sample_rate; // vacf integration steps between velocity samples
+      extern double vacf_max_correlation_time; // maximum correlation time in seconds
+      extern bool vacf_remove_com; // subtract mass-weighted COM velocity from each velocity sample
+
       extern std::vector<internal::mp_t> mp; // array of material properties
       extern std::vector <double> kx;
       extern std::vector <double> ky;

@@ -34,6 +34,12 @@ namespace program{
 //------------------------------------------------------------------------------
 void spin_waves(){
 
+   // run phonon velocity autocorrelation function program if requested
+   if(spinwaves::phonon_vacf){
+      spinwaves::run_phonon_vacf();
+      return;
+   }
+
 	// check calling of routine if error checking is activated
 	if(err::check==true) std::cout << "program::spin_waves has been called" << std::endl;
 

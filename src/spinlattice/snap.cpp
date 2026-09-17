@@ -27,8 +27,10 @@ Quadratic SNAP support (improves accuracy?)
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <unordered_set>
 
 // vampire headers
+#include "atoms.hpp"
 #include "create.hpp"
 #include "errors.hpp"
 #include "sld.hpp"
@@ -1326,9 +1328,16 @@ namespace sld{
          sna.grow_rij(nbr_end - nbr_start);
 
          int ninside = 0;
+         // Here we use the physical atom identity to avoid double counting the same physical neighbour 
+         // when it appears in the neighbour list multiple time due to being periodic or an MPI halo copy
+         const int central_atom_identity = atoms::physical_atom_id_array[atom];
+         std::unordered_set<int> seen_neighbour_identities; // holds the physical atom identities already accepted for this central atom
+         seen_neighbour_identities.reserve(nbr_end - nbr_start);
          for(int jj = nbr_start; jj < nbr_end; jj++){
             const int j = neighbour_list_array[jj];
-            if(j == atom) continue;
+            const int neighbour_atom_identity = atoms::physical_atom_id_array[j];
+            // skip if the neighbour is the central atom itself or if the neighbour identity has already been seen
+            if(neighbour_atom_identity == central_atom_identity || !seen_neighbour_identities.insert(neighbour_atom_identity).second) continue;
 
             const int jmat = type_array[j];
             if(jmat < 0 || jmat >= int(material_to_element.size())){

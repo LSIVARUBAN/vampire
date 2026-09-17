@@ -110,6 +110,7 @@ namespace sld{
 namespace internal{
 
    // calculate distance dependent bilinear or biquadratic exchange fields and forces
+   template<bool fully_periodic>
    void compute_exchange(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -202,9 +203,9 @@ namespace internal{
              dy = -y_coord_array[j] + ry;
              dz = -z_coord_array[j] + rz;
 
-             dx = sld::PBC_wrap( dx, cs::system_dimensions[0], cs::pbc[0]);
-             dy = sld::PBC_wrap( dy, cs::system_dimensions[1], cs::pbc[1]);
-             dz = sld::PBC_wrap( dz, cs::system_dimensions[2], cs::pbc[2]);
+             dx = sld::PBC_wrap<fully_periodic>(dx, cs::system_dimensions[0], cs::pbc[0]);
+             dy = sld::PBC_wrap<fully_periodic>(dy, cs::system_dimensions[1], cs::pbc[1]);
+             dz = sld::PBC_wrap<fully_periodic>(dz, cs::system_dimensions[2], cs::pbc[2]);
 
 
              rji_sqr = dx*dx + dy*dy + dz*dz;
@@ -346,7 +347,49 @@ namespace internal{
 
 }
 
+   void compute_exchange(const int start_index,
+               const int end_index,
+               const std::vector<int>& neighbour_list_start_index,
+               const std::vector<int>& neighbour_list_end_index,
+               const std::vector<int>& type_array,
+               const std::vector<int>& neighbour_list_array,
+               const std::vector<double>& x_coord_array,
+               const std::vector<double>& y_coord_array,
+               const std::vector<double>& z_coord_array,
+               const std::vector<double>& x_spin_array,
+               const std::vector<double>& y_spin_array,
+               const std::vector<double>& z_spin_array,
+               std::vector<double>& forces_array_x,
+               std::vector<double>& forces_array_y,
+               std::vector<double>& forces_array_z,
+               std::vector<double>& fields_array_x,
+               std::vector<double>& fields_array_y,
+               std::vector<double>& fields_array_z){
+
+      // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+      const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      if(fully_periodic_boundaries){
+         compute_exchange<true>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+      else{
+         compute_exchange<false>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+   }
+
    // calculate the pseudodipolar spin-lattice coupling fields and forces
+   template<bool fully_periodic>
    void compute_sld_coupling(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -421,9 +464,9 @@ namespace internal{
                        dy = -y_coord_array[j] + ry;
                        dz = -z_coord_array[j] + rz;
 
-                       dx = sld::PBC_wrap( dx, cs::system_dimensions[0], cs::pbc[0]);
-                       dy = sld::PBC_wrap( dy, cs::system_dimensions[1], cs::pbc[1]);
-                       dz = sld::PBC_wrap( dz, cs::system_dimensions[2], cs::pbc[2]);
+                       dx = sld::PBC_wrap<fully_periodic>(dx, cs::system_dimensions[0], cs::pbc[0]);
+                       dy = sld::PBC_wrap<fully_periodic>(dy, cs::system_dimensions[1], cs::pbc[1]);
+                       dz = sld::PBC_wrap<fully_periodic>(dz, cs::system_dimensions[2], cs::pbc[2]);
 
 
                        rji_sqr = dx*dx + dy*dy + dz*dz;
@@ -511,8 +554,50 @@ namespace internal{
             return;
          } // end function compute_sld_coupling
 
+   void compute_sld_coupling(const int start_index,
+               const int end_index,
+               const std::vector<int>& neighbour_list_start_index,
+               const std::vector<int>& neighbour_list_end_index,
+               const std::vector<int>& type_array,
+               const std::vector<int>& neighbour_list_array,
+               const std::vector<double>& x_coord_array,
+               const std::vector<double>& y_coord_array,
+               const std::vector<double>& z_coord_array,
+               const std::vector<double>& x_spin_array,
+               const std::vector<double>& y_spin_array,
+               const std::vector<double>& z_spin_array,
+               std::vector<double>& forces_array_x,
+               std::vector<double>& forces_array_y,
+               std::vector<double>& forces_array_z,
+               std::vector<double>& fields_array_x,
+               std::vector<double>& fields_array_y,
+               std::vector<double>& fields_array_z){
+
+      // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+      const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      if(fully_periodic_boundaries){
+         compute_sld_coupling<true>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+      else{
+         compute_sld_coupling<false>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+   }
+
 
    // calculate full Neel coupling fields, forces, energies and spin curvature
+   template<bool fully_periodic>
    void compute_sld_coupling_neel(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -572,12 +657,9 @@ namespace internal{
                y_coord_array[i]-y_coord_array[j],
                z_coord_array[i]-z_coord_array[j]
             };
-            displacement.x = sld::PBC_wrap(
-               displacement.x, cs::system_dimensions[0], cs::pbc[0]);
-            displacement.y = sld::PBC_wrap(
-               displacement.y, cs::system_dimensions[1], cs::pbc[1]);
-            displacement.z = sld::PBC_wrap(
-               displacement.z, cs::system_dimensions[2], cs::pbc[2]);
+            displacement.x = sld::PBC_wrap<fully_periodic>(displacement.x, cs::system_dimensions[0], cs::pbc[0]);
+            displacement.y = sld::PBC_wrap<fully_periodic>(displacement.y, cs::system_dimensions[1], cs::pbc[1]);
+            displacement.z = sld::PBC_wrap<fully_periodic>(displacement.z, cs::system_dimensions[2], cs::pbc[2]);
 
             const double distance_squared = neel_dot(displacement, displacement);
             if(distance_squared >= maximum_cutoff_squared) continue;
@@ -700,6 +782,47 @@ namespace internal{
 
       return;
    } // end function compute_sld_coupling_neel
+
+   void compute_sld_coupling_neel(const int start_index,
+               const int end_index,
+               const std::vector<int>& neighbour_list_start_index,
+               const std::vector<int>& neighbour_list_end_index,
+               const std::vector<int>& type_array,
+               const std::vector<int>& neighbour_list_array,
+               const std::vector<double>& x_coord_array,
+               const std::vector<double>& y_coord_array,
+               const std::vector<double>& z_coord_array,
+               const std::vector<double>& x_spin_array,
+               const std::vector<double>& y_spin_array,
+               const std::vector<double>& z_spin_array,
+               std::vector<double>& forces_array_x,
+               std::vector<double>& forces_array_y,
+               std::vector<double>& forces_array_z,
+               std::vector<double>& fields_array_x,
+               std::vector<double>& fields_array_y,
+               std::vector<double>& fields_array_z){
+
+      // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+      const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      if(fully_periodic_boundaries){
+         compute_sld_coupling_neel<true>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+      else{
+         compute_sld_coupling_neel<false>(
+            start_index, end_index, neighbour_list_start_index,
+            neighbour_list_end_index, type_array, neighbour_list_array,
+            x_coord_array, y_coord_array, z_coord_array,
+            x_spin_array, y_spin_array, z_spin_array,
+            forces_array_x, forces_array_y, forces_array_z,
+            fields_array_x, fields_array_y, fields_array_z);
+      }
+   }
 
 } // end of internal namespace
 } // end of sld namespace

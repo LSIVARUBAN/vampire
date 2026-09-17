@@ -497,6 +497,7 @@ void print_force_debug_summary(const std::string& label,
 }
 
 
+template<bool fully_periodic>
 void compute_forces_harmonic(const int start_index,
             const int end_index, // last +1 atom to be calculated
             const std::vector<int>& neighbour_list_start_index,
@@ -586,14 +587,12 @@ void compute_forces_harmonic(const int start_index,
                    dy0 = -y0_coord_array[j] + ry0;
                    dz0 = -z0_coord_array[j] + rz0;
 
-                   dx = sld::PBC_wrap( dx, cs::system_dimensions[0], cs::pbc[0]);
-                   dy = sld::PBC_wrap( dy, cs::system_dimensions[1], cs::pbc[1]);
-                   dz = sld::PBC_wrap( dz, cs::system_dimensions[2], cs::pbc[2]);
-                   dx0 = sld::PBC_wrap( dx0, cs::system_dimensions[0], cs::pbc[0]);
-                   dy0 = sld::PBC_wrap( dy0, cs::system_dimensions[1], cs::pbc[1]);
-                   dz0 = sld::PBC_wrap( dz0, cs::system_dimensions[2], cs::pbc[2]);
-
-
+                   dx = sld::PBC_wrap<fully_periodic>(dx, cs::system_dimensions[0], cs::pbc[0]);
+                   dy = sld::PBC_wrap<fully_periodic>(dy, cs::system_dimensions[1], cs::pbc[1]);
+                   dz = sld::PBC_wrap<fully_periodic>(dz, cs::system_dimensions[2], cs::pbc[2]);
+                   dx0 = sld::PBC_wrap<fully_periodic>(dx0, cs::system_dimensions[0], cs::pbc[0]);
+                   dy0 = sld::PBC_wrap<fully_periodic>(dy0, cs::system_dimensions[1], cs::pbc[1]);
+                   dz0 = sld::PBC_wrap<fully_periodic>(dz0, cs::system_dimensions[2], cs::pbc[2]);
 
         		       rji_sqr = dx*dx + dy*dy + dz*dz;
 
@@ -651,6 +650,44 @@ void compute_forces_harmonic(const int start_index,
      return;
             }
 
+void compute_forces_harmonic(const int start_index,
+            const int end_index,
+            const std::vector<int>& neighbour_list_start_index,
+            const std::vector<int>& neighbour_list_end_index,
+            const std::vector<int>& type_array,
+            const std::vector<int>& neighbour_list_array,
+            const std::vector<double>& x0_coord_array,
+            const std::vector<double>& y0_coord_array,
+            const std::vector<double>& z0_coord_array,
+            const std::vector<double>& x_coord_array,
+            const std::vector<double>& y_coord_array,
+            const std::vector<double>& z_coord_array,
+            std::vector<double>& forces_array_x,
+            std::vector<double>& forces_array_y,
+            std::vector<double>& forces_array_z,
+            std::vector<double>& potential_eng){
+
+   // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+   const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+   if(fully_periodic_boundaries){
+      compute_forces_harmonic<true>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x0_coord_array, y0_coord_array, z0_coord_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
+   else{
+      compute_forces_harmonic<false>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x0_coord_array, y0_coord_array, z0_coord_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
+}
+
+template<bool fully_periodic>
 void compute_forces_morse(const int start_index,
             const int end_index, // last +1 atom to be calculated
             const std::vector<int>& neighbour_list_start_index,
@@ -709,9 +746,9 @@ void compute_forces_morse(const int start_index,
         		       dy = y_coord_array[j]- ry;
         		       dz = z_coord_array[j]- rz;
 
-                   dx = sld::PBC_wrap( dx, cs::system_dimensions[0], cs::pbc[0]);
-                   dy = sld::PBC_wrap( dy, cs::system_dimensions[1], cs::pbc[1]);
-                   dz = sld::PBC_wrap( dz, cs::system_dimensions[2], cs::pbc[2]);
+                   dx = sld::PBC_wrap<fully_periodic>( dx, cs::system_dimensions[0], cs::pbc[0]);
+                   dy = sld::PBC_wrap<fully_periodic>( dy, cs::system_dimensions[1], cs::pbc[1]);
+                   dz = sld::PBC_wrap<fully_periodic>( dz, cs::system_dimensions[2], cs::pbc[2]);
 
 
 
@@ -763,6 +800,39 @@ void compute_forces_morse(const int start_index,
 
    return;
           }
+
+void compute_forces_morse(const int start_index,
+            const int end_index,
+            const std::vector<int>& neighbour_list_start_index,
+            const std::vector<int>& neighbour_list_end_index,
+            const std::vector<int>& type_array,
+            const std::vector<int>& neighbour_list_array,
+            const std::vector<double>& x_coord_array,
+            const std::vector<double>& y_coord_array,
+            const std::vector<double>& z_coord_array,
+            std::vector<double>& forces_array_x,
+            std::vector<double>& forces_array_y,
+            std::vector<double>& forces_array_z,
+            std::vector<double>& potential_eng){
+
+   // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+   const bool fully_periodic_boundaries =
+      cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+   if(fully_periodic_boundaries){
+      compute_forces_morse<true>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
+   else{
+      compute_forces_morse<false>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
+}
 
 
 // Author: Muhammad Hamza Asim
@@ -884,6 +954,7 @@ void compute_forces_snap(const int start_index,
    return;
 }
 
+template<bool fully_periodic>
 void compute_forces_zbl_overlay(const int start_index,
             const int end_index, // last +1 atom to be calculated
             const std::vector<int>& neighbour_list_start_index,
@@ -942,9 +1013,9 @@ void compute_forces_zbl_overlay(const int start_index,
             double dy = ry - y_coord_array[j];
             double dz = rz - z_coord_array[j];
 
-            dx = sld::PBC_wrap(dx, cs::system_dimensions[0], cs::pbc[0]);
-            dy = sld::PBC_wrap(dy, cs::system_dimensions[1], cs::pbc[1]);
-            dz = sld::PBC_wrap(dz, cs::system_dimensions[2], cs::pbc[2]);
+            dx = sld::PBC_wrap<fully_periodic>(dx, cs::system_dimensions[0], cs::pbc[0]);
+            dy = sld::PBC_wrap<fully_periodic>(dy, cs::system_dimensions[1], cs::pbc[1]);
+            dz = sld::PBC_wrap<fully_periodic>(dz, cs::system_dimensions[2], cs::pbc[2]);
 
             const double rsq = dx*dx + dy*dy + dz*dz;
 
@@ -974,6 +1045,40 @@ void compute_forces_zbl_overlay(const int start_index,
       potential_eng[i] += energy;
    }
 
+}
+
+void compute_forces_zbl_overlay(const int start_index,
+            const int end_index,
+            const std::vector<int>& neighbour_list_start_index,
+            const std::vector<int>& neighbour_list_end_index,
+            const std::vector<int>& type_array,
+            const std::vector<int>& neighbour_list_array,
+            const std::vector<double>& x_coord_array,
+            const std::vector<double>& y_coord_array,
+            const std::vector<double>& z_coord_array,
+            std::vector<double>& forces_array_x,
+            std::vector<double>& forces_array_y,
+            std::vector<double>& forces_array_z,
+            std::vector<double>& potential_eng){
+
+   // ZBL is evaluated for every unique neighbour pair
+   // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+   const bool fully_periodic_boundaries =
+      cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+   if(fully_periodic_boundaries){
+      compute_forces_zbl_overlay<true>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
+   else{
+      compute_forces_zbl_overlay<false>(
+         start_index, end_index, neighbour_list_start_index,
+         neighbour_list_end_index, type_array, neighbour_list_array,
+         x_coord_array, y_coord_array, z_coord_array,
+         forces_array_x, forces_array_y, forces_array_z, potential_eng);
+   }
 }
 
 void compute_forces_snap_zbl(const int start_index,

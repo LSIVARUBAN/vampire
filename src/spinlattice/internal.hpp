@@ -34,10 +34,37 @@
 
 namespace sld{
 
-   inline double PBC_wrap ( double dx, double L, bool bounds){
-       return (bounds) ? dx - floor( (dx/L) + 0.5) * L : dx;
-   }
+// PBC optimisation:
+// Fully periodic systems use a faster wrap that returns immediately
+// when dx is already in -L/2 <= dx < L/2, avoiding the division and floor operation
+// When not fully periodic, the old expression is used
+// Testing with Harmonic potential for fully periodic system:
+//   BCC Fe UCs    Coupling          Speedup   Runtime reduction
+//   17x17x17      Neel              1.294     22.7%
+//   17x17x17      Pseudodipolar     1.480     32.4%
+//   10x10x10      Neel              1.188     15.8%
+//   10x10x10      Pseudodipolar     1.395     28.3%
 
+inline double PBC_wrap(double dx, double L, bool bounds) {
+   return bounds ? dx - std::floor((dx/L) + 0.5)*L : dx;
+}
+
+template<bool fully_periodic>
+inline double PBC_wrap(double dx, double L, bool bounds) {
+   return PBC_wrap(dx, L, bounds);
+}
+
+template<>
+inline double PBC_wrap<true>(double dx, double L, bool) {
+   const double half_L = 0.5 * L;
+
+   // if dx is already in -L/2 <= dx < L/2, return it immediately
+   if (dx >= -half_L && dx < half_L) {
+      return dx;
+   }
+   // else use standard formula
+   return dx - std::floor((dx/L) + 0.5)*L;
+}
 
    namespace internal{
 

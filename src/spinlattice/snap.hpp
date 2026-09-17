@@ -200,6 +200,22 @@ namespace sld{
          void read_param_file();
          void build_material_map(const int num_materials);
          void print_info() const;
+         template<bool fully_periodic>
+         void compute_forces(const int start_index,
+                             const int end_index,
+                             const std::vector<int>& neighbour_list_start_index,
+                             const std::vector<int>& neighbour_list_end_index,
+                             const std::vector<int>& type_array,
+                             const std::vector<int>& neighbour_list_array,
+                             const std::vector<double>& x_coord_array,
+                             const std::vector<double>& y_coord_array,
+                             const std::vector<double>& z_coord_array,
+                             std::vector<double>& forces_array_x,
+                             std::vector<double>& forces_array_y,
+                             std::vector<double>& forces_array_z,
+                             std::vector<double>& potential_eng,
+                             const bool allow_debug_output);
+         template<bool fully_periodic>
          int build_short_neighbour_list(const int atom,
                                         const std::vector<int>& neighbour_list_start_index,
                                         const std::vector<int>& neighbour_list_end_index,
@@ -208,6 +224,7 @@ namespace sld{
                                         const std::vector<double>& x_coord_array,
                                         const std::vector<double>& y_coord_array,
                                         const std::vector<double>& z_coord_array);
+         template<bool fully_periodic>
          void compute_bispectrum(const int start_index,
                                  const int end_index,
                                  const std::vector<int>& neighbour_list_start_index,

@@ -1301,6 +1301,7 @@ namespace sld{
       }
 
       // construct the short neighbour list for one atom, and store the neighbour distances and weights in the SNAP data structure
+      template<bool fully_periodic>
       int snap_potential_t::build_short_neighbour_list(const int atom,
                                                        const std::vector<int>& neighbour_list_start_index,
                                                        const std::vector<int>& neighbour_list_end_index,
@@ -1351,9 +1352,9 @@ namespace sld{
             double delz = z_coord_array[j] - ztmp;
 
             // PBC wrapping chooses the nearest image before the cutoff test
-            delx = sld::PBC_wrap(delx, cs::system_dimensions[0], cs::pbc[0]);
-            dely = sld::PBC_wrap(dely, cs::system_dimensions[1], cs::pbc[1]);
-            delz = sld::PBC_wrap(delz, cs::system_dimensions[2], cs::pbc[2]);
+            delx = sld::PBC_wrap<fully_periodic>(delx, cs::system_dimensions[0], cs::pbc[0]);
+            dely = sld::PBC_wrap<fully_periodic>(dely, cs::system_dimensions[1], cs::pbc[1]);
+            delz = sld::PBC_wrap<fully_periodic>(delz, cs::system_dimensions[2], cs::pbc[2]);
 
             const double rsq = delx*delx + dely*dely + delz*delz;
             // element-pair SNAP cutoff, for single-element this is the same for every pair
@@ -1378,6 +1379,7 @@ namespace sld{
       }
 
       // compute the bispectrum for a range of atoms, using the short neighbour list and the SNAP data structure then store it in the output vector
+      template<bool fully_periodic>
       void snap_potential_t::compute_bispectrum(const int start_index,
                                                 const int end_index,
                                                 const std::vector<int>& neighbour_list_start_index,
@@ -1392,7 +1394,7 @@ namespace sld{
          for(int i = start_index; i < end_index; i++){
             const int local_atom = i - start_index;
             // build the central atom environment first, ninside is the number of neighbours that actually lie inside the element-pair cutoff.
-            const int ninside = build_short_neighbour_list(i,
+            const int ninside = build_short_neighbour_list<fully_periodic>(i,
                                                            neighbour_list_start_index,
                                                            neighbour_list_end_index,
                                                            type_array,
@@ -1487,6 +1489,7 @@ namespace sld{
       }
 
       // compute the forces for atoms
+      template<bool fully_periodic>
       void snap_potential_t::compute_forces(const int start_index,
                                             const int end_index,
                                             const std::vector<int>& neighbour_list_start_index,
@@ -1529,7 +1532,7 @@ namespace sld{
          // first compute B_i,k for every central atom in this range
          // then compute beta_i,k = dE_i/dB_i,k from the fitted coefficients
          // finally go back to each each atom and differentiate E_i with respect to each neighbour coordinate to get forces from that neighbour 
-         compute_bispectrum(start_index, end_index,
+         compute_bispectrum<fully_periodic>(start_index, end_index,
                             neighbour_list_start_index, neighbour_list_end_index,
                             type_array, neighbour_list_array,
                             x_coord_array, y_coord_array, z_coord_array,
@@ -1543,7 +1546,7 @@ namespace sld{
             potential_eng[i] = compute_energy(i, local_atom, type_array, bispectrum);
 
             // rebuild the same neighbour environment for calculating derivatives
-            const int ninside = build_short_neighbour_list(i,
+            const int ninside = build_short_neighbour_list<fully_periodic>(i,
                                                            neighbour_list_start_index,
                                                            neighbour_list_end_index,
                                                            type_array,
@@ -1594,6 +1597,43 @@ namespace sld{
             increment_debug_force_calls();
          }
 
+      }
+
+      // 
+      void snap_potential_t::compute_forces(const int start_index,
+                                            const int end_index,
+                                            const std::vector<int>& neighbour_list_start_index,
+                                            const std::vector<int>& neighbour_list_end_index,
+                                            const std::vector<int>& type_array,
+                                            const std::vector<int>& neighbour_list_array,
+                                            const std::vector<double>& x_coord_array,
+                                            const std::vector<double>& y_coord_array,
+                                            const std::vector<double>& z_coord_array,
+                                            std::vector<double>& forces_array_x,
+                                            std::vector<double>& forces_array_y,
+                                            std::vector<double>& forces_array_z,
+                                            std::vector<double>& potential_eng,
+                                            const bool allow_debug_output){
+
+         // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+         const bool fully_periodic_boundaries =
+            cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+         if(fully_periodic_boundaries){
+            compute_forces<true>(
+               start_index, end_index, neighbour_list_start_index,
+               neighbour_list_end_index, type_array, neighbour_list_array,
+               x_coord_array, y_coord_array, z_coord_array,
+               forces_array_x, forces_array_y, forces_array_z,
+               potential_eng, allow_debug_output);
+         }
+         else{
+            compute_forces<false>(
+               start_index, end_index, neighbour_list_start_index,
+               neighbour_list_end_index, type_array, neighbour_list_array,
+               x_coord_array, y_coord_array, z_coord_array,
+               forces_array_x, forces_array_y, forces_array_z,
+               potential_eng, allow_debug_output);
+         }
       }
 
    } // end of internal namespace

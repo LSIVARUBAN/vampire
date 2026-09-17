@@ -90,7 +90,7 @@ namespace sld{
       double electron_heat_capacity_coefficient = 225.0; // [J m^-3 K^-2]
       bool sled_production_initialized = false;
 
-      double dr_init; // initial conditions
+      double dr_init = 0.0; // initial random displacement amplitude
       double th_velo = 0.0;
 
       double morse_beta;

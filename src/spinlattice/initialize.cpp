@@ -336,16 +336,16 @@ namespace sld{
 
    }
    //std::cout<<"random positions  "<<dr<<std::endl;
-   /*
-    for( int i = 0; i < atoms::num_atoms; i++)
-    {
+   if(dr > 0.0){
+      for( int i = 0; i < atoms::num_atoms; i++)
+      {
 
-             x_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
-             y_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
-             z_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
+         x_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
+         y_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
+         z_coord_array[i] += dr* (2.0*rand()/double(RAND_MAX) -1.0);
 
-
-    }*/
+      }
+   }
 
 
    return;

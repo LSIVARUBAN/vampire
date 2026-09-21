@@ -90,15 +90,16 @@ namespace anisotropy{
 
 
       //---------------------------------------------------------------------
-      // get number of materials for simulation
+      // Get the number of materials and initialise anisotropy storage
       //---------------------------------------------------------------------
-      int init_num_materials = mp::num_materials; //internal::mp.size(); 30/04/24 JRH. Possible bug. num_materials was always being set to mp.size() which is 100. See line 107 of src/anisotropy/initialize.cpp
+      const int num_materials = mp::num_materials; //internal::mp.size(); 30/04/24 JRH. Possible bug. num_materials was always being set to mp.size() which is 100. See line 107 of src/anisotropy/initialize.cpp
 
       // if no anisotropy constants initialised, then make sure anisotropy array is the correct size
-      if(init_num_materials == 0) internal::mp.resize(mu_s_array.size());
+      // LS: make sure anisotropy array is the correct size even if no anisotropy constant keywords are in the material file and use the correct number of materials from mp::num_materials
+      if(internal::mp.size() < static_cast<std::size_t>(num_materials)){
+         internal::mp.resize(num_materials);
+      }
 
-      // set actual number of materials
-      const int num_materials = mp::num_materials; //internal::mp.size(); 30/04/24 JRH. Possible bug. num_materials was always being set to mp.size() which is 100. See line 107 of src/anisotropy/initialize.cpp
 
       // output informative message
       zlog << zTs() << "Initialising data structures for anisotropy calculation for " << num_materials << " materials" << std::endl;

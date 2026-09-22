@@ -285,6 +285,9 @@ namespace sld{
                   atoms::z_coord_array,
                   sld::internal::dr_init);
 
+     // Creation positions are saved before random displacement is applied
+     sld::internal::check_displacement();
+
      if(sld::internal::th_velo > 0.0){ // initialise thermal velocities
         sld::internal::thermal_velocity(atoms::x_velo_array,
                                         atoms::y_velo_array,
@@ -302,6 +305,33 @@ namespace sld{
 
 
    namespace internal{
+
+   //--------------------------------------------------------------------------
+   // Check total displacement from creation positions and stop if any atom exceeds the maximum displacement
+   //--------------------------------------------------------------------------
+   void check_displacement(){
+      if(max_displacement == 0.0) return;
+      #ifdef MPICF
+         const int num_atoms = vmpi::num_core_atoms + vmpi::num_bdry_atoms;
+      #else
+         const int num_atoms = atoms::num_atoms;
+      #endif
+      const double limit_squared = max_displacement*max_displacement;
+      for(int atom = 0; atom < num_atoms; ++atom){
+         const double dx = atoms::x_coord_array[atom] - x0_coord_array[atom];
+         const double dy = atoms::y_coord_array[atom] - y0_coord_array[atom];
+         const double dz = atoms::z_coord_array[atom] - z0_coord_array[atom];
+         const double distance_squared = dx*dx + dy*dy + dz*dz;
+         if(!std::isfinite(distance_squared) || distance_squared > limit_squared){
+            std::ostringstream message;
+            message << "Atom " << atom << " on rank " << vmpi::my_rank
+                    << " exceeded spin-lattice:max-displacement (" << max_displacement
+                    << " Angstrom) from its creation position";
+            err::zexit(message.str());
+         }
+      }
+   }
+
 
    void initialise_positions(std::vector<double>& x0_coord_array, // coord vectors for atoms
                std::vector<double>& y0_coord_array,

@@ -600,6 +600,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
     			atoms::z_coord_array[atom]=sld::internal::z_coord_storage_array[atom];
     		}
 
+            // Check positions vs max displacement
+            sld::internal::check_displacement();
+
             //reset forces to 0 for v integration
             vmpi::mpi_init_halo_swap_coords();
 

@@ -377,6 +377,9 @@ Distance cutoff for the interatomic potential calculations. Units is Angstrom.  
 {\zicf spin-lattice:initial-thermal-velocity=float [default 0 K]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:initial-thermal-velocity=float}
 Initialises mass dependent Boltzmann lattice velocities at the specified temperature in kelvin.
 
+{\zicf spin-lattice:max-displacement=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:max-displacement=float}
+Optional stop condition for SLD simulations, if any atom exceeds this value from its creation position then the simulation is stopped.
+
 {\zicf spin-lattice:fields-cutoff-range=float}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:fields-cutoff-range=float}
 Sets the maximum distance for the spin-lattice neighbour list. Units are Angstrom and the default is 3.75 !A.
 The exchange and N\'eel cutoffs must not exceed this value. MLIPs currently filter the neighbour list; therefore, a \textit{snap} or \textit{snapzbl} calculation stops during initialisation if its potential cutoff is larger than this value.

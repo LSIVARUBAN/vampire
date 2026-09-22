@@ -91,6 +91,7 @@ namespace sld{
       bool sled_production_initialized = false;
 
       double dr_init = 0.0; // initial random displacement amplitude
+      double max_displacement = 0.0; // maximum displacement from creation positions
       double th_velo = 0.0;
 
       double morse_beta;

@@ -310,6 +310,9 @@ namespace sld{
 
 
 
+       // check positions vs max displacement
+       sld::internal::check_displacement();
+
        //reset forces to 0 for v integration
         std::fill(sld::internal::forces_array_x.begin(), sld::internal::forces_array_x.end(), 0.0);
         std::fill(sld::internal::forces_array_y.begin(), sld::internal::forces_array_y.end(), 0.0);

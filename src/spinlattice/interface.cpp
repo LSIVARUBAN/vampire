@@ -501,6 +501,14 @@ namespace sld{
    return true;
 }*/
 
+      test = "max-displacement";
+      if( word == test ){
+         double displacement = vin::str_to_double(value);
+         vin::check_for_valid_positive_value(displacement, word, line, prefix, unit, "length", 0.0, 1000.0, "input", "0.0 - 1000 A");
+         sld::internal::max_displacement = displacement;
+         return true;
+      }
+
 test = "initial-random-displacement";
 if( word == test ){
    double dr_in = vin::str_to_double(value);

@@ -460,7 +460,11 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       extern bool sled_production_initialized;
 
       extern double dr_init;
+      extern double max_displacement;
       extern double th_velo;
+
+      /// Stop if an owned atom exceeds the optional displacement limit from its creation position
+      void check_displacement();
 
        //for the morse potential
        extern double morse_beta;

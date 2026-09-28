@@ -102,9 +102,11 @@ run/unit-cell-creator
 .vscode/
 .cache/
 .clang-tidy
+.clangd
 
 ls_refs/
 ls_tests/
+ls_testing/
 
 temp/*
 #EOF

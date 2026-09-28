@@ -106,6 +106,7 @@ run/unit-cell-creator
 
 ls_refs/
 ls_tests/
+ls_testing/
 
 temp/*
 #EOF

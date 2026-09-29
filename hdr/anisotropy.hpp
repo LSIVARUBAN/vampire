@@ -66,6 +66,18 @@ namespace anisotropy
                                    const int start_index,
                                    const int end_index);
 
+   // return true if any anisotropy term's field depends on the spin itself (e.g. second order uniaxial or fourth order cubic)
+   bool nonlinear_spin_field_enabled();
+
+   // field of the second order uniaxial and fourth order cubic anisotropies for one trial spin s in tesla
+   void nonlinear_spin_field(const int material,
+                             const double sx,
+                             const double sy,
+                             const double sz,
+                             double& field_x,
+                             double& field_y,
+                             double& field_z);
+
    //-----------------------------------------------------------------------------
    // function to calculate anisotropy energy for a single spin
    //-----------------------------------------------------------------------------

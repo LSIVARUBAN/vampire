@@ -259,6 +259,31 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          return result;
       }
 
+      // Calculate the spin derivative of the q part of one full-Neel pair, q[(12/35)A+(9/5)B-(2/5)C], including its term linear in s_i
+      inline neel_vector_t evaluate_neel_q_spin_derivative(const neel_vector_t& bond,
+                                                           const neel_vector_t& spin_i,
+                                                           const neel_vector_t& spin_j,
+                                                           const double q){
+         const double x = neel_dot(bond, spin_i);
+         const double y = neel_dot(bond, spin_j);
+         const double z = neel_dot(spin_i, spin_j);
+         const double x2 = x*x;
+         const double y2 = y*y;
+         const double y3 = y2*y;
+         const double one_third = 1.0/3.0;
+
+         const double u = x2-one_third*z;
+         const double v = y2-one_third*z;
+         const neel_vector_t dA_dsi = neel_add(neel_scale(bond, y), neel_scale(spin_j, -one_third));
+         const neel_vector_t du_dsi = neel_add(neel_scale(bond, 2.0*x), neel_scale(spin_j, -one_third));
+         const neel_vector_t dv_dsi = neel_scale(spin_j, -one_third);
+         const neel_vector_t dB_dsi = neel_add(neel_scale(du_dsi, v), neel_scale(dv_dsi, u));
+         const neel_vector_t dC_dsi = neel_scale(bond, y3+3.0*y*x2);
+
+         // dPhi_q/ds_i = q[(12/35)dA+(9/5)dB-(2/5)dC]
+         return neel_scale(neel_add(neel_scale(dA_dsi, 12.0/35.0), neel_add(neel_scale(dB_dsi, 9.0/5.0), neel_scale(dC_dsi, -2.0/5.0))), q);
+      }
+
       class set_double_t{
 
       private:
@@ -476,6 +501,8 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       extern lattice_potential_t lattice_potential;
       extern bool pseudodipolar;
       extern bool full_neel;
+      extern bool full_neel_nonlinear_q;
+      extern bool nonlinear_spin_hamiltonian;
       extern bool harmonic_debug_enabled;
       extern int harmonic_debug_force_calls;
       extern int harmonic_debug_max_force_calls;
@@ -700,6 +727,42 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             std::vector<double>& fields_array_y,
             std::vector<double>& fields_array_z);
 
+      // One q neighbour of a spin. Positions and neighbour spins are fixed during a single-spin update, so these values are constant for its whole solve
+      struct neel_q_neighbour_t{
+         neel_vector_t bond;   // unit vector from neighbour j to atom i
+         neel_vector_t spin_j; // neighbour spin s_j
+         double q;             // radial q(r_ij)
+      };
+
+      // One biquadratic exchange neighbour of a spin, fixed during a single-spin update.
+      struct biquadratic_neighbour_t{
+         neel_vector_t spin_j; // neighbour spin s_j
+         double k;             // K(r_ij)/mu_i (T)
+      };
+
+      // Every term of the field on spin i that depends on s_i itself for the midpoint solve.
+      // Currently supports the full Neel q coupling, biquadratic exchange and the second order
+      // uniaxial and fourth order cubic anisotropies. Collected once per single-spin update.
+      struct nonlinear_field_terms_t{
+         std::vector<neel_q_neighbour_t> q_neighbours;
+         std::vector<biquadratic_neighbour_t> biquadratic_neighbours;
+         double inverse_moment; // 1/mu_i (1/(J/T))
+         int material;
+      };
+
+      // Collect the nonlinear field terms of one atom in one pass over its neighbour list
+      void gather_nonlinear_field_terms(const int atom,
+                                        nonlinear_field_terms_t& terms);
+
+      // Return the complete q contribution to one spin field, B^q_i(s), for a trial spin s, summed over the q neighbours
+      neel_vector_t compute_full_neel_q_field(const std::vector<neel_q_neighbour_t>& neighbours,
+                                              const double inverse_moment,
+                                              const neel_vector_t& trial_spin);
+
+      // Return the sum of every nonlinear field term, B^nl_i(s), for a trial spin s
+      neel_vector_t compute_nonlinear_field(const nonlinear_field_terms_t& terms,
+                                            const neel_vector_t& trial_spin);
+
 //
 
       void cayley_update(const int start_index,
@@ -723,9 +786,31 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
                   std::vector<double>& fields_array_x, //  vectors for fields
                   std::vector<double>& fields_array_y,
                   std::vector<double>& fields_array_z,
-                  std::vector<double>& Hx_th, //  vectors for fields
-                  std::vector<double>& Hy_th,
-                  std::vector<double>& Hz_th);
+                  const std::vector<double>& Hx_th, // vectors for fields
+                  const std::vector<double>& Hy_th,
+                  const std::vector<double>& Hz_th);
+
+      // Single-spin cayley_update for the trial spins of the midpoint solve that returns the result instead of writing to the array
+      neel_vector_t cayley_update(const neel_vector_t& spin,
+                                  const neel_vector_t& field,
+                                  const double dt);
+
+      // Add the spin noise to a single spin, returning the result instead of writing to the array
+      neel_vector_t add_spin_noise(const int atom,
+                                   const neel_vector_t& spin,
+                                   const neel_vector_t& field,
+                                   const std::vector<double>& Hx_th,
+                                   const std::vector<double>& Hy_th,
+                                   const std::vector<double>& Hz_th);
+
+      // Advance one spin from the field already placed in the fields array. When any Hamiltonian term is nonlinear in the spin being updated 
+      // (full Neel q, biquadratic exchange, second order uniaxial or fourth order cubic anisotropy), the field terms that depend on that 
+      // spin are evaluated at a self-consistent midpoint. Hamiltonians linear in the spin follow the original fixed-field approach
+      void update_single_spin(const int atom,
+                              const double cayley_dt,
+                              const std::vector<double>& Hx_th,
+                              const std::vector<double>& Hy_th,
+                              const std::vector<double>& Hz_th);
 
     //MPI variables
     extern std::vector<std::vector<int> > c_octants; //Core atoms of each octant

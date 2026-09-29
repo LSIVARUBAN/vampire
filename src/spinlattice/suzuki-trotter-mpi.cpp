@@ -251,29 +251,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                            sld::internal::fields_array_y,
                            sld::internal::fields_array_z);
 
-         sld::internal::add_spin_noise(atom,
-                     atom+1,
-                     mp::dt_SI*1e12,
-                     atoms::type_array, // type for atom
-                     atoms::x_spin_array,
-                     atoms::y_spin_array,
-                     atoms::z_spin_array,
-                     sld::internal::fields_array_x,
-                     sld::internal::fields_array_y,
-                     sld::internal::fields_array_z,
-                     Hx_th, //  vectors for fields
-                     Hy_th,
-                     Hz_th);
-
-         sld::internal::cayley_update(atom,
-                     atom+1,
-                     cay_dt,
-                     atoms::x_spin_array,
-                     atoms::y_spin_array,
-                     atoms::z_spin_array,
-                     sld::internal::fields_array_x,
-                     sld::internal::fields_array_y,
-                     sld::internal::fields_array_z);
+         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
 
 
@@ -307,30 +285,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                            sld::internal::fields_array_y,
                            sld::internal::fields_array_z);
 
-         sld::internal::add_spin_noise(atom,
-                     atom+1,
-                     mp::dt_SI*1e12,
-                     atoms::type_array, // type for atom
-                     atoms::x_spin_array,
-                     atoms::y_spin_array,
-                     atoms::z_spin_array,
-                     sld::internal::fields_array_x,
-                     sld::internal::fields_array_y,
-                     sld::internal::fields_array_z,
-                     Hx_th, //  vectors for fields
-                     Hy_th,
-                     Hz_th);
-
-
-         sld::internal::cayley_update(atom,
-                     atom+1,
-                     cay_dt,
-                     atoms::x_spin_array,
-                     atoms::y_spin_array,
-                     atoms::z_spin_array,
-                     sld::internal::fields_array_x,
-                     sld::internal::fields_array_y,
-                     sld::internal::fields_array_z);
+         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
 
 
@@ -382,30 +337,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                               sld::internal::fields_array_y,
                               sld::internal::fields_array_z);
 
-            sld::internal::add_spin_noise(atom,
-                        atom+1,
-                        mp::dt_SI*1e12,
-                        atoms::type_array, // type for atom
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z,
-                        Hx_th, //  vectors for fields
-                        Hy_th,
-                        Hz_th);
-
-
-            sld::internal::cayley_update(atom,
-                        atom+1,
-                        cay_dt,
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z);
+            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
 
 
@@ -437,30 +369,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                               sld::internal::fields_array_y,
                               sld::internal::fields_array_z);
 
-            sld::internal::add_spin_noise(atom,
-                        atom+1,
-                        mp::dt_SI*1e12,
-                        atoms::type_array, // type for atom
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z,
-                        Hx_th, //  vectors for fields
-                        Hy_th,
-                        Hz_th);
-
-
-            sld::internal::cayley_update(atom,
-                        atom+1,
-                        cay_dt,
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z);
+            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
             }//end spin loop
              vmpi::barrier();
@@ -757,30 +666,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                sld::internal::fields_array_y,
                                sld::internal::fields_array_z);
 
-             sld::internal::add_spin_noise(atom,
-                         atom+1,
-                         mp::dt_SI*1e12,
-                         atoms::type_array, // type for atom
-                         atoms::x_spin_array,
-                         atoms::y_spin_array,
-                         atoms::z_spin_array,
-                         sld::internal::fields_array_x,
-                         sld::internal::fields_array_y,
-                         sld::internal::fields_array_z,
-                         Hx_th, //  vectors for fields
-                         Hy_th,
-                         Hz_th);
-
-
-             sld::internal::cayley_update(atom,
-                         atom+1,
-                         cay_dt,
-                         atoms::x_spin_array,
-                         atoms::y_spin_array,
-                         atoms::z_spin_array,
-                         sld::internal::fields_array_x,
-                         sld::internal::fields_array_y,
-                         sld::internal::fields_array_z);
+             sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
 
 
@@ -814,30 +700,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                           sld::internal::fields_array_y,
                           sld::internal::fields_array_z);
 
-        sld::internal::add_spin_noise(atom,
-                    atom+1,
-                    mp::dt_SI*1e12,
-                    atoms::type_array, // type for atom
-                    atoms::x_spin_array,
-                    atoms::y_spin_array,
-                    atoms::z_spin_array,
-                    sld::internal::fields_array_x,
-                    sld::internal::fields_array_y,
-                    sld::internal::fields_array_z,
-                    Hx_th, //  vectors for fields
-                    Hy_th,
-                    Hz_th);
-
-
-        sld::internal::cayley_update(atom,
-                    atom+1,
-                    cay_dt,
-                    atoms::x_spin_array,
-                    atoms::y_spin_array,
-                    atoms::z_spin_array,
-                    sld::internal::fields_array_x,
-                    sld::internal::fields_array_y,
-                    sld::internal::fields_array_z);
+        sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
 
 
@@ -885,30 +748,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                   sld::internal::fields_array_y,
                                   sld::internal::fields_array_z);
 
-                sld::internal::add_spin_noise(atom,
-                            atom+1,
-                            mp::dt_SI*1e12,
-                            atoms::type_array, // type for atom
-                            atoms::x_spin_array,
-                            atoms::y_spin_array,
-                            atoms::z_spin_array,
-                            sld::internal::fields_array_x,
-                            sld::internal::fields_array_y,
-                            sld::internal::fields_array_z,
-                            Hx_th, //  vectors for fields
-                            Hy_th,
-                            Hz_th);
-
-
-                sld::internal::cayley_update(atom,
-                            atom+1,
-                            cay_dt,
-                            atoms::x_spin_array,
-                            atoms::y_spin_array,
-                            atoms::z_spin_array,
-                            sld::internal::fields_array_x,
-                            sld::internal::fields_array_y,
-                            sld::internal::fields_array_z);
+                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
                 }//end spin loop
 
@@ -939,30 +779,7 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                   sld::internal::fields_array_y,
                                   sld::internal::fields_array_z);
 
-                sld::internal::add_spin_noise(atom,
-                            atom+1,
-                            mp::dt_SI*1e12,
-                            atoms::type_array, // type for atom
-                            atoms::x_spin_array,
-                            atoms::y_spin_array,
-                            atoms::z_spin_array,
-                            sld::internal::fields_array_x,
-                            sld::internal::fields_array_y,
-                            sld::internal::fields_array_z,
-                            Hx_th, //  vectors for fields
-                            Hy_th,
-                            Hz_th);
-
-
-                sld::internal::cayley_update(atom,
-                            atom+1,
-                            cay_dt,
-                            atoms::x_spin_array,
-                            atoms::y_spin_array,
-                            atoms::z_spin_array,
-                            sld::internal::fields_array_x,
-                            sld::internal::fields_array_y,
-                            sld::internal::fields_array_z);
+                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
 
                 }//end spin loop
 

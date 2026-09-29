@@ -17,6 +17,7 @@
 
 // Vampire headers
 #include "sld.hpp"
+#include "anisotropy.hpp"
 #include "atoms.hpp"
 #include "iostream"
 #include "neighbours.hpp"
@@ -131,6 +132,7 @@ namespace sld{
       }
 
       const bool use_bethe_slater_neel = sld::internal::neel_radial_function == sld::internal::bethe_slater_neel_radial_function;
+      sld::internal::full_neel_nonlinear_q = false;
       if(sld::internal::full_neel && use_bethe_slater_neel){
          for(int mat = 0; mat < mp::num_materials; ++mat){
             const bool l_parameters_set =
@@ -144,8 +146,30 @@ namespace sld{
             if(!l_parameters_set || !q_parameters_set){
                err::zexit("Bethe-Slater full Neel coupling needs complete alpha/gamma/delta sets for l and q in every material");
             }
+            if(sld::internal::mp[mat].neel_alpha_q.get() != 0.0){
+               sld::internal::full_neel_nonlinear_q = true;
+            }
          }
       }
+      else if(sld::internal::full_neel){
+         for(int mat = 0; mat < mp::num_materials; ++mat){
+            if(sld::internal::mp[mat].neel_C_q.get()*sld::internal::mp[mat].J0.get() != 0.0){
+               sld::internal::full_neel_nonlinear_q = true;
+            }
+         }
+      }
+      // The field on a spin depends on that spin for full Neel q, biquadratic exchange, and the second order uniaxial and fourth order cubic anisotropies (the terms
+      // supported by the spin temperature curvature). These all use the midpoint spin solve in the integrator.
+      bool nonlinear_biquadratic = false;
+      if(use_biquadratic){
+         for(int mat = 0; mat < mp::num_materials; ++mat){
+            const double k = use_bethe_slater ? sld::internal::mp[mat].bethe_slater_alpha_k.get() : sld::internal::mp[mat].K0.get();
+            if(k != 0.0) nonlinear_biquadratic = true;
+         }
+      }
+      const bool nonlinear_anisotropy = anisotropy::nonlinear_spin_field_enabled();
+      sld::internal::nonlinear_spin_hamiltonian = sld::internal::full_neel_nonlinear_q || nonlinear_biquadratic || nonlinear_anisotropy;
+
       std::cout << "Exchange function: " << (use_bethe_slater ? "Bethe-Slater" : "cubic") << std::endl;
       std::cout << "Spin Hamiltonian: " << (use_biquadratic ? "biquadratic" : "bilinear") << std::endl;
       std::cout << "Exchange Hamiltonian offset: " << (sld::internal::exchange_offset ? "enabled" : "disabled") << std::endl;
@@ -213,6 +237,16 @@ namespace sld{
             std::cout<<"Full Neel C_q: "<<sld::internal::mp[0].neel_C_q.get()<<std::endl;
          }
       }
+      std::cout << "Spin substep uses ";
+      if(sld::internal::nonlinear_spin_hamiltonian){
+         std::cout << "a midpoint-solved field for";
+         if(sld::internal::full_neel_nonlinear_q) std::cout << " full-Neel-q";
+         if(nonlinear_biquadratic) std::cout << " biquadratic-exchange";
+         if(nonlinear_anisotropy) std::cout << " uniaxial/cubic-anisotropy";
+         std::cout << std::endl;
+      }
+      else std::cout << "a fixed field, exact only for Hamiltonians linear in each spin" << std::endl;
+
 
       std::cout<<"*******************************************************"<<std::endl;
 

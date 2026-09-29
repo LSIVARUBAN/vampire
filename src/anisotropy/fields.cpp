@@ -203,4 +203,45 @@ namespace anisotropy{
       return;
    }
 
+   // Return whether a supported anisotropy term is nonlinear in the spin
+   bool nonlinear_spin_field_enabled(){
+      return internal::enable_uniaxial_second_order || internal::enable_cubic_fourth_order;
+   }
+
+   // Return the field of the uniaxial and cubic anisotropy terms for one trial spin s.
+   // uniaxial  H_u = -K_u (s.e)^2          ->  B_u = 2 (K_u/mu) (s.e) e
+   // cubic     H_c = -(K_c/2) sum_a s_a^4  ->  B_c = 2 (K_c/mu) (s_x^3, s_y^3, s_z^3)
+   // with ku2 = K_u/mu and kc4 = K_c/mu in tesla
+   void nonlinear_spin_field(const int material,
+                             const double sx,
+                             const double sy,
+                             const double sz,
+                             double& field_x,
+                             double& field_y,
+                             double& field_z){
+
+      field_x = 0.0;
+      field_y = 0.0;
+      field_z = 0.0;
+
+      if(internal::enable_uniaxial_second_order){
+         const double ex = internal::ku_vector[material].x;
+         const double ey = internal::ku_vector[material].y;
+         const double ez = internal::ku_vector[material].z;
+         const double k2 = 2.0*internal::ku2[material]*(sx*ex + sy*ey + sz*ez);
+         field_x += ex*k2;
+         field_y += ey*k2;
+         field_z += ez*k2;
+      }
+
+      if(internal::enable_cubic_fourth_order){
+         const double k4 = 0.5*4.0*internal::kc4[material];
+         field_x += sx*sx*sx*k4;
+         field_y += sy*sy*sy*k4;
+         field_z += sz*sz*sz*k4;
+      }
+
+      return;
+   }
+
 } // end of anisotropy namespace

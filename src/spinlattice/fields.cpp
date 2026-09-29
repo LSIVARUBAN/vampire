@@ -109,6 +109,162 @@ namespace sld{
 
 namespace internal{
 
+   // Collect all field terms of atom i that depends on s_i itself, once per single-spin update.
+   // During the single-spin update, the position and neighbour spins are fixed so we gather pair
+   // data once and reuse it for every trial spin. The pair data required is:
+   // full Neel q:  bond e_ij, s_j and q(r_ij) for r_ij < r_cut_neel_q
+   // biquadratic:  s_j and K(r_ij)/mu_i       for r_ij < r_cut_exchange
+   // The anisotropy terms need no neighbours and are evaluated directly by anisotropy::nonlinear_spin_field()
+   void gather_nonlinear_field_terms(const int i,
+                                     nonlinear_field_terms_t& terms){
+
+      const unsigned int imat = atoms::type_array[i];
+      terms.q_neighbours.clear();
+      terms.biquadratic_neighbours.clear();
+      terms.inverse_moment = 1.0/::mp::material[imat].mu_s_SI;
+      terms.material = imat;
+
+      const bool gather_q = sld::internal::full_neel_nonlinear_q;
+      const bool gather_biquadratic = sld::internal::spin_hamiltonian == sld::internal::biquadratic_spin_hamiltonian;
+      if(!gather_q && !gather_biquadratic) return; // nothing to gather
+
+      // full Neel q settings
+      const bool use_bethe_slater = sld::internal::neel_radial_function == sld::internal::bethe_slater_neel_radial_function;
+      const bool use_smooth_cutoff = sld::internal::neel_cutoff_function == sld::internal::smooth_neel_cutoff_function;
+      const double cutoff = sld::internal::r_cut_neel_q;
+      const double cutoff_squared = cutoff*cutoff;
+
+      // biquadratic exchange settings, as in compute_exchange()
+      const bool use_bethe_slater_exchange = sld::internal::exchange_function == sld::internal::bethe_slater_exchange_function;
+      const double exchange_cutoff_squared = sld::internal::r_cut_exchange*sld::internal::r_cut_exchange;
+      const double exchange_inverse_cutoff = 1.0/sld::internal::r_cut_exchange;
+      const double exchange_K0 = (gather_biquadratic && !use_bethe_slater_exchange) ? sld::internal::mp[imat].K0_ms.get() : 0.0;
+
+      const int neighbour_start = atoms::neighbour_list_start_index[i];
+      const int neighbour_end = atoms::neighbour_list_end_index[i]+1;
+      for(int neighbour=neighbour_start; neighbour<neighbour_end; ++neighbour){
+         const int j = atoms::neighbour_list_array[neighbour];
+         if(j == i) continue;
+
+         neel_vector_t displacement = {atoms::x_coord_array[i]-atoms::x_coord_array[j],
+                                       atoms::y_coord_array[i]-atoms::y_coord_array[j],
+                                       atoms::z_coord_array[i]-atoms::z_coord_array[j]};
+
+         displacement.x = sld::PBC_wrap(displacement.x, cs::system_dimensions[0], cs::pbc[0]);
+         displacement.y = sld::PBC_wrap(displacement.y, cs::system_dimensions[1], cs::pbc[1]);
+         displacement.z = sld::PBC_wrap(displacement.z, cs::system_dimensions[2], cs::pbc[2]);
+
+         const double distance_squared = neel_dot(displacement, displacement);
+         const bool within_q = gather_q && distance_squared < cutoff_squared;
+         const bool within_exchange = gather_biquadratic && distance_squared < exchange_cutoff_squared;
+         if(!within_q && !within_exchange) continue;
+         const double distance = std::sqrt(distance_squared);
+         const neel_vector_t spin_j = {atoms::x_spin_array[j], atoms::y_spin_array[j], atoms::z_spin_array[j]};
+
+         // biquadratic pair: K(r)(s_i.s_j)^2 gives the field 2(K/mu_i)(s_i.s_j)s_j
+         if(within_exchange){
+            double k;
+            if(use_bethe_slater_exchange){
+               k = bethe_slater(sld::internal::mp[imat].bethe_slater_alpha_k.get(),
+                                sld::internal::mp[imat].bethe_slater_gamma_k.get(),
+                                sld::internal::mp[imat].bethe_slater_delta_k.get(),
+                                distance).value*terms.inverse_moment;
+            }
+            else{
+               // K(r) = K0 (1 - r/r_c)^3, with K0_ms = K0/mu_i
+               const double y = 1.0-distance*exchange_inverse_cutoff;
+               k = exchange_K0*y*y*y;
+            }
+            terms.biquadratic_neighbours.push_back(biquadratic_neighbour_t{spin_j, k});
+         }
+
+         if(!within_q) continue;
+
+         radial_result_t q_curve;
+         if(use_bethe_slater){
+            q_curve = bethe_slater(sld::internal::mp[imat].neel_alpha_q.get(),
+                                   sld::internal::mp[imat].neel_gamma_q.get(),
+                                   sld::internal::mp[imat].neel_delta_q.get(), distance);
+         }
+         else{
+            q_curve = inverse_fourth(sld::internal::mp[imat].neel_C_q.get()*sld::internal::mp[imat].J0.get(), distance);
+         }
+
+         const unsigned int jmat = atoms::type_array[j];
+         if(jmat != imat){
+            radial_result_t q_curve_j;
+            if(use_bethe_slater){
+               q_curve_j = bethe_slater(sld::internal::mp[jmat].neel_alpha_q.get(),
+                                        sld::internal::mp[jmat].neel_gamma_q.get(),
+                                        sld::internal::mp[jmat].neel_delta_q.get(), distance);
+            }
+            else{
+               q_curve_j = inverse_fourth(sld::internal::mp[jmat].neel_C_q.get()*sld::internal::mp[jmat].J0.get(), distance);
+            }
+            q_curve.value = 0.5*(q_curve.value+q_curve_j.value);
+            q_curve.derivative = 0.5*(q_curve.derivative+q_curve_j.derivative);
+         }
+
+         if(use_smooth_cutoff){
+            q_curve = apply_smooth_cutoff(q_curve, distance, sld::internal::r_switch_neel_q, cutoff);
+         }
+         else{
+            q_curve = apply_hard_cutoff(q_curve, distance, cutoff);
+         }
+         if(q_curve.value == 0.0) continue;
+
+         const double inverse_distance = 1.0/distance;
+         const neel_vector_t bond = neel_scale(displacement, inverse_distance);
+         terms.q_neighbours.push_back(neel_q_neighbour_t{bond, spin_j, q_curve.value});
+      }
+
+      return;
+   }
+
+   // Calculate only the q part of atom i's full-Neel spin field, including its
+   // term linear in s_i, for a trial value s of that spin according to
+   // B^q_i(s) = (1/mu_i) sum_j dPhi_q,ij/ds_i evaluated at s_i = s
+   // sum in the same order as the gather above
+   neel_vector_t compute_full_neel_q_field(const std::vector<neel_q_neighbour_t>& neighbours,
+                                           const double inverse_moment,
+                                           const neel_vector_t& trial_spin){
+
+      neel_vector_t field = {0.0, 0.0, 0.0};
+      for(size_t n=0; n<neighbours.size(); ++n){
+         const neel_vector_t derivative = evaluate_neel_q_spin_derivative(neighbours[n].bond, trial_spin, neighbours[n].spin_j, neighbours[n].q);
+         field = neel_add(field, neel_scale(derivative, inverse_moment));
+      }
+      return field;
+   }
+
+   // Calculate the part of atom i's field that depends on s_i itself, for a trial value s of that spin according to
+   // B^nl_i(s) = B^q_i(s) + sum_j 2 (K_ij/mu_i)(s.s_j) s_j + B^an_i(s)
+   // where B^an_i is the second order uniaxial plus fourth order cubic anisotropy field
+   neel_vector_t compute_nonlinear_field(const nonlinear_field_terms_t& terms,
+                                         const neel_vector_t& trial_spin){
+
+      neel_vector_t field = compute_full_neel_q_field(terms.q_neighbours, terms.inverse_moment, trial_spin); // B^q_i(s)
+
+      if(!terms.biquadratic_neighbours.empty()){
+         neel_vector_t biquadratic = {0.0, 0.0, 0.0};
+         for(size_t n=0; n<terms.biquadratic_neighbours.size(); ++n){
+            const neel_vector_t& spin_j = terms.biquadratic_neighbours[n].spin_j;
+            const double scale = 2.0*terms.biquadratic_neighbours[n].k*neel_dot(trial_spin, spin_j); // 2(K_ij/mu_i)(s.s_j)
+            biquadratic = neel_add(biquadratic, neel_scale(spin_j, scale));
+         }
+         field = neel_add(field, biquadratic);
+      }
+
+      if(anisotropy::nonlinear_spin_field_enabled()){
+         neel_vector_t anisotropy_field;
+         anisotropy::nonlinear_spin_field(terms.material, trial_spin.x, trial_spin.y, trial_spin.z,
+                                          anisotropy_field.x, anisotropy_field.y, anisotropy_field.z); // B^an_i(s)
+         field = neel_add(field, anisotropy_field);
+      }
+
+      return field;
+   }
+
    // calculate distance dependent bilinear or biquadratic exchange fields and forces
    template<bool fully_periodic>
    void compute_exchange(const int start_index,

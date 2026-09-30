@@ -115,6 +115,7 @@ namespace internal{
    // full Neel q:  bond e_ij, s_j and q(r_ij) for r_ij < r_cut_neel_q
    // biquadratic:  s_j and K(r_ij)/mu_i       for r_ij < r_cut_exchange
    // The anisotropy terms need no neighbours and are evaluated directly by anisotropy::nonlinear_spin_field()
+   template<bool fully_periodic>
    void gather_nonlinear_field_terms(const int i,
                                      nonlinear_field_terms_t& terms){
 
@@ -150,9 +151,9 @@ namespace internal{
                                        atoms::y_coord_array[i]-atoms::y_coord_array[j],
                                        atoms::z_coord_array[i]-atoms::z_coord_array[j]};
 
-         displacement.x = sld::PBC_wrap(displacement.x, cs::system_dimensions[0], cs::pbc[0]);
-         displacement.y = sld::PBC_wrap(displacement.y, cs::system_dimensions[1], cs::pbc[1]);
-         displacement.z = sld::PBC_wrap(displacement.z, cs::system_dimensions[2], cs::pbc[2]);
+         displacement.x = sld::PBC_wrap<fully_periodic>(displacement.x, cs::system_dimensions[0], cs::pbc[0]);
+         displacement.y = sld::PBC_wrap<fully_periodic>(displacement.y, cs::system_dimensions[1], cs::pbc[1]);
+         displacement.z = sld::PBC_wrap<fully_periodic>(displacement.z, cs::system_dimensions[2], cs::pbc[2]);
 
          const double distance_squared = neel_dot(displacement, displacement);
          const bool within_q = gather_q && distance_squared < cutoff_squared;
@@ -219,6 +220,18 @@ namespace internal{
       }
 
       return;
+   }
+
+   // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+   void gather_nonlinear_field_terms(const int i,
+                                     nonlinear_field_terms_t& terms){
+      const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      if(fully_periodic_boundaries){
+         gather_nonlinear_field_terms<true>(i, terms);
+      }
+      else{
+         gather_nonlinear_field_terms<false>(i, terms);
+      }
    }
 
    // Calculate only the q part of atom i's full-Neel spin field, including its

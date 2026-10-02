@@ -108,10 +108,11 @@ namespace sld{
       switch(sld::internal::lattice_potential){
          case sld::internal::harmonic_lattice_potential:
             // Harmonic and Morse are simple pair potentials
+            // the harmonic reference distances are precomputed from the x0, y0 and z0 coordinates at initialisation
             internal::compute_forces_harmonic(start_index, end_index,
                                               neighbour_list_start_index, neighbour_list_end_index,
                                               type_array, neighbour_list_array,
-                                              x0_coord_array, y0_coord_array, z0_coord_array,
+                                              sld::internal::harmonic_reference_distance_array,
                                               x_coord_array, y_coord_array, z_coord_array,
                                               forces_array_x, forces_array_y, forces_array_z, potential_eng);
             break;
@@ -497,6 +498,34 @@ void print_force_debug_summary(const std::string& label,
 }
 
 
+
+// Store the minimum image reference distance r_ij0 [A] for every neighbour list entry at initiisation since x0, y0 and z0 are fixed (avoids a pbc wrap for every harmonic force evaluation)
+void initialise_harmonic_reference_distances(){
+
+   harmonic_reference_distance_array.assign(atoms::neighbour_list_array.size(), 0.0);
+
+   for(int i = 0; i < atoms::num_atoms; i++){
+      const int nbr_start = atoms::neighbour_list_start_index[i];
+      const int nbr_end = atoms::neighbour_list_end_index[i] + 1;
+
+      for(int n = nbr_start; n < nbr_end; n++){
+         const int j = atoms::neighbour_list_array[n];
+         if(j == i) continue; // i=j skipped by the force loop so leave as zero
+
+         double dx0 = x0_coord_array[i] - x0_coord_array[j];
+         double dy0 = y0_coord_array[i] - y0_coord_array[j];
+         double dz0 = z0_coord_array[i] - z0_coord_array[j];
+
+         dx0 = sld::PBC_wrap(dx0, cs::system_dimensions[0], cs::pbc[0]);
+         dy0 = sld::PBC_wrap(dy0, cs::system_dimensions[1], cs::pbc[1]);
+         dz0 = sld::PBC_wrap(dz0, cs::system_dimensions[2], cs::pbc[2]);
+
+         harmonic_reference_distance_array[n] = sqrt(dx0*dx0 + dy0*dy0 + dz0*dz0);
+      }
+   }
+
+}
+
 template<bool fully_periodic>
 void compute_forces_harmonic(const int start_index,
             const int end_index, // last +1 atom to be calculated
@@ -504,9 +533,7 @@ void compute_forces_harmonic(const int start_index,
             const std::vector<int>& neighbour_list_end_index,
             const std::vector<int>& type_array, // type for atom
             const std::vector<int>& neighbour_list_array, // list of interactions between atom
-            const std::vector<double>& x0_coord_array, // coord vectors for atoms
-            const std::vector<double>& y0_coord_array,
-            const std::vector<double>& z0_coord_array,
+            const std::vector<double>& reference_distance_array, // reference distance for each neighbour list entry
             const std::vector<double>& x_coord_array, // coord vectors for atoms
             const std::vector<double>& y_coord_array,
             const std::vector<double>& z_coord_array,
@@ -518,9 +545,7 @@ void compute_forces_harmonic(const int start_index,
 
 
             double rx, ry, rz;
-            double rx0, ry0, rz0;
             double dx, dy, dz;
-            double dx0, dy0, dz0;
             double fx = 0.0, fy = 0.0, fz = 0.0;
             double rji_sqr, rji, rji0, inv_rji;
             int j, total_int;
@@ -562,9 +587,6 @@ void compute_forces_harmonic(const int start_index,
                rx = x_coord_array[i];
                ry = y_coord_array[i];
                rz = z_coord_array[i];
-               rx0 = x0_coord_array[i];
-               ry0 = y0_coord_array[i];
-               rz0 = z0_coord_array[i];
 
                 //note for sld_neighbour_list_array
                 // int nbr_end = neighbour_list_end_index[i];
@@ -583,16 +605,10 @@ void compute_forces_harmonic(const int start_index,
         		       dx = -x_coord_array[j] + rx;
         		       dy = -y_coord_array[j] + ry;
         		       dz = -z_coord_array[j] + rz;
-                   dx0 = -x0_coord_array[j] + rx0;
-                   dy0 = -y0_coord_array[j] + ry0;
-                   dz0 = -z0_coord_array[j] + rz0;
 
                    dx = sld::PBC_wrap<fully_periodic>(dx, cs::system_dimensions[0], cs::pbc[0]);
                    dy = sld::PBC_wrap<fully_periodic>(dy, cs::system_dimensions[1], cs::pbc[1]);
                    dz = sld::PBC_wrap<fully_periodic>(dz, cs::system_dimensions[2], cs::pbc[2]);
-                   dx0 = sld::PBC_wrap<fully_periodic>(dx0, cs::system_dimensions[0], cs::pbc[0]);
-                   dy0 = sld::PBC_wrap<fully_periodic>(dy0, cs::system_dimensions[1], cs::pbc[1]);
-                   dz0 = sld::PBC_wrap<fully_periodic>(dz0, cs::system_dimensions[2], cs::pbc[2]);
 
         		       rji_sqr = dx*dx + dy*dy + dz*dz;
 
@@ -602,7 +618,7 @@ void compute_forces_harmonic(const int start_index,
 
 
         		           rji = sqrt(rji_sqr);
-                           rji0 = sqrt(dx0*dx0 + dy0*dy0 + dz0*dz0);
+                       rji0 = reference_distance_array[n]; // fixed reference distance stored at initialisation
         		           inv_rji = 1.0/ rji;
 
                        energy += (rji-rji0)*(rji-rji0);
@@ -656,9 +672,7 @@ void compute_forces_harmonic(const int start_index,
             const std::vector<int>& neighbour_list_end_index,
             const std::vector<int>& type_array,
             const std::vector<int>& neighbour_list_array,
-            const std::vector<double>& x0_coord_array,
-            const std::vector<double>& y0_coord_array,
-            const std::vector<double>& z0_coord_array,
+            const std::vector<double>& reference_distance_array,
             const std::vector<double>& x_coord_array,
             const std::vector<double>& y_coord_array,
             const std::vector<double>& z_coord_array,
@@ -673,7 +687,7 @@ void compute_forces_harmonic(const int start_index,
       compute_forces_harmonic<true>(
          start_index, end_index, neighbour_list_start_index,
          neighbour_list_end_index, type_array, neighbour_list_array,
-         x0_coord_array, y0_coord_array, z0_coord_array,
+         reference_distance_array,
          x_coord_array, y_coord_array, z_coord_array,
          forces_array_x, forces_array_y, forces_array_z, potential_eng);
    }
@@ -681,7 +695,7 @@ void compute_forces_harmonic(const int start_index,
       compute_forces_harmonic<false>(
          start_index, end_index, neighbour_list_start_index,
          neighbour_list_end_index, type_array, neighbour_list_array,
-         x0_coord_array, y0_coord_array, z0_coord_array,
+         reference_distance_array,
          x_coord_array, y_coord_array, z_coord_array,
          forces_array_x, forces_array_y, forces_array_z, potential_eng);
    }

@@ -319,6 +319,9 @@ namespace sld{
                   atoms::z_coord_array,
                   sld::internal::dr_init);
 
+     // harmonic reference distances depend only on the creation positions, so store them once
+     if(sld::internal::lattice_potential == sld::internal::harmonic_lattice_potential) sld::internal::initialise_harmonic_reference_distances();
+
      // Creation positions are saved before random displacement is applied
      sld::internal::check_displacement();
 

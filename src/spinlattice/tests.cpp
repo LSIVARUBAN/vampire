@@ -119,7 +119,7 @@ namespace sld{
                sld::internal::compute_forces_harmonic(test_id, test_id+1,
                                               atoms::neighbour_list_start_index, atoms::neighbour_list_end_index,
                                               atoms::type_array, atoms::neighbour_list_array,
-                                              sld::internal::x0_coord_array, sld::internal::y0_coord_array, sld::internal::z0_coord_array,
+                                              sld::internal::harmonic_reference_distance_array,
                                               xt_coord_array, yt_coord_array, zt_coord_array,
                                               forces_array_xt, forces_array_yt, forces_array_zt, potential_engt);
                ofile_p<<std::setprecision(17)<<xt_coord_array[test_id]<<"\t"<<yt_coord_array[test_id]<<"\t"<<zt_coord_array[test_id]<<"\t"<<forces_array_xt[test_id]<<"\t"<<forces_array_yt[test_id]<<"\t"<<forces_array_zt[test_id]<<"\t"<<fields_array_xt[test_id]<<"\t"<<fields_array_yt[test_id]<<"\t"<<fields_array_zt[test_id]<<std::endl;

@@ -539,6 +539,9 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       extern std::vector<double> y0_coord_array;
       extern std::vector<double> z0_coord_array;
 
+      // harmonic reference distances r_ij0 in A, one per entry of atoms::neighbour_list_array
+      extern std::vector<double> harmonic_reference_distance_array;
+
 
       extern std::vector <double> x_coord_storage_array;
       extern std::vector <double> y_coord_storage_array;
@@ -598,6 +601,9 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       // function to record material dependent integrator coefficients
       void prepare_integrator_coefficients();
 
+      // function to store the fixed harmonic reference distance for each neighbour list entry
+      void initialise_harmonic_reference_distances();
+
 //functions to compute potentials
       void compute_forces_harmonic(const int start_index,
             const int end_index, // last +1 atom to be calculated
@@ -605,9 +611,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             const std::vector<int>& neighbour_list_end_index,
             const std::vector<int>& type_array, // type for atom
             const std::vector<int>& neighbour_list_array, // list of interactions between atom
-            const std::vector<double>& x0_coord_array, // coord vectors for atoms
-            const std::vector<double>& y0_coord_array,
-            const std::vector<double>& z0_coord_array,
+            const std::vector<double>& reference_distance_array, // reference distance for each neighbour list entry
             const std::vector<double>& x_coord_array, // coord vectors for atoms
             const std::vector<double>& y_coord_array,
             const std::vector<double>& z_coord_array,

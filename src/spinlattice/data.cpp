@@ -136,6 +136,8 @@ namespace sld{
       std::vector<double> y0_coord_array;
       std::vector<double> z0_coord_array;
 
+      std::vector<double> harmonic_reference_distance_array;
+
 
       std::vector <double> x_coord_storage_array;
       std::vector <double> y_coord_storage_array;

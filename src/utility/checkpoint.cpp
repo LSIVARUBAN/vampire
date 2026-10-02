@@ -24,6 +24,17 @@
 #include "vmpi.hpp"
 #include "program.hpp"
 
+namespace{
+
+   // marker for the integrator seed record appended to checkpoint files (ASCII "INTSEED1" in little endian)
+   const uint64_t integration_seed_tag = 0x3144454553544E49;
+
+   // integrator seed which started the loaded checkpoint chain, -1 if not recorded by an older checkpoint
+   bool chain_seed_loaded = false;
+   int32_t chain_seed = -1;
+
+}
+
 //-----------------------------------------------------------------------------
 // Function to save checkpoint file
 //-----------------------------------------------------------------------------
@@ -120,6 +131,11 @@ void save_checkpoint(){
    stats::system_susceptibility.save_checkpoint(chkfile);
    stats::grain_susceptibility.save_checkpoint(chkfile);
    stats::material_susceptibility.save_checkpoint(chkfile);
+
+   // append the seed which started this simulation after all other data so older versions can still read the file
+   const int32_t seed32 = chain_seed_loaded ? chain_seed : int32_t(mtrandom::integration_seed);
+   chkfile.write(reinterpret_cast<const char*>(&integration_seed_tag),sizeof(uint64_t));
+   chkfile.write(reinterpret_cast<const char*>(&seed32),sizeof(int32_t));
 
    // close checkpoint file
    chkfile.close();
@@ -276,11 +292,31 @@ void load_checkpoint(){
    stats::grain_susceptibility.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
    stats::material_susceptibility.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
 
+   // read the optional seed record, which older checkpoint files end before
+   uint64_t seed_tag = 0;
+   int32_t seed32 = -1;
+   const bool seed_record = chkfile.read((char*)&seed_tag,sizeof(uint64_t)) && seed_tag == integration_seed_tag && chkfile.read((char*)&seed32,sizeof(int32_t));
+   if(!seed_record) seed32 = -1;
+
    // close checkpoint file
    chkfile.close();
 
    // log reading checkpoint file
    zlog << zTs() << "Checkpoint file loaded at sim::time " << sim::time << "." << std::endl;
+
+   // a continued simulation keeps the original seed for later checkpoints, a restart is seeded from the input file
+   std::stringstream seedss;
+   if(seed32 >= 0) seedss << seed32;
+   else seedss << "not recorded (older checkpoint format)";
+   if(sim::load_checkpoint_continue_flag){
+      chain_seed_loaded = true;
+      chain_seed = seed32;
+      if(vmpi::master) std::cout << "Integrator random seed (from checkpoint): " << seedss.str() << std::endl;
+      zlog << zTs() << "Integrator random seed (from checkpoint): " << seedss.str() << std::endl;
+   }
+   else{
+      zlog << zTs() << "Integrator random seed of loaded checkpoint: " << seedss.str() << ", restarting with integrator random seed " << mtrandom::integration_seed << std::endl;
+   }
 
    return;
 

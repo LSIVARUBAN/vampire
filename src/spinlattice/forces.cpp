@@ -47,7 +47,8 @@ namespace sld{
                                 const std::vector<double>& initial_forces_z,
                                 const std::vector<double>& forces_array_x,
                                 const std::vector<double>& forces_array_y,
-                                const std::vector<double>& forces_array_z){
+                                const std::vector<double>& forces_array_z,
+                                const std::vector<double>& potential_eng){
 
       std::ofstream output("force-debug.data");
       if(!output){
@@ -55,7 +56,7 @@ namespace sld{
       }
 
       output << "# VAMPIRE mechanical-potential force debug from the first force evaluation\n";
-      output << "# atom x_A y_A z_A fx_eV_per_A fy_eV_per_A fz_eV_per_A force_magnitude_eV_per_A\n";
+      output << "# atom x_A y_A z_A fx_eV_per_A fy_eV_per_A fz_eV_per_A force_magnitude_eV_per_A energy_eV\n";
       output << std::setprecision(17);
 
       for(int atom = start_index; atom < end_index; atom++){
@@ -65,7 +66,7 @@ namespace sld{
          const double fz = forces_array_z[atom] - initial_forces_z[local_atom];
          const double magnitude = std::sqrt(fx*fx + fy*fy + fz*fz);
 
-         output << atom << " " << x_coord_array[atom] << " " << y_coord_array[atom] << " " << z_coord_array[atom] << " " << fx << " " << fy << " " << fz << " " << magnitude << "\n";
+         output << atom << " " << x_coord_array[atom] << " " << y_coord_array[atom] << " " << z_coord_array[atom] << " " << fx << " " << fy << " " << fz << " " << magnitude << " " << potential_eng[atom] << "\n";
       }
    }
 
@@ -152,7 +153,8 @@ namespace sld{
          write_force_debug_table(start_index, end_index,
                                  x_coord_array, y_coord_array, z_coord_array,
                                  initial_forces_x, initial_forces_y, initial_forces_z,
-                                 forces_array_x, forces_array_y, forces_array_z);
+                                 forces_array_x, forces_array_y, forces_array_z,
+                                 potential_eng);
          sld::internal::force_debug_written = true;
       }
       

@@ -224,16 +224,6 @@ namespace sld{
                                         const std::vector<double>& z_coord_array,
                                         std::vector<int>& seen_neighbour_identity);
          double compute_energy(const std::vector<double>& coeffi) const;
-         void print_debug_summary(const int call,
-                                  const int start_index,
-                                  const int end_index,
-                                  const std::vector<int>& neighbour_counts,
-                                  const std::vector<double>& initial_forces_x,
-                                  const std::vector<double>& initial_forces_y,
-                                  const std::vector<double>& initial_forces_z,
-                                  const std::vector<double>& forces_array_x,
-                                  const std::vector<double>& forces_array_y,
-                                  const std::vector<double>& forces_array_z) const;
       };
 
    } // end of internal namespace

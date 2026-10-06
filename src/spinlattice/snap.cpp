@@ -43,29 +43,11 @@ namespace{
    // SNAP potential files follow the LAMMPS file format
    // These helpers are used to parse the snap input files
 
-   // trim whitespace from the start and end of a string
-   std::string trim(const std::string& text){
-
-      const std::string whitespace = " \t\n\r\f";
-      const std::string::size_type first = text.find_first_not_of(whitespace);
-      if(first == std::string::npos) return "";
-      const std::string::size_type last = text.find_last_not_of(whitespace);
-      return text.substr(first, last - first + 1);
-
-   }
-
-   // trim comments from a string
-   std::string trim_comment(const std::string& text){
-
-      return trim(text.substr(0, text.find('#')));
-
-   }
-
    // get words from a line, ignoring comments and whitespace
    std::vector<std::string> words_from_line(const std::string& line){
 
       std::vector<std::string> words;
-      std::istringstream source(trim_comment(line));
+      std::istringstream source(line.substr(0, line.find('#')));
       std::string word;
       while(source >> word) words.push_back(word);
       return words;
@@ -1320,31 +1302,6 @@ namespace sld{
 
       }
 
-      // print the force debugging for SNAP
-      void snap_potential_t::print_debug_summary(const int call,
-                                                 const int start_index,
-                                                 const int end_index,
-                                                 const std::vector<int>& neighbour_counts,
-                                                 const std::vector<double>& initial_forces_x,
-                                                 const std::vector<double>& initial_forces_y,
-                                                 const std::vector<double>& initial_forces_z,
-                                                 const std::vector<double>& forces_array_x,
-                                                 const std::vector<double>& forces_array_y,
-                                                 const std::vector<double>& forces_array_z) const{
-
-         sld::internal::print_force_debug_summary("SNAP",
-                                                  call,
-                                                  start_index, end_index,
-                                                  neighbour_counts,
-                                                  initial_forces_x,
-                                                  initial_forces_y,
-                                                  initial_forces_z,
-                                                  forces_array_x,
-                                                  forces_array_y,
-                                                  forces_array_z);
-
-      }
-
       // compute the forces for atoms
       template<bool fully_periodic>
       void snap_potential_t::compute_forces(const int start_index,
@@ -1440,15 +1397,9 @@ namespace sld{
          }
 
          if(debug_this_call){
-            print_debug_summary(debug_force_calls + 1,
-                                start_index, end_index,
-                                neighbour_counts,
-                                initial_forces_x,
-                                initial_forces_y,
-                                initial_forces_z,
-                                forces_array_x,
-                                forces_array_y,
-                                forces_array_z);
+            sld::internal::print_force_debug_summary("SNAP", debug_force_calls + 1, start_index, end_index, neighbour_counts,
+                                                     initial_forces_x, initial_forces_y, initial_forces_z,
+                                                     forces_array_x, forces_array_y, forces_array_z);
             increment_debug_force_calls();
          }
 

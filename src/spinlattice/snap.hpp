@@ -3,7 +3,7 @@
 //   This file is part of the VAMPIRE open source package under the
 //   Free BSD licence (see licence file for details).
 //
-//   Dev: Lennon Sivaruban 2026
+//   (c) Lennon Sivaruban 2026
 //
 //   Email: lennon.sivaruban@postgrad.manchester.ac.uk
 //
@@ -172,11 +172,9 @@ namespace sld{
          double cutoff() const;
          int number_of_coefficients() const;
          int number_of_elements() const;
-         std::string element_name(const int element) const;
 
       private:
 
-         bool initialised;
          bool debug_enabled;
          int debug_force_calls;
          int debug_max_force_calls;
@@ -223,26 +221,9 @@ namespace sld{
                                         const std::vector<int>& neighbour_list_array,
                                         const std::vector<double>& x_coord_array,
                                         const std::vector<double>& y_coord_array,
-                                        const std::vector<double>& z_coord_array);
-         template<bool fully_periodic>
-         void compute_bispectrum(const int start_index,
-                                 const int end_index,
-                                 const std::vector<int>& neighbour_list_start_index,
-                                 const std::vector<int>& neighbour_list_end_index,
-                                 const std::vector<int>& type_array,
-                                 const std::vector<int>& neighbour_list_array,
-                                 const std::vector<double>& x_coord_array,
-                                 const std::vector<double>& y_coord_array,
-                                 const std::vector<double>& z_coord_array,
-                                 std::vector<double>& bispectrum);
-         void compute_beta(const int start_index,
-                           const int end_index,
-                           const std::vector<int>& type_array,
-                           std::vector<double>& beta) const;
-         double compute_energy(const int atom,
-                               const int local_atom,
-                               const std::vector<int>& type_array,
-                               const std::vector<double>& bispectrum) const;
+                                        const std::vector<double>& z_coord_array,
+                                        std::vector<int>& seen_neighbour_identity);
+         double compute_energy(const std::vector<double>& coeffi) const;
          void print_debug_summary(const int call,
                                   const int start_index,
                                   const int end_index,

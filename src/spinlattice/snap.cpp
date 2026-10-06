@@ -3,7 +3,7 @@
 //   This file is part of the VAMPIRE open source package under the
 //   Free BSD licence (see licence file for details).
 //
-//   Dev: Lennon Sivaruban 2026
+//   (c) Lennon Sivaruban 2026
 //
 //   Email: lennon.sivaruban@postgrad.manchester.ac.uk
 //
@@ -15,7 +15,6 @@
 To be added:
 Different neighbour list for SNAP, rather than using the Vampire neighbour list so that the SNAP cutoff can be larger than the Vampire cutoff.
 Multi element support
-Parallel integrator support for SNAP/MLIAPs
 Quadratic SNAP support (improves accuracy?)
 */
 
@@ -25,16 +24,13 @@ Quadratic SNAP support (improves accuracy?)
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <sstream>
-#include <unordered_set>
 
 // vampire headers
 #include "atoms.hpp"
 #include "create.hpp"
 #include "errors.hpp"
 #include "sld.hpp"
-#include "vio.hpp"
 
 // sld headers
 #include "internal.hpp"
@@ -89,23 +85,16 @@ namespace{
 
    }
 
-   // make sure a string is formatted as a numeric value
-   bool valid_numeric_token(const std::string& word){
+   // numeric conversion from string to double
+   double numeric(const std::string& word, const std::string& filename){
 
       std::istringstream source(word);
       double value = 0.0;
       source >> value;
-      return source && source.eof();
-
-   }
-
-   // numeric conversion from string to double
-   double numeric(const std::string& word, const std::string& filename){
-
-      if(!valid_numeric_token(word)){
+      if(!source || !source.eof()){
          err::zexit("Invalid numeric value \"" + word + "\" in SNAP file \"" + filename + "\"");
       }
-      return vin::str_to_double(word);
+      return value;
 
    }
 
@@ -665,7 +654,9 @@ namespace sld{
 
       }
 
-      // compute the linear combination of the bispectrum components to form the final SNAP descriptor vector Y_i for one central atom
+      // compute Y_i = dE_i/dU_i for one central atom by weighting its Z intermediates by the linear SNAP coefficients
+      // Z is read from zlist rather than recalculated, compute_zi must have already been called for this same central atom
+      // each zlist[jjz] is the same as the coupled U(j1)U(j2) sum that was previously recalculated here directly
       void snap_sna_t::compute_yi(const double* beta){
 
          // ylist is dE/dU built from the B(U,Z(U)) contraction, once ylist is known, forces only need dU/dR for each neighbour
@@ -676,49 +667,6 @@ namespace sld{
             const int j1 = idxz[jjz].j1;
             const int j2 = idxz[jjz].j2;
             const int j = idxz[jjz].j;
-            const int ma1min = idxz[jjz].ma1min;
-            const int ma2max = idxz[jjz].ma2max;
-            const int na = idxz[jjz].na;
-            const int mb1min = idxz[jjz].mb1min;
-            const int mb2max = idxz[jjz].mb2max;
-            const int nb = idxz[jjz].nb;
-
-            const int cgbase = idxcg_block[block_index(j1,j2,j)];
-            double ztmp_r = 0.0;
-            double ztmp_i = 0.0;
-
-            int jju1 = idxu_block[j1] + (j1 + 1) * mb1min;
-            int jju2 = idxu_block[j2] + (j2 + 1) * mb2max;
-            int icgb = mb1min * (j2 + 1) + mb2max;
-
-            // compute a Z-like coupled product (like compute_zi()) and accumulate it into the derivative dE/dU
-            for(int ib = 0; ib < nb; ib++){
-               double suma1_r = 0.0;
-               double suma1_i = 0.0;
-
-               int ma1 = ma1min;
-               int ma2 = ma2max;
-               int icga = ma1min * (j2 + 1) + ma2max;
-
-               for(int ia = 0; ia < na; ia++){
-                  suma1_r += cglist[cgbase + icga] *
-                     (ulisttot_r[jju1 + ma1] * ulisttot_r[jju2 + ma2] -
-                      ulisttot_i[jju1 + ma1] * ulisttot_i[jju2 + ma2]);
-                  suma1_i += cglist[cgbase + icga] *
-                     (ulisttot_r[jju1 + ma1] * ulisttot_i[jju2 + ma2] +
-                      ulisttot_i[jju1 + ma1] * ulisttot_r[jju2 + ma2]);
-                  ma1++;
-                  ma2--;
-                  icga += j2;
-               }
-
-               ztmp_r += cglist[cgbase + icgb] * suma1_r;
-               ztmp_i += cglist[cgbase + icgb] * suma1_i;
-
-               jju1 += j1 + 1;
-               jju2 -= j2 + 1;
-               icgb += j2;
-            }
 
             double betaj = 0.0;
             // the bispectrum only stores non symmetry-equivalent components but the derivative dE/dU must include all permutations of (j1,j2,j), calculate them
@@ -744,8 +692,8 @@ namespace sld{
 
             const int jju = idxz[jjz].jju;
             // accumulate beta weighted Z into ylist=dE/dU for the U matrix element
-            ylist_r[jju] += betaj * ztmp_r;
-            ylist_i[jju] += betaj * ztmp_i;
+            ylist_r[jju] += betaj * zlist_r[jjz];
+            ylist_i[jju] += betaj * zlist_i[jjz];
          }
 
       }
@@ -995,7 +943,6 @@ namespace sld{
 
       // this is visible to the rest of Vampire and is used to store the SNAP potential parameters and coefficients
       snap_potential_t::snap_potential_t() :
-         initialised(false),
          debug_enabled(false),
          debug_force_calls(0),
          debug_max_force_calls(5),
@@ -1070,13 +1017,6 @@ namespace sld{
 
       }
 
-      std::string snap_potential_t::element_name(const int element) const{
-
-         if(element < 0 || element >= int(elements.size())) return "";
-         return elements[element].name;
-
-      }
-
       // initialise the SNAP potential by reading the coefficient and parameter files, and setting up the data structures for the descriptor calcs
       void snap_potential_t::initialise(const int num_materials){
 
@@ -1095,9 +1035,6 @@ namespace sld{
          // map Vampire material ids to SNAP element ids
          build_material_map(num_materials); // SNAP only supports one element at the moment so all mapped to the first element
 
-         if(elements.size() == 0 || elements[0].coefficients.size() <= 1){
-            err::zexit("Incorrect SNAP coefficient file");
-         }
          // ncoeff counts only the descriptor coefficients beta_1...beta_n (not the intercept beta_0)
          // there are ncoeff + 1 coefficients in the file, including the intercept
          ncoeff = int(elements[0].coefficients.size()) - 1;
@@ -1115,7 +1052,6 @@ namespace sld{
             rcutmax = std::max(rcutmax, 2.0 * elements[element].radius * rcutfac);
          }
 
-         initialised = true;
          print_info();
          if(debug_enabled){
             std::cout<<"SNAP debug output enabled for the first " <<debug_max_force_calls<<" force calls"<<std::endl;
@@ -1301,6 +1237,7 @@ namespace sld{
       }
 
       // construct the short neighbour list for one atom, and store the neighbour distances and weights in the SNAP data structure
+      // seen_neighbour_identity includes the index of the last central atom which met the physical atom
       template<bool fully_periodic>
       int snap_potential_t::build_short_neighbour_list(const int atom,
                                                        const std::vector<int>& neighbour_list_start_index,
@@ -1309,14 +1246,10 @@ namespace sld{
                                                        const std::vector<int>& neighbour_list_array,
                                                        const std::vector<double>& x_coord_array,
                                                        const std::vector<double>& y_coord_array,
-                                                       const std::vector<double>& z_coord_array){
+                                                       const std::vector<double>& z_coord_array,
+                                                       std::vector<int>& seen_neighbour_identity){
 
-         const int imat = type_array[atom];
-         if(imat < 0 || imat >= int(material_to_element.size())){
-            err::zexit("SNAP material index is outside the element map");
-         }
-
-         const int ielem = material_to_element[imat];
+         const int ielem = material_to_element[type_array[atom]];
          const double radi = elements[ielem].radius;
          const double xtmp = x_coord_array[atom];
          const double ytmp = y_coord_array[atom];
@@ -1332,20 +1265,15 @@ namespace sld{
          // Here we use the physical atom identity to avoid double counting the same physical neighbour 
          // when it appears in the neighbour list multiple time due to being periodic or an MPI halo copy
          const int central_atom_identity = atoms::physical_atom_id_array[atom];
-         std::unordered_set<int> seen_neighbour_identities; // holds the physical atom identities already accepted for this central atom
-         seen_neighbour_identities.reserve(nbr_end - nbr_start);
          for(int jj = nbr_start; jj < nbr_end; jj++){
             const int j = neighbour_list_array[jj];
             const int neighbour_atom_identity = atoms::physical_atom_id_array[j];
-            // skip if the neighbour is the central atom itself or if the neighbour identity has already been seen
-            if(neighbour_atom_identity == central_atom_identity || !seen_neighbour_identities.insert(neighbour_atom_identity).second) continue;
+            // skip if the neighbour is the central atom itself or if the neighbour identity has already been seen for this central atom
+            if(neighbour_atom_identity == central_atom_identity || seen_neighbour_identity[neighbour_atom_identity] == atom) continue;
+            // mark the identity at its first encounter
+            seen_neighbour_identity[neighbour_atom_identity] = atom;
 
-            const int jmat = type_array[j];
-            if(jmat < 0 || jmat >= int(material_to_element.size())){
-               err::zexit("SNAP neighbour material index is outside the element map");
-            }
-
-            const int jelem = material_to_element[jmat];
+            const int jelem = material_to_element[type_array[j]];
             // vector from central atom to the neighbour
             double delx = x_coord_array[j] - xtmp;
             double dely = y_coord_array[j] - ytmp;
@@ -1378,85 +1306,14 @@ namespace sld{
 
       }
 
-      // compute the bispectrum for a range of atoms, using the short neighbour list and the SNAP data structure then store it in the output vector
-      template<bool fully_periodic>
-      void snap_potential_t::compute_bispectrum(const int start_index,
-                                                const int end_index,
-                                                const std::vector<int>& neighbour_list_start_index,
-                                                const std::vector<int>& neighbour_list_end_index,
-                                                const std::vector<int>& type_array,
-                                                const std::vector<int>& neighbour_list_array,
-                                                const std::vector<double>& x_coord_array,
-                                                const std::vector<double>& y_coord_array,
-                                                const std::vector<double>& z_coord_array,
-                                                std::vector<double>& bispectrum){
-
-         for(int i = start_index; i < end_index; i++){
-            const int local_atom = i - start_index;
-            // build the central atom environment first, ninside is the number of neighbours that actually lie inside the element-pair cutoff.
-            const int ninside = build_short_neighbour_list<fully_periodic>(i,
-                                                           neighbour_list_start_index,
-                                                           neighbour_list_end_index,
-                                                           type_array,
-                                                           neighbour_list_array,
-                                                           x_coord_array,
-                                                           y_coord_array,
-                                                           z_coord_array);
-
-            // Ui is the neighbour density expansion, Zi is the Clebsch-Gordan coupled intermediate and Bi is the rotationally invariant bispectrum descriptor vector for this central atom
-            sna.compute_ui(ninside);
-            sna.compute_zi();
-            sna.compute_bi();
-
-            for(int icoeff = 0; icoeff < ncoeff; icoeff++){
-               // store B_i,k in a flat array so later energy and debug code can index using local_atom*ncoeff + icoeff
-               bispectrum[local_atom * ncoeff + icoeff] = sna.blist[icoeff];
-            }
-         }
-
-      }
-
-      // compute the derivative of the energy wrt the bispectrum for atoms
-      void snap_potential_t::compute_beta(const int start_index,
-                                          const int end_index,
-                                          const std::vector<int>& type_array,
-                                          std::vector<double>& beta) const{
-
-         for(int i = start_index; i < end_index; i++){
-            const int local_atom = i - start_index;
-            const int imat = type_array[i];
-            if(imat < 0 || imat >= int(material_to_element.size())){
-               err::zexit("SNAP material index is outside the element map");
-            }
-            const int ielem = material_to_element[imat];
-            const std::vector<double>& coeffi = elements[ielem].coefficients;
-
-            // linear SNAP energy is E_i = beta0 + sum_k beta_k B_i,k, so dE_i/dB_i,k is the fitted coefficient beta_k
-            for(int icoeff = 0; icoeff < ncoeff; icoeff++){
-               beta[local_atom * ncoeff + icoeff] = coeffi[icoeff + 1];
-            }
-         }
-
-      }
-
-      // compute the energy for one atom
-      double snap_potential_t::compute_energy(const int atom,
-                                              const int local_atom,
-                                              const std::vector<int>& type_array,
-                                              const std::vector<double>& bispectrum) const{
-
-         const int imat = type_array[atom];
-         if(imat < 0 || imat >= int(material_to_element.size())){
-            err::zexit("SNAP material index is outside the element map");
-         }
-         const int ielem = material_to_element[imat];
-         const std::vector<double>& coeffi = elements[ielem].coefficients;
+      // compute the linear SNAP energy of the current central atom
+      double snap_potential_t::compute_energy(const std::vector<double>& coeffi) const{
 
          // the first coefficient is the constant per-atom intercept
          double energy = coeffi[0];
          for(int icoeff = 0; icoeff < ncoeff; icoeff++){
             // add the linear contribution from each bispectrum descriptor
-            energy += coeffi[icoeff + 1] * bispectrum[local_atom * ncoeff + icoeff];
+            energy += coeffi[icoeff + 1] * sna.blist[icoeff];
          }
 
          return energy;
@@ -1506,8 +1363,6 @@ namespace sld{
                                             const bool allow_debug_output){
 
          const int natoms = end_index - start_index;
-         std::vector<double> beta(natoms * ncoeff, 0.0);
-         std::vector<double> bispectrum(natoms * ncoeff, 0.0);
          const bool debug_this_call = allow_debug_output && this->debug_this_call();
          std::vector<int> neighbour_counts;
          std::vector<double> initial_forces_x;
@@ -1529,23 +1384,14 @@ namespace sld{
             }
          }
 
-         // first compute B_i,k for every central atom in this range
-         // then compute beta_i,k = dE_i/dB_i,k from the fitted coefficients
-         // finally go back to each each atom and differentiate E_i with respect to each neighbour coordinate to get forces from that neighbour 
-         compute_bispectrum<fully_periodic>(start_index, end_index,
-                            neighbour_list_start_index, neighbour_list_end_index,
-                            type_array, neighbour_list_array,
-                            x_coord_array, y_coord_array, z_coord_array,
-                            bispectrum);
-         compute_beta(start_index, end_index, type_array, beta);
+         // array to track which physical neighbour identities have already been seen for this central atom to avoid double counting the same physical neighbour when it appears in the neighbour list multiple times (periodic or MPI halo copies)
+         std::vector<int> seen_neighbour_identity(atoms::num_atoms, -1);
 
+         // each central atom completes its energy and force evaluation before moving to the next one
+         // its short neighbour list and U are built once, and U, Z and B will still belong to this atom when Y and the neighbour derivatives are calculated
          for(int i = start_index; i < end_index; i++){
             const int local_atom = i - start_index;
-            // once B is known, calculate the per-atom SNAP energy
-            // In snapzbl the per-atom SNAP_energy is stored in potential_eng[i] so that the ZBL potential overlay can add its pair energy to this value
-            potential_eng[i] = compute_energy(i, local_atom, type_array, bispectrum);
-
-            // rebuild the same neighbour environment for calculating derivatives
+            // build the central atom environment
             const int ninside = build_short_neighbour_list<fully_periodic>(i,
                                                            neighbour_list_start_index,
                                                            neighbour_list_end_index,
@@ -1553,15 +1399,24 @@ namespace sld{
                                                            neighbour_list_array,
                                                            x_coord_array,
                                                            y_coord_array,
-                                                           z_coord_array);
+                                                           z_coord_array,
+                                                           seen_neighbour_identity);
             if(debug_this_call){
                neighbour_counts[local_atom] = ninside;
             }
 
-            // compute U_i for this central atom again, then form Y_i=dE_i/dU_i by contracting beta with the Z intermediates. 
-            // Y_i is calcualted so that each neighbour force can be computed as dU/dR*dE/dU
+            // Ui is the neighbour density expansion, Zi is the Clebsch-Gordan coupled intermediate and Bi is the rotationally invariant bispectrum descriptor vector for this central atom
             sna.compute_ui(ninside);
-            sna.compute_yi(&beta[local_atom * ncoeff]);
+            sna.compute_zi();
+            sna.compute_bi();
+
+            // linear SNAP energy is E_i = beta0 + sum_k beta_k B_i,k, so dE_i/dB_i,k is the fitted coefficient beta_k = coeffi[k + 1]
+            const std::vector<double>& coeffi = elements[material_to_element[type_array[i]]].coefficients;
+            potential_eng[i] = compute_energy(coeffi); // store the per-atom SNAP energy for this atom, to be added to the ZBL pair contributions (if required)
+
+            // form Y_i=dE_i/dU_i by contracting beta with the Z intermediates of this atom
+            // Y_i is calculated so that each neighbour force can be computed as dU/dR*dE/dU
+            sna.compute_yi(&coeffi[1]);
 
             // for the neighbours of the central atom within cutoff:
             // compute Fij = dE_i/dR_ij. 

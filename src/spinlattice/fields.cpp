@@ -83,8 +83,8 @@ namespace sld{
                                              fields_array_x, fields_array_y, fields_array_z);
       }
 
-      // add the applied field after equilibration
-      if(sim::time > sim::equilibration_time){
+      // add the applied field after equilibration, the step from sim::time = equilibration_time is the first production step
+      if(sim::time >= sim::equilibration_time){
          const double Hx=sim::H_vec[0]*sim::H_applied;
          const double Hy=sim::H_vec[1]*sim::H_applied;
          const double Hz=sim::H_vec[2]*sim::H_applied;

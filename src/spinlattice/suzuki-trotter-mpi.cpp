@@ -15,6 +15,7 @@
 
 #ifdef MPICF
 // Standard Libraries
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -59,11 +60,29 @@ void suzuki_trotter_parallel_init(std::vector<double> &x, // atomic coordinates
    double widthy = max_dim[1] - min_dim[1];
    double widthz = max_dim[2] - min_dim[2];
 
-   if (widthx<=sld::internal::r_cut_fields ||widthy<=sld::internal::r_cut_fields || widthy<=sld::internal::r_cut_fields ){
+   // Octants with the same index are updated at the same time on every rank, so they must not interact. 
+   // Same-index octants on neighbouring ranks/periodic images are half a local domain apart
+   // so 0.5*width must be larger than the field cutoff in every dimension 
+   const double widths[3] = {widthx, widthy, widthz};
+   bool constrained = false; // true if any dimension is split between ranks or periodic
+   double margin = 0.0;
+   for(int d=0; d<3; d++){
+      const bool split = widths[d] < cs::system_dimensions[d] - 1.0e-6;
+      if(!split && !cs::pbc[d]) continue;
+      const double dimension_margin = 0.5*widths[d] - sld::internal::r_cut_fields;
+      margin = constrained ? std::min(margin, dimension_margin) : dimension_margin;
+      constrained = true;
+   }
+   if(constrained && margin <= 0.0){
      std::cerr << "Error: System size needs to be increased so octants won't interact" << std::endl;
-     std::cerr<<"Width of octants is "<<widthx<<"\t"<<widthy<<"\t"<<widthz<< " While interaction cutoff is "<<sld::internal::r_cut_fields<<std::endl;
+     std::cerr << "Half width of octants is " << 0.5*widthx << "\t" << 0.5*widthy << "\t" << 0.5*widthz << " While interaction cutoff is " << sld::internal::r_cut_fields << std::endl;
      err::vexit();
-     }
+   }
+   // Octants are not reassigned as atoms move, so two atoms can close the gap by up to twice the displacement allowed by max-displacement
+   if(constrained && sld::internal::max_displacement > 0.0 && 2.0*(sld::internal::max_displacement + sld::internal::dr_init) >= margin){
+     std::cerr << "Error: spin-lattice:max-displacement is too large for the octant separation of " << margin << " Angstrom" << std::endl;
+     err::vexit();
+   }
 
    int octant_num = 0; //Count which octant loop is in
 
@@ -221,8 +240,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
     std::fill(sld::internal::fields_array_z.begin(), sld::internal::fields_array_z.end(), 0.0);
 
 
+    // Forward sweep, octants 0 to 7, core then boundary atoms
     for(int octant = 0; octant < 8; octant++) {
-      vmpi::mpi_init_halo_swap();
+      vmpi::mpi_init_halo_swap(); // sends the boundary spins updated in the previous octant and completed before this octant's boundary atoms, which use halo spins
 
 
          int core_at=internal::c_octants[octant].size();
@@ -306,17 +326,17 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
       std::fill(sld::internal::fields_array_z.begin(), sld::internal::fields_array_z.end(), 0.0);
 
 
-      //first octant loop return
+      // Reverse sweep, octants 7 to 0, boundary then core atoms, lists reversed
+      vmpi::mpi_init_halo_swap();
       for(int octant = 7; octant >= 0; octant--) {
-            vmpi::mpi_init_halo_swap();
-
+            vmpi::mpi_complete_halo_swap(); // halo spins now include every boundary spin updated in the previous octants
+            vmpi::barrier();
 
             int core_at=internal::c_octants[octant].size();
             int bdry_at=internal::b_octants[octant].size();
 
-            for (int i=core_at-1;i>=0;i--){
-            atom = internal::c_octants[octant][i];
-
+            for (int i=bdry_at-1;i>=0;i--){
+            atom = internal::b_octants[octant][i];
 
             sld::compute_fields(atom, // first atom for exchange interactions to be calculated
                               atom+1, // last +1 atom to be calculated
@@ -343,12 +363,11 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
             }//end spin loop
 
-            vmpi::mpi_complete_halo_swap();
-            vmpi::barrier();
+            // core atoms have no neighbours on other ranks, so the boundary spins sent here are final for this octant
+            if(octant > 0) vmpi::mpi_init_halo_swap();
 
-
-            for (int i=bdry_at-1;i>=0;i--){
-            atom = internal::b_octants[octant][i];
+            for (int i=core_at-1;i>=0;i--){
+            atom = internal::c_octants[octant][i];
 
             sld::compute_fields(atom, // first atom for exchange interactions to be calculated
                               atom+1, // last +1 atom to be calculated
@@ -376,6 +395,10 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
 
          }    // end first octant loop return
+      // send the boundary spins updated in the last octant so that later fields and forces use current halo spins
+      vmpi::mpi_init_halo_swap();
+      vmpi::mpi_complete_halo_swap();
+      vmpi::barrier();
 
 
      //vrv update
@@ -634,11 +657,12 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
       std::fill(sld::internal::fields_array_z.begin(), sld::internal::fields_array_z.end(), 0.0);
 
 
+       // Forward sweep, octants 0 to 7, core then boundary atoms
        for(int octant = 0; octant < 8; octant++) {
 
           //std::cout<<"octant  onwards"<<octant<<"\t"<<nspins<<std::endl;
 
-             vmpi::mpi_init_halo_swap();
+             vmpi::mpi_init_halo_swap(); // sends the boundary spins updated in the previous octant and completed before this octant's boundary atoms, which use halo spins
              int core_at=internal::c_octants[octant].size();
              int bdry_at=internal::b_octants[octant].size();
 
@@ -718,45 +742,16 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
 
           //first octant loop return
+          // Reverse sweep, octants 7 to 0, boundary then core atoms
+          vmpi::mpi_init_halo_swap();
           for(int octant = 7; octant >= 0; octant--) {
+            vmpi::mpi_complete_halo_swap(); // halo spins now include every boundary spin updated in the previous octants
+            vmpi::barrier();
 
-                 vmpi::mpi_init_halo_swap();
-                 int core_at=internal::c_octants[octant].size();
-                 int bdry_at=internal::b_octants[octant].size();
+            int core_at=internal::c_octants[octant].size();
+            int bdry_at=internal::b_octants[octant].size();
 
-
-
-                for (int i=core_at-1;i>=0;i--){
-                atom = internal::c_octants[octant][i];
-
-                sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                                  atom+1, // last +1 atom to be calculated
-                                  atoms::neighbour_list_start_index,
-                                  atoms::neighbour_list_end_index,
-                                  atoms::type_array, // type for atom
-                                  atoms::neighbour_list_array, // list of interactions between atoms
-                                  atoms::x_coord_array,
-                                  atoms::y_coord_array,
-                                  atoms::z_coord_array,
-                                  atoms::x_spin_array,
-                                  atoms::y_spin_array,
-                                  atoms::z_spin_array,
-                                  sld::internal::forces_array_x,
-                                  sld::internal::forces_array_y,
-                                  sld::internal::forces_array_z,
-                                  sld::internal::fields_array_x,
-                                  sld::internal::fields_array_y,
-                                  sld::internal::fields_array_z);
-
-                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
-
-                }//end spin loop
-
-                vmpi::mpi_complete_halo_swap();
-                vmpi::barrier();
-
-
-                for (int i=bdry_at-1;i>=0;i--){
+            for (int i=bdry_at-1;i>=0;i--){
                 atom = internal::b_octants[octant][i];
 
 
@@ -783,9 +778,42 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
                 }//end spin loop
 
-             vmpi::barrier();
+            // core atoms have no neighbours on other ranks, so the boundary spins sent here are final for this octant
+            if(octant > 0) vmpi::mpi_init_halo_swap();
+
+            for (int i=core_at-1;i>=0;i--){
+                atom = internal::c_octants[octant][i];
+
+                sld::compute_fields(atom, // first atom for exchange interactions to be calculated
+                                  atom+1, // last +1 atom to be calculated
+                                  atoms::neighbour_list_start_index,
+                                  atoms::neighbour_list_end_index,
+                                  atoms::type_array, // type for atom
+                                  atoms::neighbour_list_array, // list of interactions between atoms
+                                  atoms::x_coord_array,
+                                  atoms::y_coord_array,
+                                  atoms::z_coord_array,
+                                  atoms::x_spin_array,
+                                  atoms::y_spin_array,
+                                  atoms::z_spin_array,
+                                  sld::internal::forces_array_x,
+                                  sld::internal::forces_array_y,
+                                  sld::internal::forces_array_z,
+                                  sld::internal::fields_array_x,
+                                  sld::internal::fields_array_y,
+                                  sld::internal::fields_array_z);
+
+                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+
+                }//end spin loop
+
+            vmpi::barrier();
 
              }      //end second octant loop return
+      // send the boundary spins updated in the last octant so that later fields and forces use current halo spins
+      vmpi::mpi_init_halo_swap();
+      vmpi::mpi_complete_halo_swap();
+      vmpi::barrier();
 
 
 

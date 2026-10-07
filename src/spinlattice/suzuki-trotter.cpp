@@ -14,7 +14,6 @@
 // C++ standard library headers
 #include <iostream>
 #include <cmath>
-#include <sstream>
 #include <vector>
 
 // Vampire headers
@@ -450,83 +449,23 @@ namespace sld{
 
 namespace internal{
 
-// Advance one spin, accepting the nonlinear midpoint when its iteration converges.
-// The field on spin i is B_i(s) = B_rest + B^nl_i(s), where B^nl_i includes all terms
-// that depend on s_i itself (currrently supports full Neel q, biquadratic exchange, second order
-// uniaxial and fourth order cubic anisotropy). While positions and neighbour spins are fixed, B_rest is independent of s_i
-// The update solves
-//    s_end - s_start = h D(m, B_rest + B^nl_i(m)) x m,   m = (s_start + s_end)/2,
-// D applies damping and noise and h = cayley_dt
+// Advance one spin over one single-spin update of duration dt/4 by a Cayley rotation about its field, with damping and noise
+// applied by add_spin_noise. The field is held fixed during the update, including any terms that depend on s_i itself
+// (full Neel q, biquadratic exchange, second order uniaxial and fourth order cubic anisotropy).
 void update_single_spin(const int atom,
                         const double cayley_dt,
                         const std::vector<double>& Hx_th,
                         const std::vector<double>& Hy_th,
                         const std::vector<double>& Hz_th){
 
-   // When every term is linear in the spin being updated keep the original approach since the fixed field is unchanged during the update
-   if(!sld::internal::nonlinear_spin_hamiltonian){
-      sld::internal::add_spin_noise(atom, atom+1, mp::dt_SI*1e12, atoms::type_array,
-                                    atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
-                                    sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z,
-                                    Hx_th, Hy_th, Hz_th);
-      sld::internal::cayley_update(atom, atom+1, cayley_dt,
-                                   atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
-                                   sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z);
-      return;
-   }
-
-   const neel_vector_t spin_start = {atoms::x_spin_array[atom], atoms::y_spin_array[atom], atoms::z_spin_array[atom]};
-
-   // Gather the nonlinear field terms once. Positions and neighbour spins are fixed during this update,
-   // so each trial spin reuses the same nonlinear field terms instead of recalculating them.
-   static nonlinear_field_terms_t nonlinear_terms;
-   sld::internal::gather_nonlinear_field_terms(atom, nonlinear_terms);
-   const neel_vector_t nonlinear_start = sld::internal::compute_nonlinear_field(nonlinear_terms, spin_start);
-
-   // B_rest = B(s_start) - B^nl(s_start) includes every field term that is independent of s_i
-   const neel_vector_t field_rest = {sld::internal::fields_array_x[atom]-nonlinear_start.x,
-                                     sld::internal::fields_array_y[atom]-nonlinear_start.y,
-                                     sld::internal::fields_array_z[atom]-nonlinear_start.z};
-
-   // Use the original fixed-field result as an initial guess, then solve the Cayley midpoint equation by fixed-point iteration
-   neel_vector_t effective = sld::internal::add_spin_noise(atom, spin_start, neel_add(field_rest, nonlinear_start), Hx_th, Hy_th, Hz_th);
-   neel_vector_t candidate = sld::internal::cayley_update(spin_start, effective, cayley_dt);
-
-   const int maximum_iterations = 50; // maximum number of iterations to attempt before aborting the simulation
-   const double tolerance_squared = 1.0e-24; // squared tolerance for convergence of the midpoint spin update
-   bool converged = false;
-   double change_squared = 0.0;
-   for(int iteration=0; iteration<maximum_iterations; ++iteration){
-      const neel_vector_t midpoint = neel_scale(neel_add(spin_start, candidate), 0.5);
-      const neel_vector_t nonlinear_midpoint = sld::internal::compute_nonlinear_field(nonlinear_terms, midpoint);
-      effective = sld::internal::add_spin_noise(atom, midpoint, neel_add(field_rest, nonlinear_midpoint), Hx_th, Hy_th, Hz_th);
-      const neel_vector_t next = sld::internal::cayley_update(spin_start, effective, cayley_dt);
-      const neel_vector_t change = neel_add(next, neel_scale(candidate, -1.0));
-      change_squared = neel_dot(change, change);
-      if(!std::isfinite(change_squared)){
-         std::ostringstream message;
-         message << "Non-finite midpoint iteration for local atom " << atom << " at step " << sim::time << ". Aborting simulation.";
-         err::zexit(message.str());
-      }
-      candidate = next;
-      if(change_squared <= tolerance_squared){
-         converged = true;
-         break;
-      }
-   }
-
-   if(!converged){
-      std::ostringstream message;
-      message << "Midpoint spin solve failed for atom " << atom << " at step " << sim::time << ". Aborting simulation.";
-      err::zexit(message.str());
-   }
-
-   atoms::x_spin_array[atom] = candidate.x;
-   atoms::y_spin_array[atom] = candidate.y;
-   atoms::z_spin_array[atom] = candidate.z;
-   sld::internal::fields_array_x[atom] = effective.x;
-   sld::internal::fields_array_y[atom] = effective.y;
-   sld::internal::fields_array_z[atom] = effective.z;
+   sld::internal::add_spin_noise(atom, atom+1, mp::dt_SI*1e12, atoms::type_array,
+                                 atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                 sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z,
+                                 Hx_th, Hy_th, Hz_th);
+   sld::internal::cayley_update(atom, atom+1, cayley_dt,
+                                atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z);
+   return;
 }
 
 void cayley_update(const int start_index,

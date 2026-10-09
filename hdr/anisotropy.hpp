@@ -78,6 +78,12 @@ namespace anisotropy
                              double& field_y,
                              double& field_z);
 
+   // second order uniaxial easy axis and K_u/mu (T) of a material, returns false if the term is disabled
+   bool uniaxial_second_order_coefficients(const int material, double& ex, double& ey, double& ez, double& ku);
+
+   // fourth order cubic K_c/mu (T) of a material, returns false if the term is disabled
+   bool cubic_fourth_order_coefficient(const int material, double& kc);
+
    //-----------------------------------------------------------------------------
    // function to calculate anisotropy energy for a single spin
    //-----------------------------------------------------------------------------

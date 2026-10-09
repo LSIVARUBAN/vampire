@@ -731,7 +731,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             std::vector<double>& fields_array_y,
             std::vector<double>& fields_array_z);
 
-      // One q neighbour of a spin. Positions and neighbour spins are fixed during a single-spin update, so these values are constant for its whole solve
+      // One q neighbour of a spin. Positions and neighbour spins are fixed during a single-spin update, so these values are constant for the whole update
       struct neel_q_neighbour_t{
          neel_vector_t bond;   // unit vector from neighbour j to atom i
          neel_vector_t spin_j; // neighbour spin s_j
@@ -744,7 +744,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          double k;             // K(r_ij)/mu_i (T)
       };
 
-      // Every term of the field on spin i that depends on s_i itself for the midpoint solve.
+      // Every term of the field on spin i that depends on s_i itself, for the nonlinear single-spin update.
       // Currently supports the full Neel q coupling, biquadratic exchange and the second order
       // uniaxial and fourth order cubic anisotropies. Collected once per single-spin update.
       struct nonlinear_field_terms_t{
@@ -766,6 +766,38 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       // Return the sum of every nonlinear field term, B^nl_i(s), for a trial spin s
       neel_vector_t compute_nonlinear_field(const nonlinear_field_terms_t& terms,
                                             const neel_vector_t& trial_spin);
+
+      // One fixed-axis part of the nonlinear field, B_a(s) = g(a.s) a with g(u) = c0 + c1 u + c2 u^2 + c3 u^3 (T)
+      // Rotating s about a leaves a.s unchanged, so this field is constant during its own rotation.
+      struct spin_rotation_term_t{
+         neel_vector_t axis; // fixed axis a, not normalised
+         double c0, c1, c2, c3; // field polynomial coefficients (T)
+         double axis_squared; // |a|^2
+      };
+
+      // Split the nonlinear field terms of one spin into fixed-axis terms whose fields sum to B^nl_i(s) for any s
+      void build_spin_rotation_terms(const nonlinear_field_terms_t& terms,
+                                     std::vector<spin_rotation_term_t>& rotation_terms);
+
+      // Field of one fixed-axis term for the spin s, g(a.s) a
+      inline neel_vector_t spin_rotation_field(const spin_rotation_term_t& term, const neel_vector_t& spin){
+         const double u = neel_dot(term.axis, spin);
+         return neel_scale(term.axis, term.c0 + u*(term.c1 + u*(term.c2 + u*term.c3)));
+      }
+
+      // Cayley rotation of a spin by its own fixed-axis field over dt
+      // As the field is parallel to a, A = c a with c = dt g(a.s), so A.s = c u and |A|^2 = c^2 |a|^2 reuse u = a.s and the stored |a|^2
+      inline neel_vector_t rotate_about_term_axis(const spin_rotation_term_t& term, const neel_vector_t& spin, const double dt){
+         const neel_vector_t& a = term.axis;
+         const double u = neel_dot(a, spin);
+         const double c = dt*(term.c0 + u*(term.c1 + u*(term.c2 + u*term.c3)));
+         const double quarter_A2 = 0.25*c*c*term.axis_squared; // |A|^2/4
+         const double along = 0.5*c*c*u; // A(A.s)/2 = along a
+         const double factor = 1.0/(1.0 + quarter_A2);
+         return neel_vector_t{((1.0-quarter_A2)*spin.x + c*(a.y*spin.z - a.z*spin.y) + along*a.x)*factor,
+                              ((1.0-quarter_A2)*spin.y + c*(a.z*spin.x - a.x*spin.z) + along*a.y)*factor,
+                              ((1.0-quarter_A2)*spin.z + c*(a.x*spin.y - a.y*spin.x) + along*a.z)*factor};
+      }
 
 //
 
@@ -794,22 +826,14 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
                   const std::vector<double>& Hy_th,
                   const std::vector<double>& Hz_th);
 
-      // Single-spin cayley_update for the trial spins of the midpoint solve that returns the result instead of writing to the array
+      // Single-spin cayley_update that returns the result instead of writing to the array
       neel_vector_t cayley_update(const neel_vector_t& spin,
                                   const neel_vector_t& field,
                                   const double dt);
 
-      // Add the spin noise to a single spin, returning the result instead of writing to the array
-      neel_vector_t add_spin_noise(const int atom,
-                                   const neel_vector_t& spin,
-                                   const neel_vector_t& field,
-                                   const std::vector<double>& Hx_th,
-                                   const std::vector<double>& Hy_th,
-                                   const std::vector<double>& Hz_th);
-
       // Advance one spin from the field already placed in the fields array. When any Hamiltonian term is nonlinear in the spin being updated 
       // (full Neel q, biquadratic exchange, second order uniaxial or fourth order cubic anisotropy), the field terms that depend on that 
-      // spin are evaluated at a self-consistent midpoint. Hamiltonians linear in the spin follow the original fixed-field approach
+      // spin are split into fixed-axis terms and composed symmetrically with the rest of the field. Hamiltonians linear in the spin follow the original fixed-field approach
       void update_single_spin(const int atom,
                               const double cayley_dt,
                               const std::vector<double>& Hx_th,

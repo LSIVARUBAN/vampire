@@ -104,7 +104,7 @@ namespace sld{
       bool pseudodipolar;
       bool full_neel;
       bool full_neel_nonlinear_q = false; // full Neel with a nonzero q amplitude in any material
-      bool nonlinear_spin_hamiltonian = false; // any term is nonlinear in the spin being updated (its field is held fixed during each single-spin update)
+      bool nonlinear_spin_hamiltonian = false; // true if any term is nonlinear in the spin being updated (hence field is dependent on the spin itself)
       bool harmonic_debug_enabled = false; // ouput force info
       int harmonic_debug_force_calls = 0; // number of calls to debug forces
       int harmonic_debug_max_force_calls = 5;

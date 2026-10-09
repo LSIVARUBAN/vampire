@@ -159,7 +159,7 @@ namespace sld{
          }
       }
       // The field on a spin depends on that spin for full Neel q, biquadratic exchange, and the second order uniaxial and fourth order cubic anisotropies (the terms
-      // supported by the spin temperature curvature). Their field is held fixed during each single-spin update in the integrator.
+      // supported by the spin temperature curvature).
       bool nonlinear_biquadratic = false;
       if(use_biquadratic){
          for(int mat = 0; mat < mp::num_materials; ++mat){
@@ -239,7 +239,7 @@ namespace sld{
       }
       std::cout << "Spin substep uses ";
       if(sld::internal::nonlinear_spin_hamiltonian){
-         std::cout << "a field held fixed during each update for";
+         std::cout << "a symmetric decomposition into fixed-axis rotations for";
          if(sld::internal::full_neel_nonlinear_q) std::cout << " full-Neel-q";
          if(nonlinear_biquadratic) std::cout << " biquadratic-exchange";
          if(nonlinear_anisotropy) std::cout << " uniaxial/cubic-anisotropy";

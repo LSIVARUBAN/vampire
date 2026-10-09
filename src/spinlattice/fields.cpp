@@ -111,7 +111,7 @@ namespace internal{
 
    // Collect all field terms of atom i that depends on s_i itself, once per single-spin update.
    // During the single-spin update, the position and neighbour spins are fixed so we gather pair
-   // data once and reuse it for every trial spin. The pair data required is:
+   // data once and reuse it for every rotation of the update. The pair data required is:
    // full Neel q:  bond e_ij, s_j and q(r_ij) for r_ij < r_cut_neel_q
    // biquadratic:  s_j and K(r_ij)/mu_i       for r_ij < r_cut_exchange
    // The anisotropy terms need no neighbours and are evaluated directly by anisotropy::nonlinear_spin_field()
@@ -276,6 +276,59 @@ namespace internal{
       }
 
       return field;
+   }
+
+   // Split B^nl_i(s) into fixed-axis terms g(a.s) a.
+   // Each term is an energy F(a.s) of a single projection, so a rotation about a leaves a.s and the field constant.
+   // This extends the single-spin decomposition of Weissenhofer et al., Phys. Rev. B 108, L060404 (2023) to the other non-linear terms supported.
+   // Full Neel q: with x = e.s, y = e.s_j (fixed) and z = s_j.s, the pair polynomial
+   //    Phi_q/q = (12/35)(xy - z/3) + (9/5)(x^2 - z/3)(y^2 - z/3) - (2/5)(xy^3 + yx^3)
+   // is rewritten using x^2 z = [(x+z)^3 - (x-z)^3 - 2z^3]/6 as
+   //    Phi_q/q = P_e(x) + P_j(z) - (x+z)^3/10 + (x-z)^3/10
+   //    P_e(x) = (12y/35 - 2y^3/5) x + (9/5) y^2 x^2 - (2/5) y x^3
+   //    P_j(z) = -(4/35 + 3y^2/5) z + z^2/5 + z^3/5
+   // so with Q = q/mu_i the field Q grad(Phi_q/q) has the four axes e, s_j, e+s_j and e-s_j, each with g(u) = Q dP/du.
+   // Biquadratic, uniaxial and cubic fields are already of this form, about s_j, the easy axis and the three Cartesian axes.
+   void build_spin_rotation_terms(const nonlinear_field_terms_t& terms,
+                                  std::vector<spin_rotation_term_t>& rotation_terms){
+
+      rotation_terms.clear();
+
+      // full Neel q, four terms per neighbour (axes e+s_j and e-s_j are not unit vectors)
+      for(size_t n=0; n<terms.q_neighbours.size(); ++n){
+         const neel_vector_t& e = terms.q_neighbours[n].bond;
+         const neel_vector_t& t = terms.q_neighbours[n].spin_j;
+         const double y = neel_dot(e, t);
+         const double Q = terms.q_neighbours[n].q*terms.inverse_moment; // T
+         rotation_terms.push_back(spin_rotation_term_t{e, Q*(12.0*y/35.0 - 0.4*y*y*y), 3.6*Q*y*y, -1.2*Q*y, 0.0});
+         rotation_terms.push_back(spin_rotation_term_t{t, -Q*(4.0/35.0 + 0.6*y*y), 0.4*Q, 0.6*Q, 0.0});
+         rotation_terms.push_back(spin_rotation_term_t{neel_add(e, t), 0.0, 0.0, -0.3*Q, 0.0});
+         rotation_terms.push_back(spin_rotation_term_t{neel_add(e, neel_scale(t, -1.0)), 0.0, 0.0, 0.3*Q, 0.0});
+      }
+
+      // biquadratic exchange, field 2 (K_ij/mu_i)(s.s_j) s_j
+      for(size_t n=0; n<terms.biquadratic_neighbours.size(); ++n){
+         rotation_terms.push_back(spin_rotation_term_t{terms.biquadratic_neighbours[n].spin_j, 0.0, 2.0*terms.biquadratic_neighbours[n].k, 0.0, 0.0});
+      }
+
+      // second order uniaxial anisotropy, field 2 (K_u/mu_i)(s.e) e
+      neel_vector_t easy_axis;
+      double ku;
+      if(anisotropy::uniaxial_second_order_coefficients(terms.material, easy_axis.x, easy_axis.y, easy_axis.z, ku)){
+         rotation_terms.push_back(spin_rotation_term_t{easy_axis, 0.0, 2.0*ku, 0.0, 0.0});
+      }
+
+      // fourth order cubic anisotropy, field 2 (K_c/mu_i) s_a^3 along each Cartesian axis a
+      double kc;
+      if(anisotropy::cubic_fourth_order_coefficient(terms.material, kc)){
+         rotation_terms.push_back(spin_rotation_term_t{neel_vector_t{1.0, 0.0, 0.0}, 0.0, 0.0, 0.0, 2.0*kc});
+         rotation_terms.push_back(spin_rotation_term_t{neel_vector_t{0.0, 1.0, 0.0}, 0.0, 0.0, 0.0, 2.0*kc});
+         rotation_terms.push_back(spin_rotation_term_t{neel_vector_t{0.0, 0.0, 1.0}, 0.0, 0.0, 0.0, 2.0*kc});
+      }
+
+      for(size_t n=0; n<rotation_terms.size(); ++n) rotation_terms[n].axis_squared = neel_dot(rotation_terms[n].axis, rotation_terms[n].axis);
+
+      return;
    }
 
    // calculate distance dependent bilinear or biquadratic exchange fields and forces

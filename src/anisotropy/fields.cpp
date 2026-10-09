@@ -244,4 +244,21 @@ namespace anisotropy{
       return;
    }
 
+   // Return the easy axis and ku2 = K_u/mu (T) of the second order uniaxial anisotropy
+   bool uniaxial_second_order_coefficients(const int material, double& ex, double& ey, double& ez, double& ku){
+      if(!internal::enable_uniaxial_second_order) return false;
+      ex = internal::ku_vector[material].x;
+      ey = internal::ku_vector[material].y;
+      ez = internal::ku_vector[material].z;
+      ku = internal::ku2[material];
+      return true;
+   }
+
+   // Return kc4 = K_c/mu (T) of the unrotated fourth order cubic anisotropy
+   bool cubic_fourth_order_coefficient(const int material, double& kc){
+      if(!internal::enable_cubic_fourth_order) return false;
+      kc = internal::kc4[material];
+      return true;
+   }
+
 } // end of anisotropy namespace

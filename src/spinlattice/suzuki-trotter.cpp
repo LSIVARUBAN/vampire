@@ -449,22 +449,68 @@ namespace sld{
 
 namespace internal{
 
-// Advance one spin over one single-spin update of duration dt/4 by a Cayley rotation about its field, with damping and noise
-// applied by add_spin_noise. The field is held fixed during the update, including any terms that depend on s_i itself
-// (full Neel q, biquadratic exchange, second order uniaxial and fourth order cubic anisotropy).
+// Advance one spin over one single-spin update of duration dt/4.
+// The field on spin i is B_i(s) = B_rest + B^nl_i(s), where B^nl_i includes all terms
+// that depend on s_i itself (currently full Neel q, biquadratic exchange, second order
+// uniaxial and fourth order cubic anisotropy). While positions and neighbour spins are fixed, B_rest is independent of s_i.
+// B^nl_i is split into fixed-axis terms B_a, each constant during its own rotation, and composed symmetrically:
+//    s_end = A_1(h/2) ... A_M(h/2) X(h) A_M(h/2) ... A_1(h/2) s_start
+// where A_a rotates by eta B_a with eta = 1/(1+lambda^2) and X rotates by the central field C assembled below
+
 void update_single_spin(const int atom,
                         const double cayley_dt,
                         const std::vector<double>& Hx_th,
                         const std::vector<double>& Hy_th,
                         const std::vector<double>& Hz_th){
 
-   sld::internal::add_spin_noise(atom, atom+1, mp::dt_SI*1e12, atoms::type_array,
-                                 atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
-                                 sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z,
-                                 Hx_th, Hy_th, Hz_th);
-   sld::internal::cayley_update(atom, atom+1, cayley_dt,
-                                atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
-                                sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z);
+   // When every term is linear in the spin being updated, don't carry out the extra decomposition since the field is fixed during the update
+   if(!sld::internal::nonlinear_spin_hamiltonian){
+      sld::internal::add_spin_noise(atom, atom+1, mp::dt_SI*1e12, atoms::type_array,
+                                    atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                    sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z,
+                                    Hx_th, Hy_th, Hz_th);
+      sld::internal::cayley_update(atom, atom+1, cayley_dt,
+                                   atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                   sld::internal::fields_array_x, sld::internal::fields_array_y, sld::internal::fields_array_z);
+      return;
+   }
+
+   const neel_vector_t spin_start = {atoms::x_spin_array[atom], atoms::y_spin_array[atom], atoms::z_spin_array[atom]};
+
+   // Gather the nonlinear field terms once since positions and neighbour spins are fixed during this update
+   static nonlinear_field_terms_t nonlinear_terms;
+   sld::internal::gather_nonlinear_field_terms(atom, nonlinear_terms);
+   const neel_vector_t nonlinear_field_start = sld::internal::compute_nonlinear_field(nonlinear_terms, spin_start);
+   static std::vector<spin_rotation_term_t> rotation_terms;
+   sld::internal::build_spin_rotation_terms(nonlinear_terms, rotation_terms);
+
+   // Central field C = eta [B_rest + N + D_0], frozen at the start of this single-spin visit (s_0 = spin_start):
+   //    B_0 = B_rest + B^nl(s_0)   conservative field from compute_fields
+   //    N = sigma xi               thermal field, drawn once per timestep and reused by every visit
+   //    D_0 = lambda (B_0 + N) x s_0  damping correction of the complete field, so the nonlinear terms are still damped
+   // The nonlinear precession eta B^nl(s) is applied by the rotations, so C + eta B^nl(s_0) is the field of the linear update (add_spin_noise)
+   const unsigned int material = atoms::type_array[atom];
+   const double lambda = sld::internal::spin_damping_array[material];
+   const double eta = 1.0/(1.0+lambda*lambda);
+   const double noise_scale = sld::internal::spin_noise_scale_array[material];
+   const neel_vector_t conservative_field = {sld::internal::fields_array_x[atom], sld::internal::fields_array_y[atom], sld::internal::fields_array_z[atom]};
+   const neel_vector_t remaining_field = neel_add(conservative_field, neel_scale(nonlinear_field_start, -1.0));
+   const neel_vector_t thermal_field = {noise_scale*Hx_th[atom], noise_scale*Hy_th[atom], noise_scale*Hz_th[atom]};
+   const neel_vector_t total_field = neel_add(conservative_field, thermal_field);
+   const neel_vector_t total_cross_spin = {total_field.y*spin_start.z-total_field.z*spin_start.y, total_field.z*spin_start.x-total_field.x*spin_start.z, total_field.x*spin_start.y-total_field.y*spin_start.x};
+   const neel_vector_t damping_correction = neel_scale(total_cross_spin, lambda);
+   const neel_vector_t central_field = neel_scale(neel_add(neel_add(remaining_field, thermal_field), damping_correction), eta);
+
+   // Half rotations about each fixed-axis term, a full rotation by the frozen central field, then the half rotations in reverse.
+   const double half_dt = 0.5*cayley_dt*eta;
+   neel_vector_t spin = spin_start;
+   for(size_t n=0; n<rotation_terms.size(); ++n) spin = rotate_about_term_axis(rotation_terms[n], spin, half_dt);
+   spin = sld::internal::cayley_update(spin, central_field, cayley_dt);
+   for(size_t n=rotation_terms.size(); n-- > 0;) spin = rotate_about_term_axis(rotation_terms[n], spin, half_dt);
+
+   atoms::x_spin_array[atom] = spin.x;
+   atoms::y_spin_array[atom] = spin.y;
+   atoms::z_spin_array[atom] = spin.z;
    return;
 }
 
@@ -553,7 +599,7 @@ void add_spin_noise(const int start_index,
 return;
 }//end of add_spin_noise
 
-// Rotate one trial spin by the Cayley map using the same using the same math as above but return the result instead of writing it to the atom
+// Rotate one trial spin by the Cayley map, the same map as above, returning the result instead of writing it to the atom
 neel_vector_t cayley_update(const neel_vector_t& spin,
                             const neel_vector_t& field,
                             const double dt){
@@ -566,22 +612,6 @@ neel_vector_t cayley_update(const neel_vector_t& spin,
       return neel_vector_t{(spin.x*(1.0-0.25*A2)+cross.x+0.5*A.x*AS)*factor,
                            (spin.y*(1.0-0.25*A2)+cross.y+0.5*A.y*AS)*factor,
                            (spin.z*(1.0-0.25*A2)+cross.z+0.5*A.z*AS)*factor};
-}
-
-// Apply the damping and spin noise as above just to one field using a supplied trial spin instead of the stored spin
-neel_vector_t add_spin_noise(const int atom,
-                             const neel_vector_t& spin,
-                             const neel_vector_t& field,
-                             const std::vector<double>& Hx_th,
-                             const std::vector<double>& Hy_th,
-                             const std::vector<double>& Hz_th){
-   
-      const unsigned int imat = atoms::type_array[atom];
-      const double lambda = sld::internal::spin_damping_array[imat];
-      const double noise = sld::internal::spin_noise_scale_array[imat];
-      const neel_vector_t F = {field.x+noise*Hx_th[atom], field.y+noise*Hy_th[atom], field.z+noise*Hz_th[atom]};
-      const neel_vector_t FxS = {F.y*spin.z-F.z*spin.y, F.z*spin.x-F.x*spin.z, F.x*spin.y-F.y*spin.x};
-      return neel_scale(neel_add(F, neel_scale(FxS, lambda)), 1.0/(1.0+lambda*lambda));
 }
 
 

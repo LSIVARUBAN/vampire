@@ -166,7 +166,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          return result;
       }
 
-      // calculate the energy, spin derivative, force and curvature of one full Neel pair
+      // Calculate the full Neel pair terms, skipping higher orders when q and dq/dr are zero
       inline neel_pair_result_t evaluate_neel_pair(const neel_vector_t& displacement,
                                                    const neel_vector_t& spin_i,
                                                    const neel_vector_t& spin_j,
@@ -187,6 +187,19 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          const double x = neel_dot(bond, spin_i);
          const double y = neel_dot(bond, spin_j);
          const double z = neel_dot(spin_i, spin_j);
+
+         if(q_curve.value == 0.0 && q_curve.derivative == 0.0){
+            const double one_third = 1.0/3.0;
+            const double A = x*y-one_third*z;
+            result.energy = l_curve.value*A;
+            result.spin_derivative_i = neel_scale(neel_add(neel_scale(bond, y), neel_scale(spin_j, -one_third)), l_curve.value);
+            const neel_vector_t grad_x = neel_scale(neel_add(spin_i, neel_scale(bond, -x)), inverse_distance);
+            const neel_vector_t grad_y = neel_scale(neel_add(spin_j, neel_scale(bond, -y)), inverse_distance);
+            const neel_vector_t grad_A = neel_add(neel_scale(grad_x, y), neel_scale(grad_y, x));
+            result.force_i = neel_add(neel_scale(bond, l_curve.derivative*A), neel_scale(grad_A, l_curve.value));
+            return result;
+         }
+
          const double x2 = x*x;
          const double y2 = y*y;
          const double x3 = x2*x;

@@ -100,6 +100,8 @@ namespace sim{
 	double Hinc= 0.1; // T
 	double Heq=0.0;
 	bool equilibration_applied_field_set=false;
+	double Heq_vec[3]={0.0,0.0,1.0}; // equilibration field direction in time series, used only when set
+	bool equilibration_applied_field_unit_vector_set=false;
 	double applied_field_angle_phi=0.0;
 	double applied_field_angle_theta=0.0;
 	bool applied_field_set_by_angle=false;

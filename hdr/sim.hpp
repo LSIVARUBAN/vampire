@@ -117,6 +117,8 @@ namespace sim{
 	extern double Hinc; // T
 	extern double Heq; // T
 	extern bool equilibration_applied_field_set;
+	extern double Heq_vec[3];
+	extern bool equilibration_applied_field_unit_vector_set;
 	extern double applied_field_angle_phi;
 	extern double applied_field_angle_theta;
 	extern bool applied_field_set_by_angle;

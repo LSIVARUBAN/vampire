@@ -9,6 +9,7 @@
 //
 
 // Standard Libraries
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -72,15 +73,22 @@ void time_series(){
 
 	double temp=sim::temperature;
 	double applied_field=sim::H_applied;
+	const double applied_field_direction[3]={sim::H_vec[0],sim::H_vec[1],sim::H_vec[2]};
 
    // Set equilibration conditions only if continue checkpoint not loaded
    if(sim::load_checkpoint_flag && sim::load_checkpoint_continue_flag){}
    else{
 	   // Set equilibration temperature
 	   sim::temperature=sim::Teq;
+   }
 
-	   // if requested, equilibrate in a different field strength
-	   if(sim::equilibration_applied_field_set) sim::H_applied=sim::Heq;
+   // if requested, equilibrate in a different field strength and direction
+   // checkpoints do not store the field, so select it from the simulation time
+   if(sim::equilibration_applied_field_set && sim::time<sim::equilibration_time){
+	   sim::H_applied=sim::Heq;
+	   if(sim::equilibration_applied_field_unit_vector_set){
+		   for(int i=0;i<3;i++) sim::H_vec[i]=sim::Heq_vec[i];
+	   }
    }
 
 	// Output data
@@ -90,7 +98,12 @@ void time_series(){
 	// Equilibrate system
 	while(sim::time<sim::equilibration_time){
 
-		sim::integrate(sim::partial_time);
+		// production field is restored after this loop exits, so if equilibration_time is not a multiple of partial_time 
+		// the last block would run past equilibration_time with the equilibration field still set. SLD switches its 
+		// damping/noise/thermostat parameters to production on the step where sim::time reaches equilibration_time, so when an
+		// equilibration field is set, shorten the last block to end exactly at equilibration_time so the field switches on the same step.
+		const uint64_t steps = sim::equilibration_applied_field_set ? std::min(sim::partial_time, sim::equilibration_time - sim::time) : sim::partial_time;
+		sim::integrate(steps);
 
 		// Calculate magnetisation statistics
 		stats::update();
@@ -102,13 +115,16 @@ void time_series(){
 		if(stop_for_nan_magnetisation()) return;
 	}
 
+   // set the production applied field from the input, including after a continued checkpoint
+   sim::H_applied = applied_field;
+   for(int i=0;i<3;i++) sim::H_vec[i]=applied_field_direction[i];
+
    // Set temperature and reset stats only if continue checkpoint not loaded
    if(sim::load_checkpoint_flag && sim::load_checkpoint_continue_flag){}
    else{
 
-      // set production temperature and applied field
+      // set production temperature
 	   sim::temperature = temp;
-	   sim::H_applied = applied_field;
 
       // Reset mean magnetisation counters
       stats::reset();

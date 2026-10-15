@@ -582,6 +582,18 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
+        test="equilibration-applied-field-unit-vector";
+        if(word==test){
+            std::vector<double> u(3);
+            u=doubles_from_string(value);
+            check_for_valid_unit_vector(u, word, line, prefix, "input");
+            sim::Heq_vec[0]=u.at(0);
+            sim::Heq_vec[1]=u.at(1);
+            sim::Heq_vec[2]=u.at(2);
+            sim::equilibration_applied_field_unit_vector_set=true;
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
         test="applied-field-strength-increment";
         if(word==test){
             double H=atof(value.c_str());

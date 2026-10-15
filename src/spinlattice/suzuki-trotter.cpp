@@ -105,6 +105,8 @@ namespace sld{
       std::vector<double>& Hx_th = sld::internal::spin_noise_array_x;
       std::vector<double>& Hy_th = sld::internal::spin_noise_array_y;
       std::vector<double>& Hz_th = sld::internal::spin_noise_array_z;
+      // nonlinear field terms of the current single-spin visit, refilled by compute_spin_field
+      static sld::internal::nonlinear_field_terms_t nonlinear_terms;
 
       generate (Hx_th.begin(),Hx_th.end(), mtrandom::gaussian);
       generate (Hy_th.begin(),Hy_th.end(), mtrandom::gaussian);
@@ -141,26 +143,9 @@ namespace sld{
 
 
 
-      sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                        atom+1, // last +1 atom to be calculated
-                        atoms::neighbour_list_start_index,
-                        atoms::neighbour_list_end_index,
-                        atoms::type_array, // type for atom
-                        atoms::neighbour_list_array, // list of interactions between atoms
-                        atoms::x_coord_array,
-                        atoms::y_coord_array,
-                        atoms::z_coord_array,
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::forces_array_x,
-                        sld::internal::forces_array_y,
-                        sld::internal::forces_array_z,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z);
+      sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-      sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+      sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
       }
 
@@ -172,27 +157,10 @@ namespace sld{
       for(int atom=num_atoms-1;atom>=0;atom--){
 
 
-         sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                           atom+1, // last +1 atom to be calculated
-                           atoms::neighbour_list_start_index,
-                           atoms::neighbour_list_end_index,
-                           atoms::type_array, // type for atom
-                           atoms::neighbour_list_array, // list of interactions between atoms
-                           atoms::x_coord_array,
-                           atoms::y_coord_array,
-                           atoms::z_coord_array,
-                           atoms::x_spin_array,
-                           atoms::y_spin_array,
-                           atoms::z_spin_array,
-                           sld::internal::forces_array_x,
-                           sld::internal::forces_array_y,
-                           sld::internal::forces_array_z,
-                           sld::internal::fields_array_x,
-                           sld::internal::fields_array_y,
-                           sld::internal::fields_array_z);
+         sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
 
-         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
       }
 
@@ -337,26 +305,9 @@ namespace sld{
    for(int atom=0;atom<=num_atoms-1;atom++){
 
 
-   sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                     atom+1, // last +1 atom to be calculated
-                     atoms::neighbour_list_start_index,
-                     atoms::neighbour_list_end_index,
-                     atoms::type_array, // type for atom
-                     atoms::neighbour_list_array, // list of interactions between atoms
-                     atoms::x_coord_array,
-                     atoms::y_coord_array,
-                     atoms::z_coord_array,
-                     atoms::x_spin_array,
-                     atoms::y_spin_array,
-                     atoms::z_spin_array,
-                     sld::internal::forces_array_x,
-                     sld::internal::forces_array_y,
-                     sld::internal::forces_array_z,
-                     sld::internal::fields_array_x,
-                     sld::internal::fields_array_y,
-                     sld::internal::fields_array_z);
+   sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-   sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+   sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
    }
@@ -367,26 +318,9 @@ namespace sld{
 
    for(int atom=num_atoms-1;atom>=0;atom--){
 
-      sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                        atom+1, // last +1 atom to be calculated
-                        atoms::neighbour_list_start_index,
-                        atoms::neighbour_list_end_index,
-                        atoms::type_array, // type for atom
-                        atoms::neighbour_list_array, // list of interactions between atoms
-                        atoms::x_coord_array,
-                        atoms::y_coord_array,
-                        atoms::z_coord_array,
-                        atoms::x_spin_array,
-                        atoms::y_spin_array,
-                        atoms::z_spin_array,
-                        sld::internal::forces_array_x,
-                        sld::internal::forces_array_y,
-                        sld::internal::forces_array_z,
-                        sld::internal::fields_array_x,
-                        sld::internal::fields_array_y,
-                        sld::internal::fields_array_z);
+      sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-      sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+      sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
    }
 
@@ -461,7 +395,8 @@ void update_single_spin(const int atom,
                         const double cayley_dt,
                         const std::vector<double>& Hx_th,
                         const std::vector<double>& Hy_th,
-                        const std::vector<double>& Hz_th){
+                        const std::vector<double>& Hz_th,
+                        const nonlinear_field_terms_t& nonlinear_terms){
 
    // When every term is linear in the spin being updated, don't carry out the extra decomposition since the field is fixed during the update
    if(!sld::internal::nonlinear_spin_hamiltonian){
@@ -477,9 +412,7 @@ void update_single_spin(const int atom,
 
    const neel_vector_t spin_start = {atoms::x_spin_array[atom], atoms::y_spin_array[atom], atoms::z_spin_array[atom]};
 
-   // Gather the nonlinear field terms once since positions and neighbour spins are fixed during this update
-   static nonlinear_field_terms_t nonlinear_terms;
-   sld::internal::gather_nonlinear_field_terms(atom, nonlinear_terms);
+   // The nonlinear field terms were collected by compute_spin_field for this visit, and positions and neighbour spins are fixed during it
    const neel_vector_t nonlinear_field_start = sld::internal::compute_nonlinear_field(nonlinear_terms, spin_start);
    static std::vector<spin_rotation_term_t> rotation_terms;
    sld::internal::build_spin_rotation_terms(nonlinear_terms, rotation_terms);

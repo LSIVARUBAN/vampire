@@ -167,6 +167,8 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
       }
 
       // Calculate the full Neel pair terms, skipping higher orders when q and dq/dr are zero
+      // spin_field_only returns once the spin derivative is complete, for the field of a single-spin update
+      template<bool spin_field_only = false>
       inline neel_pair_result_t evaluate_neel_pair(const neel_vector_t& displacement,
                                                    const neel_vector_t& spin_i,
                                                    const neel_vector_t& spin_j,
@@ -193,6 +195,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             const double A = x*y-one_third*z;
             result.energy = l_curve.value*A;
             result.spin_derivative_i = neel_scale(neel_add(neel_scale(bond, y), neel_scale(spin_j, -one_third)), l_curve.value);
+            if(spin_field_only) return result;
             const neel_vector_t grad_x = neel_scale(neel_add(spin_i, neel_scale(bond, -x)), inverse_distance);
             const neel_vector_t grad_y = neel_scale(neel_add(spin_j, neel_scale(bond, -y)), inverse_distance);
             const neel_vector_t grad_A = neel_add(neel_scale(grad_x, y), neel_scale(grad_y, x));
@@ -237,6 +240,7 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          result.spin_derivative_i = neel_add(neel_scale(dA_dsi, l1),
                                     neel_add(neel_scale(dB_dsi, q1),
                                              neel_scale(dC_dsi, q2)));
+         if(spin_field_only) return result;
 
          // tau=Tr[(I-s_i s_i^T)d^2 Phi/ds_i^2].  The l1*A term is linear in s_i and has zero curvature  
          // for the nonlinear terms tau_B=2y^2-2x^2y^2+2x^2z-4xy/3-2z/3+2(1-z^2)/9 and tau_C=6xy(1-x^2)
@@ -744,6 +748,13 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             std::vector<double>& fields_array_y,
             std::vector<double>& fields_array_z);
 
+      // Add the applied field to atoms start_index to end_index-1 once it is switched on
+      void add_applied_field(const int start_index,
+                             const int end_index,
+                             std::vector<double>& fields_array_x,
+                             std::vector<double>& fields_array_y,
+                             std::vector<double>& fields_array_z);
+
       // One q neighbour of a spin. Positions and neighbour spins are fixed during a single-spin update, so these values are constant for the whole update
       struct neel_q_neighbour_t{
          neel_vector_t bond;   // unit vector from neighbour j to atom i
@@ -767,7 +778,10 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
          int material;
       };
 
-      // Collect the nonlinear field terms of one atom in one pass over its neighbour list
+      // Add the spin field of one atom to the fields array for its single-spin update, without its forces/energies/curvature, and collect its nonlinear field terms for that update
+      void compute_spin_field(const int atom, nonlinear_field_terms_t& terms);
+
+      // Collect the nonlinear field terms of one atom in a separate pass over its neighbour list
       void gather_nonlinear_field_terms(const int atom,
                                         nonlinear_field_terms_t& terms);
 
@@ -846,12 +860,14 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
 
       // Advance one spin from the field already placed in the fields array. When any Hamiltonian term is nonlinear in the spin being updated 
       // (full Neel q, biquadratic exchange, second order uniaxial or fourth order cubic anisotropy), the field terms that depend on that 
-      // spin are split into fixed-axis terms and composed symmetrically with the rest of the field. Hamiltonians linear in the spin follow the original fixed-field approach
+      // spin (collected by compute_spin_field for this visit) are split into fixed-axis terms and composed symmetrically with the rest of the field.
+      // Hamiltonians linear in the spin follow the original fixed-field (double composition) integrator.
       void update_single_spin(const int atom,
                               const double cayley_dt,
                               const std::vector<double>& Hx_th,
                               const std::vector<double>& Hy_th,
-                              const std::vector<double>& Hz_th);
+                              const std::vector<double>& Hz_th,
+                              const nonlinear_field_terms_t& nonlinear_terms);
 
     //MPI variables
     extern std::vector<std::vector<int> > c_octants; //Core atoms of each octant

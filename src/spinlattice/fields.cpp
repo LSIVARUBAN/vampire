@@ -83,17 +83,7 @@ namespace sld{
                                              fields_array_x, fields_array_y, fields_array_z);
       }
 
-      // add the applied field after equilibration, the step from sim::time = equilibration_time is the first production step
-      if(sim::time >= sim::equilibration_time || sim::equilibration_applied_field_set){
-         const double Hx=sim::H_vec[0]*sim::H_applied;
-         const double Hy=sim::H_vec[1]*sim::H_applied;
-         const double Hz=sim::H_vec[2]*sim::H_applied;
-         for(int i=start_index;i<end_index; i++){
-            fields_array_x[i]+=Hx;
-            fields_array_y[i]+=Hy;
-            fields_array_z[i]+=Hz;
-         }
-      }
+      internal::add_applied_field(start_index, end_index, fields_array_x, fields_array_y, fields_array_z);
 
       // add the anisotropy fields and their nonlinear curvature
       anisotropy::fields(atoms::x_spin_array, atoms::y_spin_array,
@@ -108,6 +98,24 @@ namespace sld{
    }
 
 namespace internal{
+
+   // add the applied field after equilibration, the step from sim::time = equilibration_time is the first production step
+   void add_applied_field(const int start_index,
+                          const int end_index,
+                          std::vector<double>& fields_array_x,
+                          std::vector<double>& fields_array_y,
+                          std::vector<double>& fields_array_z){
+      if(sim::time >= sim::equilibration_time || sim::equilibration_applied_field_set){
+         const double Hx=sim::H_vec[0]*sim::H_applied;
+         const double Hy=sim::H_vec[1]*sim::H_applied;
+         const double Hz=sim::H_vec[2]*sim::H_applied;
+         for(int i=start_index;i<end_index; i++){
+            fields_array_x[i]+=Hx;
+            fields_array_y[i]+=Hy;
+            fields_array_z[i]+=Hz;
+         }
+      }
+   }
 
    // Collect all field terms of atom i that depends on s_i itself, once per single-spin update.
    // During the single-spin update, the position and neighbour spins are fixed so we gather pair
@@ -332,7 +340,8 @@ namespace internal{
    }
 
    // calculate distance dependent bilinear or biquadratic exchange fields and forces
-   template<bool fully_periodic>
+   // spin_field_only stores only the field, so unused force/energy/curvature calculations are not done in this mode
+   template<bool fully_periodic, bool spin_field_only>
    void compute_exchange(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -350,7 +359,8 @@ namespace internal{
                std::vector<double>& forces_array_z,
                std::vector<double>& fields_array_x, //  vectors for fields
                std::vector<double>& fields_array_y,
-               std::vector<double>& fields_array_z){
+               std::vector<double>& fields_array_z,
+               nonlinear_field_terms_t& terms){ // filled only by the spin_field_only mode
 
        double rx, ry, rz;
        double dx, dy, dz;
@@ -379,6 +389,8 @@ namespace internal{
           sld::internal::biquadratic_spin_hamiltonian;
        const double hamiltonian_offset =
           sld::internal::exchange_offset ? 1.0 : 0.0;
+       // collect s_j and K(r)/mu_i of each biquadratic pair for the nonlinear hamiltonian single spin update
+       const bool collect_biquadratic = spin_field_only && use_biquadratic && sld::internal::nonlinear_spin_hamiltonian;
 
        for(int i=start_index;i<end_index; ++i){
 
@@ -465,6 +477,7 @@ namespace internal{
                                        sld::internal::mp[imat].bethe_slater_delta_k.get(),
                                        rji);
                        const double k_field = k_curve.value*inverse_moment;
+                       if(collect_biquadratic) terms.biquadratic_neighbours.push_back(biquadratic_neighbour_t{neel_vector_t{sjx, sjy, sjz}, k_field});
                        pair_field += 2.0*k_field*si_dot_sj;
                        // Tr[(I-s_i s_i^T)dB_i^K/ds_i]=2(K/mu_i)[1-(s_i.s_j)^2]
                        hessian_trace +=
@@ -498,6 +511,7 @@ namespace internal{
 
                     if(use_biquadratic){
                        const double K = exch_K0*y*y*y;
+                       if(collect_biquadratic) terms.biquadratic_neighbours.push_back(biquadratic_neighbour_t{neel_vector_t{sjx, sjy, sjz}, K});
                        pair_field += 2.0*K*si_dot_sj;
                        hessian_trace += 2.0*K*(1.0-si_dot_sj*si_dot_sj);
                        radial_derivative +=
@@ -536,9 +550,11 @@ namespace internal{
 
        }//end for loop neighbourlist
 
-       forces_array_x[i] += fx;
-       forces_array_y[i] += fy;
-       forces_array_z[i] += fz;
+       if(!spin_field_only){
+          forces_array_x[i] += fx;
+          forces_array_y[i] += fy;
+          forces_array_z[i] += fz;
+       }
 
        fields_array_x[i] += hx;
        fields_array_y[i] += hy;
@@ -548,9 +564,11 @@ namespace internal{
        std::cout<<"i= "<<i<<" pos  "<<"\t" << rx<<"\t"<<ry<<"\t"<<rz<<std::endl;
        std::cout<<i<<"energ "<<"\t"<<energy<<std::endl;
        std::cout<<i<<"\t"<<hx<<"\t"<<hy<<"\t"<<hz<<"\t"<<fx<<"\t"<<fy<<"\t"<<fz<<std::endl;*/
-       sld::internal::sumJ[i]=sumJ;
-       sld::internal::exch_eng[i]=-0.5*energy;
-       sld::internal::spin_hessian_trace[i] += hessian_trace;
+       if(!spin_field_only){
+          sld::internal::sumJ[i]=sumJ;
+          sld::internal::exch_eng[i]=-0.5*energy;
+          sld::internal::spin_hessian_trace[i] += hessian_trace;
+       }
        //std::cout<<"exchange int"<<count_int<<std::endl;
 
        /*if(abs(x_coord_array[i]-20.09)<1e-3 &&abs(y_coord_array[i]-20.09)<1e-3  && abs(z_coord_array[i]-20.09)<1e-3 ){
@@ -590,28 +608,30 @@ namespace internal{
 
       // Select the PBC mode once to avoid repeated boundary checks in the inner loops
       const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      nonlinear_field_terms_t unused_terms; // nonlinear terms are collected by compute_spin_field
       if(fully_periodic_boundaries){
-         compute_exchange<true>(
+         compute_exchange<true, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
             x_spin_array, y_spin_array, z_spin_array,
             forces_array_x, forces_array_y, forces_array_z,
-            fields_array_x, fields_array_y, fields_array_z);
+            fields_array_x, fields_array_y, fields_array_z, unused_terms);
       }
       else{
-         compute_exchange<false>(
+         compute_exchange<false, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
             x_spin_array, y_spin_array, z_spin_array,
             forces_array_x, forces_array_y, forces_array_z,
-            fields_array_x, fields_array_y, fields_array_z);
+            fields_array_x, fields_array_y, fields_array_z, unused_terms);
       }
    }
 
    // calculate the pseudodipolar spin-lattice coupling fields and forces
-   template<bool fully_periodic>
+   // spin_field_only stores only the field and coupling field to reduce uneccessary calculations 
+   template<bool fully_periodic, bool spin_field_only>
    void compute_sld_coupling(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -755,9 +775,11 @@ namespace internal{
 
 
 
-            forces_array_x[i] += fc_x;
-            forces_array_y[i] += fc_y;
-            forces_array_z[i] += fc_z;
+            if(!spin_field_only){
+               forces_array_x[i] += fc_x;
+               forces_array_y[i] += fc_y;
+               forces_array_z[i] += fc_z;
+            }
 
             fields_array_x[i] += hc_x;
             fields_array_y[i] += hc_y;
@@ -767,8 +789,10 @@ namespace internal{
             sld::internal::coupling_field_y[i] = hc_y;
             sld::internal::coupling_field_z[i] = hc_z;
 
-            sld::internal::sumC[i]=sumC;
-            sld::internal::coupl_eng[i]=-0.5*energy_c;
+            if(!spin_field_only){
+               sld::internal::sumC[i]=sumC;
+               sld::internal::coupl_eng[i]=-0.5*energy_c;
+            }
 
             }
 
@@ -798,7 +822,7 @@ namespace internal{
       // Select the PBC mode once to avoid repeated boundary checks in the inner loops
       const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
       if(fully_periodic_boundaries){
-         compute_sld_coupling<true>(
+         compute_sld_coupling<true, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
@@ -807,7 +831,7 @@ namespace internal{
             fields_array_x, fields_array_y, fields_array_z);
       }
       else{
-         compute_sld_coupling<false>(
+         compute_sld_coupling<false, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
@@ -819,7 +843,8 @@ namespace internal{
 
 
    // calculate full Neel coupling fields, forces, energies and spin curvature
-   template<bool fully_periodic>
+   // spin_field_only evaluates only the spin derivative of each pair and stores only the field and coupling field
+   template<bool fully_periodic, bool spin_field_only>
    void compute_sld_coupling_neel(const int start_index,
                const int end_index, // last +1 atom to be calculated
                const std::vector<int>& neighbour_list_start_index,
@@ -837,7 +862,8 @@ namespace internal{
                std::vector<double>& forces_array_z,
                std::vector<double>& fields_array_x, //  vectors for fields
                std::vector<double>& fields_array_y,
-               std::vector<double>& fields_array_z){
+               std::vector<double>& fields_array_z,
+               nonlinear_field_terms_t& terms){ // filled only by the spin_field_only mode
 
       const double joules_per_electron_volt = 1.602176634e-19;
       const double maximum_cutoff =
@@ -849,6 +875,10 @@ namespace internal{
       const bool use_smooth_cutoff =
          sld::internal::neel_cutoff_function ==
          sld::internal::smooth_neel_cutoff_function;
+      // collect bond, s_j and q(r) of each q pair for the nonlinear single spin update. Follows gather_nonlinear_field_terms where a pair is
+      // added if r^2 < r_cut_q^2 and a nonzero q after the cutoff, so neighbours within only the l cutoff add no q term
+      const bool collect_q = spin_field_only && sld::internal::full_neel_nonlinear_q;
+      const double q_cutoff_squared = sld::internal::r_cut_neel_q*sld::internal::r_cut_neel_q;
 
       // H_Neel=-1/2 sum_ij Phi_ij, Phi_ij=l1*A+q1*B+q2*C
       for(int i=start_index; i<end_index; ++i){
@@ -968,7 +998,10 @@ namespace internal{
                x_spin_array[j], y_spin_array[j], z_spin_array[j]
             };
             const neel_pair_result_t pair =
-               evaluate_neel_pair(displacement, spin_i, spin_j, l_curve, q_curve);
+               evaluate_neel_pair<spin_field_only>(displacement, spin_i, spin_j, l_curve, q_curve);
+            if(collect_q && distance_squared < q_cutoff_squared && q_curve.value != 0.0){
+               terms.q_neighbours.push_back(neel_q_neighbour_t{neel_scale(displacement, 1.0/distance), spin_j, q_curve.value});
+            }
 
             // H_i=-(1/mu_i)dH/ds_i=(1/mu_i)sum_j dPhi_ij/ds_i
             field_x += pair.spin_derivative_i.x*inverse_moment;
@@ -984,9 +1017,11 @@ namespace internal{
          }
 
          // accumulate forces and fields for each atom
-         forces_array_x[i] += force_x;
-         forces_array_y[i] += force_y;
-         forces_array_z[i] += force_z;
+         if(!spin_field_only){
+            forces_array_x[i] += force_x;
+            forces_array_y[i] += force_y;
+            forces_array_z[i] += force_z;
+         }
          fields_array_x[i] += field_x;
          fields_array_y[i] += field_y;
          fields_array_z[i] += field_z;
@@ -994,12 +1029,13 @@ namespace internal{
          sld::internal::coupling_field_x[i] = field_x;
          sld::internal::coupling_field_y[i] = field_y;
          sld::internal::coupling_field_z[i] = field_z;
-         sld::internal::spin_hessian_trace[i] += hessian_trace;
-         sld::internal::sumC[i] =
-            field_x*spin_i.x+field_y*spin_i.y+field_z*spin_i.z;
+         if(!spin_field_only){
+            sld::internal::spin_hessian_trace[i] += hessian_trace;
+            sld::internal::sumC[i] = field_x*spin_i.x+field_y*spin_i.y+field_z*spin_i.z;
 
-         // Each physical pair occurs twice, so store -1/2 sum_j Phi_ij in field units
-         sld::internal::coupl_eng[i] = -0.5*ordered_energy*inverse_moment;
+            // Each physical pair occurs twice, so store -1/2 sum_j Phi_ij in field units
+            sld::internal::coupl_eng[i] = -0.5*ordered_energy*inverse_moment;
+         }
       }
 
       return;
@@ -1026,23 +1062,77 @@ namespace internal{
 
       // Select the PBC mode once to avoid repeated boundary checks in the inner loops
       const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      nonlinear_field_terms_t unused_terms;
       if(fully_periodic_boundaries){
-         compute_sld_coupling_neel<true>(
+         compute_sld_coupling_neel<true, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
             x_spin_array, y_spin_array, z_spin_array,
             forces_array_x, forces_array_y, forces_array_z,
-            fields_array_x, fields_array_y, fields_array_z);
+            fields_array_x, fields_array_y, fields_array_z, unused_terms);
       }
       else{
-         compute_sld_coupling_neel<false>(
+         compute_sld_coupling_neel<false, false>(
             start_index, end_index, neighbour_list_start_index,
             neighbour_list_end_index, type_array, neighbour_list_array,
             x_coord_array, y_coord_array, z_coord_array,
             x_spin_array, y_spin_array, z_spin_array,
             forces_array_x, forces_array_y, forces_array_z,
-            fields_array_x, fields_array_y, fields_array_z);
+            fields_array_x, fields_array_y, fields_array_z, unused_terms);
+      }
+   }
+
+   // Field only version of compute_fields for one atom, mechanical forces, energies, sumJ, sumC and curvature are not calculated
+   // because every function that uses these values first recalculates them with compute_fields
+   // for nonlinear hamiltonians, exchange and full Neel loops loop the same neighbours so the neighbours are not traversed a second time
+   template<bool fully_periodic>
+   void compute_spin_field(const int atom, nonlinear_field_terms_t& terms){
+
+      const unsigned int imat = atoms::type_array[atom];
+      terms.q_neighbours.clear();
+      terms.biquadratic_neighbours.clear();
+      terms.inverse_moment = 1.0/::mp::material[imat].mu_s_SI;
+      terms.material = imat;
+
+      compute_exchange<fully_periodic, true>(atom, atom+1, atoms::neighbour_list_start_index, atoms::neighbour_list_end_index,
+                                             atoms::type_array, atoms::neighbour_list_array,
+                                             atoms::x_coord_array, atoms::y_coord_array, atoms::z_coord_array,
+                                             atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                             forces_array_x, forces_array_y, forces_array_z,
+                                             fields_array_x, fields_array_y, fields_array_z, terms);
+
+      if(pseudodipolar){ compute_sld_coupling<fully_periodic, true>(atom, atom+1, atoms::neighbour_list_start_index, atoms::neighbour_list_end_index,
+                                                                   atoms::type_array, atoms::neighbour_list_array,
+                                                                   atoms::x_coord_array, atoms::y_coord_array, atoms::z_coord_array,
+                                                                   atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                                                   forces_array_x, forces_array_y, forces_array_z,
+                                                                   fields_array_x, fields_array_y, fields_array_z);
+      }
+
+      if(full_neel){ compute_sld_coupling_neel<fully_periodic, true>(atom, atom+1, atoms::neighbour_list_start_index, atoms::neighbour_list_end_index,
+                                                                    atoms::type_array, atoms::neighbour_list_array,
+                                                                    atoms::x_coord_array, atoms::y_coord_array, atoms::z_coord_array,
+                                                                    atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array,
+                                                                    forces_array_x, forces_array_y, forces_array_z,
+                                                                    fields_array_x, fields_array_y, fields_array_z, terms);
+      }
+
+      add_applied_field(atom, atom+1, fields_array_x, fields_array_y, fields_array_z);
+
+      anisotropy::fields(atoms::x_spin_array, atoms::y_spin_array, atoms::z_spin_array, atoms::type_array,
+                         fields_array_x, fields_array_y, fields_array_z, atom, atom+1, sim::temperature);
+      return;
+   }
+
+   // Select the PBC mode once to avoid repeated boundary checks in the inner loops
+   void compute_spin_field(const int atom, nonlinear_field_terms_t& terms){
+      const bool fully_periodic_boundaries = cs::pbc[0] && cs::pbc[1] && cs::pbc[2];
+      if(fully_periodic_boundaries){
+         compute_spin_field<true>(atom, terms);
+      }
+      else{
+         compute_spin_field<false>(atom, terms);
       }
    }
 

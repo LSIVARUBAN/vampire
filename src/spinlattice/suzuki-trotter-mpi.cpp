@@ -182,6 +182,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
          std::vector<double>& Hx_th = sld::internal::spin_noise_array_x;
          std::vector<double>& Hy_th = sld::internal::spin_noise_array_y;
          std::vector<double>& Hz_th = sld::internal::spin_noise_array_z;
+         // nonlinear field terms of the current single-spin visit, refilled by compute_spin_field
+         static sld::internal::nonlinear_field_terms_t nonlinear_terms;
 
          generate (Hx_th.begin(),Hx_th.end(), mtrandom::gaussian);
          generate (Hy_th.begin(),Hy_th.end(), mtrandom::gaussian);
@@ -252,26 +254,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
          atom = internal::c_octants[octant][i];
 
 
-         sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                           atom+1, // last +1 atom to be calculated
-                           atoms::neighbour_list_start_index,
-                           atoms::neighbour_list_end_index,
-                           atoms::type_array, // type for atom
-                           atoms::neighbour_list_array, // list of interactions between atoms
-                           atoms::x_coord_array,
-                           atoms::y_coord_array,
-                           atoms::z_coord_array,
-                           atoms::x_spin_array,
-                           atoms::y_spin_array,
-                           atoms::z_spin_array,
-                           sld::internal::forces_array_x,
-                           sld::internal::forces_array_y,
-                           sld::internal::forces_array_z,
-                           sld::internal::fields_array_x,
-                           sld::internal::fields_array_y,
-                           sld::internal::fields_array_z);
+         sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update
 
-         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
 
@@ -286,26 +271,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
 
 
-         sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                           atom+1, // last +1 atom to be calculated
-                           atoms::neighbour_list_start_index,
-                           atoms::neighbour_list_end_index,
-                           atoms::type_array, // type for atom
-                           atoms::neighbour_list_array, // list of interactions between atoms
-                           atoms::x_coord_array,
-                           atoms::y_coord_array,
-                           atoms::z_coord_array,
-                           atoms::x_spin_array,
-                           atoms::y_spin_array,
-                           atoms::z_spin_array,
-                           sld::internal::forces_array_x,
-                           sld::internal::forces_array_y,
-                           sld::internal::forces_array_z,
-                           sld::internal::fields_array_x,
-                           sld::internal::fields_array_y,
-                           sld::internal::fields_array_z);
+         sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+         sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
 
@@ -338,26 +306,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
             for (int i=bdry_at-1;i>=0;i--){
             atom = internal::b_octants[octant][i];
 
-            sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                              atom+1, // last +1 atom to be calculated
-                              atoms::neighbour_list_start_index,
-                              atoms::neighbour_list_end_index,
-                              atoms::type_array, // type for atom
-                              atoms::neighbour_list_array, // list of interactions between atoms
-                              atoms::x_coord_array,
-                              atoms::y_coord_array,
-                              atoms::z_coord_array,
-                              atoms::x_spin_array,
-                              atoms::y_spin_array,
-                              atoms::z_spin_array,
-                              sld::internal::forces_array_x,
-                              sld::internal::forces_array_y,
-                              sld::internal::forces_array_z,
-                              sld::internal::fields_array_x,
-                              sld::internal::fields_array_y,
-                              sld::internal::fields_array_z);
+            sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
 
@@ -369,26 +320,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
             for (int i=core_at-1;i>=0;i--){
             atom = internal::c_octants[octant][i];
 
-            sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                              atom+1, // last +1 atom to be calculated
-                              atoms::neighbour_list_start_index,
-                              atoms::neighbour_list_end_index,
-                              atoms::type_array, // type for atom
-                              atoms::neighbour_list_array, // list of interactions between atoms
-                              atoms::x_coord_array,
-                              atoms::y_coord_array,
-                              atoms::z_coord_array,
-                              atoms::x_spin_array,
-                              atoms::y_spin_array,
-                              atoms::z_spin_array,
-                              sld::internal::forces_array_x,
-                              sld::internal::forces_array_y,
-                              sld::internal::forces_array_z,
-                              sld::internal::fields_array_x,
-                              sld::internal::fields_array_y,
-                              sld::internal::fields_array_z);
+            sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+            sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
             }//end spin loop
              vmpi::barrier();
@@ -671,26 +605,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
              atom = internal::c_octants[octant][i];
 
 
-             sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                               atom+1, // last +1 atom to be calculated
-                               atoms::neighbour_list_start_index,
-                               atoms::neighbour_list_end_index,
-                               atoms::type_array, // type for atom
-                               atoms::neighbour_list_array, // list of interactions between atoms
-                               atoms::x_coord_array,
-                               atoms::y_coord_array,
-                               atoms::z_coord_array,
-                               atoms::x_spin_array,
-                               atoms::y_spin_array,
-                               atoms::z_spin_array,
-                               sld::internal::forces_array_x,
-                               sld::internal::forces_array_y,
-                               sld::internal::forces_array_z,
-                               sld::internal::fields_array_x,
-                               sld::internal::fields_array_y,
-                               sld::internal::fields_array_z);
+             sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-             sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+             sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
 
@@ -705,26 +622,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
         atom = internal::b_octants[octant][i];
 
 
-        sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                          atom+1, // last +1 atom to be calculated
-                          atoms::neighbour_list_start_index,
-                          atoms::neighbour_list_end_index,
-                          atoms::type_array, // type for atom
-                          atoms::neighbour_list_array, // list of interactions between atoms
-                          atoms::x_coord_array,
-                          atoms::y_coord_array,
-                          atoms::z_coord_array,
-                          atoms::x_spin_array,
-                          atoms::y_spin_array,
-                          atoms::z_spin_array,
-                          sld::internal::forces_array_x,
-                          sld::internal::forces_array_y,
-                          sld::internal::forces_array_z,
-                          sld::internal::fields_array_x,
-                          sld::internal::fields_array_y,
-                          sld::internal::fields_array_z);
+        sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-        sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+        sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
 
 
@@ -755,26 +655,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                 atom = internal::b_octants[octant][i];
 
 
-                sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                                  atom+1, // last +1 atom to be calculated
-                                  atoms::neighbour_list_start_index,
-                                  atoms::neighbour_list_end_index,
-                                  atoms::type_array, // type for atom
-                                  atoms::neighbour_list_array, // list of interactions between atoms
-                                  atoms::x_coord_array,
-                                  atoms::y_coord_array,
-                                  atoms::z_coord_array,
-                                  atoms::x_spin_array,
-                                  atoms::y_spin_array,
-                                  atoms::z_spin_array,
-                                  sld::internal::forces_array_x,
-                                  sld::internal::forces_array_y,
-                                  sld::internal::forces_array_z,
-                                  sld::internal::fields_array_x,
-                                  sld::internal::fields_array_y,
-                                  sld::internal::fields_array_z);
+                sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
                 }//end spin loop
 
@@ -784,26 +667,9 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
             for (int i=core_at-1;i>=0;i--){
                 atom = internal::c_octants[octant][i];
 
-                sld::compute_fields(atom, // first atom for exchange interactions to be calculated
-                                  atom+1, // last +1 atom to be calculated
-                                  atoms::neighbour_list_start_index,
-                                  atoms::neighbour_list_end_index,
-                                  atoms::type_array, // type for atom
-                                  atoms::neighbour_list_array, // list of interactions between atoms
-                                  atoms::x_coord_array,
-                                  atoms::y_coord_array,
-                                  atoms::z_coord_array,
-                                  atoms::x_spin_array,
-                                  atoms::y_spin_array,
-                                  atoms::z_spin_array,
-                                  sld::internal::forces_array_x,
-                                  sld::internal::forces_array_y,
-                                  sld::internal::forces_array_z,
-                                  sld::internal::fields_array_x,
-                                  sld::internal::fields_array_y,
-                                  sld::internal::fields_array_z);
+                sld::internal::compute_spin_field(atom, nonlinear_terms); // field and nonlinear terms only, for the single-spin update below
 
-                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th);
+                sld::internal::update_single_spin(atom, cay_dt, Hx_th, Hy_th, Hz_th, nonlinear_terms);
 
                 }//end spin loop
 

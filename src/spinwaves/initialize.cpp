@@ -25,6 +25,7 @@
 #include "errors.hpp"
 #include "program.hpp"
 #include "sim.hpp"
+#include "sld.hpp"
 #include "vio.hpp"
 #include "unitcell.hpp"
 #include "vmpi.hpp"
@@ -66,7 +67,25 @@ namespace spinwaves{
 			err::vexit();
 		#endif
 
+		if(spinwaves::phonon_vacf && internal::phonon_dos){
+			err::zexit("spinwaves:phonon-vacf and spinwaves:phonon-dos cannot both be enabled");
+		}
+
+		if((spinwaves::phonon_vacf || internal::phonon_dos) && (!sld::enabled || sim::integrator != sim::suzuki_trotter)){
+			err::zexit("spinwaves:phonon-vacf and spinwaves:phonon-dos require sim:integrator = spin-lattice");
+		}
+
       	if(spinwaves::phonon_vacf) return;
+
+		// phonon DOS records atom velocities directly
+		if(internal::phonon_dos){
+			if(sim::partial_time == 0 || sim::total_time == 0 || sim::total_time % sim::partial_time != 0){
+				err::zexit("spinwaves:phonon-dos requires sim:total-time-steps to be a multiple of sim:time-steps-increment");
+			}
+			std::cout << "Spinwave module initialised for per-atom phonon DOS" << std::endl;
+			zlog << zTs() << "Spinwave module initialised for per-atom phonon DOS" << std::endl;
+			return;
+		}
 
 		// check spectrum values in input file are in agreement with the spinwaves:number-of-spectrums
 		spinwaves::internal::check_numbering_of_spectrums();

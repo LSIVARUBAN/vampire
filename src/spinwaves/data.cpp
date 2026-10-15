@@ -44,6 +44,7 @@ namespace spinwaves{
       int vacf_sample_rate = 5; // one recorded velocity frame per five integration steps
       double vacf_max_correlation_time = 10.0e-12; // default ten-picosecond lag range, stored in seconds
       bool vacf_remove_com = true; // exclude overall translation from the recorded velocities
+      bool phonon_dos = false;
 
       //------------------------------------------------------------------------
       // Shared variables inside sw module

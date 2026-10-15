@@ -25,7 +25,6 @@
 #include "errors.hpp"
 #include "material.hpp"
 #include "sim.hpp"
-#include "sld.hpp"
 #include "spinwaves.hpp"
 #include "stats.hpp"
 #include "vio.hpp"
@@ -110,10 +109,6 @@ namespace spinwaves{
       #ifndef FFT
          err::zexit("spinwaves:phonon-vacf requires FFTW");
       #else
-         if(!sld::enabled || sim::integrator != sim::suzuki_trotter){
-            err::zexit("spinwaves:phonon-vacf requires sim:integrator = spin-lattice");
-         }
-
          const uint64_t sample_rate = internal::vacf_sample_rate;
          const double sample_time = mp::dt_SI*sample_rate; // time between recorded frames in seconds
          const uint64_t expected_frames = sim::total_time/sample_rate; 

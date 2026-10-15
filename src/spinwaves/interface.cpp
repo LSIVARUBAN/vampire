@@ -44,6 +44,12 @@ namespace spinwaves{
             return true;
          }
 
+         test="phonon-dos";
+         if(word==test){
+            internal::phonon_dos = vin::check_for_valid_bool(value, word, line, prefix, "input");
+            return true;
+         }
+
          test="vacf-sample-rate";
          if(word==test){
             int rate = vin::str_to_int(value);

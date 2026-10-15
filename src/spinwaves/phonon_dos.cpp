@@ -5,7 +5,7 @@
 //
 //   (c) Lennon Sivaruban, 2026.
 //
-//   Email: lennon.sivaruban@postgrad.manchester.ac.uk
+//   Email: lennon.sivaruban@manchester.ac.uk
 //
 //------------------------------------------------------------------------------
 //

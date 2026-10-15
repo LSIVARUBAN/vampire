@@ -3,9 +3,9 @@
 //   This file is part of the VAMPIRE open source package under the
 //   Free BSD licence (see licence file for details).
 //
-//   Dev: Lennon Sivaruban, 2026.
+//   (c) Lennon Sivaruban, 2026.
 //
-//   Email: lennon.sivaruban@postgrad.manchester.ac.uk
+//   Email: lennon.sivaruban@manchester.ac.uk
 //
 //------------------------------------------------------------------------------
 

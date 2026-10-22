@@ -71,6 +71,18 @@ namespace sim{
    bool end_condition_trigger_set = false; 
    uint64_t end_condition_buffer = 0; // number of additional time steps to be carried out after the trigger condition is met
    bool end_condition_buffer_set = false;
+   bool end_condition_triggered = false; // termination condition latched, saved in checkpoints
+   uint64_t end_condition_end_time = 0; // final time step requested by the latched end condition
+
+   bool alternating_field_enabled = false; // reverse the production applied field in time series simulations
+   bool alternating_field_trigger_controls_set = false; // any magnetisation trigger control given in the input
+   alternating_field_mode_t alternating_field_mode = alternating_field_mode_unset; // fixed interval or magnetisation trigger
+   uint64_t alternating_field_interval_steps = 0; // integration steps between reversals
+   end_condition_component_t alternating_field_component = end_condition_component_unset; // magnetisation component for the trigger
+   double alternating_field_trigger = 0.0; // threshold for the first reversal
+   end_condition_trigger_method_t alternating_field_trigger_method = end_condition_method_unset; // leq or geq for the first reversal
+   uint64_t alternating_field_buffer = 0; // integration steps between detection and reversal
+   alternating_field_state_t alternating_field_state; // schedule state saved in checkpoints
 
    int domain_wall_axis = 0;
    double domain_wall_position = 0.25;

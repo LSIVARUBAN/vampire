@@ -97,6 +97,30 @@ namespace sim{
 	extern bool end_condition_trigger_set;
 	extern uint64_t end_condition_buffer;
 	extern bool end_condition_buffer_set;
+	extern bool end_condition_triggered; // termination condition, saved in checkpoints
+	extern uint64_t end_condition_end_time; // final time step requested by the end condition
+
+	// optional applied field reversals in production stage of time series simulations, at a fixed interval or after a magnetisation trigger
+	enum alternating_field_mode_t { alternating_field_mode_unset = 0, alternating_field_interval_mode = 1, alternating_field_trigger_mode = 2 };
+	extern bool alternating_field_enabled;
+	extern bool alternating_field_trigger_controls_set; // any magnetisation trigger control was given in the input
+	extern alternating_field_mode_t alternating_field_mode;
+	extern uint64_t alternating_field_interval_steps; // integration steps between reversals
+	extern end_condition_component_t alternating_field_component;
+	extern double alternating_field_trigger; // threshold for the first reversal, mirrored after each reversal (good for uniaxial systems)
+	extern end_condition_trigger_method_t alternating_field_trigger_method; // comparison for the first reversal, swapped after each reversal
+	extern uint64_t alternating_field_buffer; // integration steps between trigger detection and reversal
+
+	// alternating field state, saved in checkpoints
+	struct alternating_field_state_t{
+		uint64_t reversals = 0; // reversals applied since production started
+		bool pending = false; // for trigger mode: threshold reached, waiting for buffer then field reversal
+		uint64_t detection_time = 0; // for trigger mode: time step at which the threshold was reached
+		uint64_t switch_time = 0; // for trigger mode: time step from which the pending reversal applies ie detection_time + buffer
+		double base_field = 0.0; // production field strength
+		double base_direction[3] = {0.0, 0.0, 1.0}; // production field direction
+	};
+	extern alternating_field_state_t alternating_field_state;
 	extern int runs;
 	extern int64_t parity;
 	extern uint64_t output_atoms_file_counter;

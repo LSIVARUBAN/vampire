@@ -222,6 +222,34 @@ int run(){
 	if(sim::end_condition_nan_enabled && program::program != 1)
 		err::zexit("sim:end-condition-nan is compatible with the time-series program only");
 
+	if((sim::alternating_field_interval_steps != 0 || sim::alternating_field_trigger_controls_set) && !sim::alternating_field_enabled)
+		err::zexit("sim:alternating-field controls require sim:alternating-applied-field = true");
+	if(sim::alternating_field_enabled){
+		if(program::program != 1)
+			err::zexit("sim:alternating-applied-field is compatible with the time-series program only");
+		if(sim::H_applied == 0.0)
+			err::zexit("sim:alternating-applied-field requires a nonzero sim:applied-field-strength");
+		const bool interval_set = sim::alternating_field_interval_steps != 0;
+		if(interval_set && sim::alternating_field_trigger_controls_set)
+			err::zexit("sim:alternating-field-interval cannot be combined with the sim:alternating-field trigger controls");
+		if(interval_set) sim::alternating_field_mode = sim::alternating_field_interval_mode;
+		else{
+			if(!sim::alternating_field_trigger_controls_set)
+				err::zexit("sim:alternating-applied-field requires sim:alternating-field-interval or the sim:alternating-field trigger controls");
+			if(sim::alternating_field_component == sim::end_condition_component_unset)
+				err::zexit("sim:alternating-field-component is required when using a magnetisation triggered alternating field");
+			if(sim::alternating_field_trigger == 0.0)
+				err::zexit("sim:alternating-field-trigger is required when using a magnetisation triggered alternating field");
+			if(sim::alternating_field_trigger_method == sim::end_condition_method_unset)
+				err::zexit("sim:alternating-field-trigger-method is required when using a magnetisation triggered alternating field");
+			const bool leq = sim::alternating_field_trigger_method == sim::end_condition_leq;
+			if((leq && sim::alternating_field_trigger > 0.0) || (!leq && sim::alternating_field_trigger < 0.0))
+				err::zexit("sim:alternating-field-trigger must be negative with leq or positive with geq");
+			sim::alternating_field_mode = sim::alternating_field_trigger_mode;
+			stats::calculate_system_magnetization = true;
+		}
+	}
+
 	// make sure magnetisation is calculated if either end condition is enabled
 	if(sim::end_condition_enabled || sim::end_condition_nan_enabled)
 		stats::calculate_system_magnetization = true;

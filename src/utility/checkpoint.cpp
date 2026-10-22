@@ -16,6 +16,7 @@
 // Program headers
 #include "atoms.hpp"
 #include "errors.hpp"
+#include "material.hpp"
 #include "random.hpp"
 #include "sim.hpp"
 #include "sld.hpp"
@@ -32,6 +33,81 @@ namespace{
    // integrator seed which started the loaded checkpoint chain, -1 if not recorded by an older checkpoint
    bool chain_seed_loaded = false;
    int32_t chain_seed = -1;
+
+   // markers for the optional records appended after the seed record (ASCII "ALTFLD03" and "ENDCND01" in little endian)
+   const uint64_t alternating_field_tag = 0x3330444C46544C41;
+   const uint64_t end_condition_tag = 0x3130444E43444E45;
+
+   // read the accumulated statistics, restoring them only if restore is true, otherwise the records are just consumed
+   void load_statistics(std::ifstream& chkfile, const bool restore){
+      stats::system_magnetization.load_checkpoint(chkfile,restore);
+      stats::grain_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_grain_magnetization.load_checkpoint(chkfile,restore);
+      stats::height_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_height_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_grain_height_magnetization.load_checkpoint(chkfile,restore);
+
+      stats::system_specific_heat.load_checkpoint(chkfile,restore);
+      stats::grain_specific_heat.load_checkpoint(chkfile,restore);
+      stats::material_specific_heat.load_checkpoint(chkfile,restore);
+
+      stats::system_susceptibility.load_checkpoint(chkfile,restore);
+      stats::grain_susceptibility.load_checkpoint(chkfile,restore);
+      stats::material_susceptibility.load_checkpoint(chkfile,restore);
+   }
+
+   // check that the input uses the same alternating field protocol and restore its schedule state
+   void load_alternating_field_record(std::ifstream& chkfile){
+
+      int32_t mode32, component32, method32;
+      uint64_t interval_steps, buffer, partial_time;
+      double trigger, dt;
+      sim::alternating_field_state_t state;
+      chkfile.read((char*)&mode32,sizeof(int32_t));
+      chkfile.read((char*)&interval_steps,sizeof(uint64_t));
+      chkfile.read((char*)&component32,sizeof(int32_t));
+      chkfile.read((char*)&trigger,sizeof(double));
+      chkfile.read((char*)&method32,sizeof(int32_t));
+      chkfile.read((char*)&buffer,sizeof(uint64_t));
+      chkfile.read((char*)&dt,sizeof(double));
+      chkfile.read((char*)&partial_time,sizeof(uint64_t));
+      chkfile.read((char*)&state.base_field,sizeof(double));
+      chkfile.read((char*)&state.base_direction[0],sizeof(double)*3);
+      chkfile.read((char*)&state.reversals,sizeof(uint64_t));
+      chkfile.read((char*)&state.pending,sizeof(bool));
+      chkfile.read((char*)&state.detection_time,sizeof(uint64_t));
+      if(!chkfile) err::zexit("Incomplete alternating field record in checkpoint file");
+
+      // the saved schedule state is only correct for the same protocol, so do not reinterpret it with changed input
+      if(!sim::alternating_field_enabled) err::zexit("Checkpoint was saved with sim:alternating-applied-field, which must also be enabled to continue it");
+      const bool same_protocol = mode32 == int32_t(sim::alternating_field_mode) && interval_steps == sim::alternating_field_interval_steps &&
+                                 component32 == int32_t(sim::alternating_field_component) && trigger == sim::alternating_field_trigger &&
+                                 method32 == int32_t(sim::alternating_field_trigger_method) && buffer == sim::alternating_field_buffer &&
+                                 state.base_field == sim::H_applied && state.base_direction[0] == sim::H_vec[0] &&
+                                 state.base_direction[1] == sim::H_vec[1] && state.base_direction[2] == sim::H_vec[2];
+      if(!same_protocol) err::zexit("Alternating field settings or applied field differ from those saved in the checkpoint");
+
+      // the schedule is in time steps, so a different time step changes its duration, and the trigger is only checked at output samples
+      if(dt != mp::dt_SI) err::zexit("sim:time-step differs from the checkpoint, which would change the duration of the alternating field schedule");
+      if(sim::alternating_field_mode == sim::alternating_field_trigger_mode && partial_time != sim::partial_time)
+         err::zexit("sim:time-steps-increment differs from the checkpoint, which would change when the alternating field trigger is detected");
+
+      state.switch_time = state.detection_time + sim::alternating_field_buffer;
+      sim::alternating_field_state = state;
+
+   }
+
+   // read the latched end condition, which is only used when the input also enables an end condition
+   void load_end_condition_record(std::ifstream& chkfile){
+      bool triggered = false;
+      uint64_t end_time = 0;
+      chkfile.read((char*)&triggered,sizeof(bool));
+      chkfile.read((char*)&end_time,sizeof(uint64_t));
+      if(!chkfile) err::zexit("Incomplete end condition record in checkpoint file");
+      sim::end_condition_triggered = triggered;
+      sim::end_condition_end_time = end_time;
+   }
 
 }
 
@@ -136,6 +212,36 @@ void save_checkpoint(){
    const int32_t seed32 = chain_seed_loaded ? chain_seed : int32_t(mtrandom::integration_seed);
    chkfile.write(reinterpret_cast<const char*>(&integration_seed_tag),sizeof(uint64_t));
    chkfile.write(reinterpret_cast<const char*>(&seed32),sizeof(int32_t));
+
+   // append the alternating field protocol and schedule state, only when enabled so other checkpoints are unchanged
+   if(sim::alternating_field_enabled){
+      const int32_t mode32 = int32_t(sim::alternating_field_mode);
+      const int32_t component32 = int32_t(sim::alternating_field_component);
+      const int32_t method32 = int32_t(sim::alternating_field_trigger_method);
+      const uint64_t partial_time = sim::partial_time;
+      const sim::alternating_field_state_t& state = sim::alternating_field_state;
+      chkfile.write(reinterpret_cast<const char*>(&alternating_field_tag),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&mode32),sizeof(int32_t));
+      chkfile.write(reinterpret_cast<const char*>(&sim::alternating_field_interval_steps),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&component32),sizeof(int32_t));
+      chkfile.write(reinterpret_cast<const char*>(&sim::alternating_field_trigger),sizeof(double));
+      chkfile.write(reinterpret_cast<const char*>(&method32),sizeof(int32_t));
+      chkfile.write(reinterpret_cast<const char*>(&sim::alternating_field_buffer),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&mp::dt_SI),sizeof(double));
+      chkfile.write(reinterpret_cast<const char*>(&partial_time),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&state.base_field),sizeof(double));
+      chkfile.write(reinterpret_cast<const char*>(&state.base_direction[0]),sizeof(double)*3);
+      chkfile.write(reinterpret_cast<const char*>(&state.reversals),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&state.pending),sizeof(bool));
+      chkfile.write(reinterpret_cast<const char*>(&state.detection_time),sizeof(uint64_t));
+   }
+
+   // append the end condition latch, only when an end condition is enabled
+   if(sim::end_condition_enabled){
+      chkfile.write(reinterpret_cast<const char*>(&end_condition_tag),sizeof(uint64_t));
+      chkfile.write(reinterpret_cast<const char*>(&sim::end_condition_triggered),sizeof(bool));
+      chkfile.write(reinterpret_cast<const char*>(&sim::end_condition_end_time),sizeof(uint64_t));
+   }
 
    // close checkpoint file
    chkfile.close();
@@ -272,31 +378,42 @@ void load_checkpoint(){
       }
    #endif
    
-   // calculate the instantaneous statistics from the restored atom state
-   stats::update();
-
-   // load statistical properties from file
-   stats::system_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::grain_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_grain_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::height_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_height_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_grain_height_magnetization.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-
-   stats::system_specific_heat.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::grain_specific_heat.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_specific_heat.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-
-   stats::system_susceptibility.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::grain_susceptibility.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
-   stats::material_susceptibility.load_checkpoint(chkfile,sim::load_checkpoint_continue_flag);
+   // The optional records after the statistics restore the alternating field state, which selects the field used by the first
+   // instantaneous statistics. So consume the accumulated statistics without restoring them, read the optional records, calculate
+   // the instantaneous statistics once, then return and restore the accumulated statistics, so that the checkpoint sample is not included twice.
+   const std::streampos statistics_start = chkfile.tellg();
+   load_statistics(chkfile, false);
 
    // read the optional seed record, which older checkpoint files end before
    uint64_t seed_tag = 0;
    int32_t seed32 = -1;
    const bool seed_record = chkfile.read((char*)&seed_tag,sizeof(uint64_t)) && seed_tag == integration_seed_tag && chkfile.read((char*)&seed32,sizeof(int32_t));
    if(!seed_record) seed32 = -1;
+
+   // read the optional records which follow the seed record when continuing, a restart uses the settings in the input
+   bool alternating_field_record_loaded = false;
+   if(seed_record && sim::load_checkpoint_continue_flag){
+      uint64_t tag = 0;
+      while(chkfile.read((char*)&tag,sizeof(uint64_t))){
+         if(tag == alternating_field_tag){
+            load_alternating_field_record(chkfile);
+            alternating_field_record_loaded = true;
+         }
+         else if(tag == end_condition_tag) load_end_condition_record(chkfile);
+         else break;
+      }
+   }
+   if(sim::load_checkpoint_continue_flag && sim::alternating_field_enabled && !alternating_field_record_loaded)
+      err::zexit("Cannot continue an alternating field from a checkpoint without alternating field state");
+
+   // select the time series field for the restored stage and reversal count, then calculate the instantaneous statistics from the restored atom state
+   if(sim::load_checkpoint_continue_flag && program::program == 1) program::set_time_series_field(true);
+   stats::update();
+
+   // restore the accumulated statistics
+   chkfile.clear();
+   chkfile.seekg(statistics_start);
+   load_statistics(chkfile, sim::load_checkpoint_continue_flag);
 
    // close checkpoint file
    chkfile.close();

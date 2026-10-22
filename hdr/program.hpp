@@ -49,6 +49,7 @@ namespace program
 	// program functions
 	extern int bmark();
 	extern void time_series();
+	extern void set_time_series_field(const bool ending_step); // select the applied field for the current time series stage
 	extern int hysteresis();
 	extern int static_hysteresis();
    extern void partial_hysteresis_loop();

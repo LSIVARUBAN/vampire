@@ -159,6 +159,58 @@ namespace sim{
          sim::end_condition_enabled = true;
          return true;
       }
+      //--------------------------------------------------------------------
+      test="alternating-applied-field";
+      if(word==test){
+         sim::alternating_field_enabled = vin::check_for_valid_bool(value, word, line, prefix, "input");
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="alternating-field-interval";
+      if(word==test){
+         uint64_t interval = vin::str_to_uint64(value);
+         vin::check_for_valid_int(interval, word, line, prefix, 1, max_time,"input","1 - "+max_time_str);
+         sim::alternating_field_interval_steps = interval;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="alternating-field-component";
+      if(word==test){
+         if(value=="magnetisation_x") sim::alternating_field_component = sim::end_condition_mx;
+         else if(value=="magnetisation_y") sim::alternating_field_component = sim::end_condition_my;
+         else if(value=="magnetisation_z") sim::alternating_field_component = sim::end_condition_mz;
+         else err::zexit("sim:alternating-field-component must be magnetisation_x, magnetisation_y or magnetisation_z");
+         sim::alternating_field_trigger_controls_set = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="alternating-field-trigger";
+      if(word==test){
+         double trigger = vin::str_to_double(value);
+         vin::check_for_valid_value(trigger, word, line, prefix, unit, "none", -1.0, 1.0,"input","-1 - 1");
+         if(trigger == 0.0) err::zexit("sim:alternating-field-trigger must be nonzero");
+         sim::alternating_field_trigger = trigger;
+         sim::alternating_field_trigger_controls_set = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="alternating-field-trigger-method";
+      if(word==test){
+         if(value=="leq") sim::alternating_field_trigger_method = sim::end_condition_leq;
+         else if(value=="geq") sim::alternating_field_trigger_method = sim::end_condition_geq;
+         else err::zexit("sim:alternating-field-trigger-method must be leq or geq");
+         sim::alternating_field_trigger_controls_set = true;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="alternating-field-buffer";
+      if(word==test){
+         uint64_t buffer = vin::str_to_uint64(value);
+         vin::check_for_valid_int(buffer, word, line, prefix, 0, max_time,"input","0 - "+max_time_str);
+         sim::alternating_field_buffer = buffer;
+         sim::alternating_field_trigger_controls_set = true;
+         return true;
+      }
       test = "integrator";
       if( word == test ){
          //--------------------------------------------------------------------

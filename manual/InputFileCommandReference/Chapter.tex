@@ -766,7 +766,25 @@ Sets the dimensionless magnetisation component threshold in the range $[-1,1]$.
 Sets the required threshold comparison. \textit{leq} or \textit{geq} can be specified, which triggers when the selected component is less than or equal to, or greater than or equal to the trigger threshold, respectively.
 
 {\zicf sim:end-condition-buffer = integer}\phantomsection\addcontentsline{toc}{subsection}{sim:end-condition-buffer}
-Sets the number of additional integration time steps to be carried out after the trigger condition is satisfied. For simulations with an end condition,\textit{sim:total-time-steps} is used as the abolute maximum number of time steps.
+Sets the number of additional integration time steps to be carried out after the trigger condition is satisfied. For simulations with an end condition,\textit{sim:total-time-steps} is used as the abolute maximum number of time steps. A triggered end condition is saved in checkpoints, so a continued simulation stops at the same time step.
+
+{\zicf sim:alternating-applied-field = true|false [default false]}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-applied-field}
+Reverses the applied field during the production stage of \textit{sim:program = time-series}, either at a fixed interval (\textit{sim:alternating-field-interval}) or after a magnetisation trigger (\textit{sim:alternating-field-component}, \textit{sim:alternating-field-trigger}, \textit{sim:alternating-field-trigger-method} and optionally \textit{sim:alternating-field-buffer}).
+
+{\zicf sim:alternating-field-interval = integer}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-field-interval}
+Number of integration time steps between reversals, measured from the start of production. This is half of the full field period.
+
+{\zicf sim:alternating-field-component = component}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-field-component}
+Selects the normalised system magnetisation component for a magnetisation triggered alternating field: \textit{magnetisation\_x}, \textit{magnetisation\_y} or \textit{magnetisation\_z}.
+
+{\zicf sim:alternating-field-trigger = real}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-field-trigger}
+Nonzero magnetisation component threshold in the range $[-1,1]$ for the first reversal. After each reversal the threshold changes sign and the comparison swaps between \textit{leq} and \textit{geq}, so the field reverses each time the magnetisation reaches the opposite target.
+
+{\zicf sim:alternating-field-trigger-method = leq|geq}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-field-trigger-method}
+Comparison for the first reversal, \textit{leq} (less than or equal to) or \textit{geq} (greater than or equal to) the threshold.
+
+{\zicf sim:alternating-field-buffer = integer [default 0]}\phantomsection\addcontentsline{toc}{subsection}{sim:alternating-field-buffer}
+Number of integration time steps between the output step at which the threshold is reached and the reversal.
 
 {\zicf sim:loop-time-steps}\phantomsection\addcontentsline{toc}{subsection}{sim:loop-time-steps} The number of time steps that statistics are taken over, including the \textit{mean-magnetisation} and \textit{material-standard-deviation}. This takes place after sim:equilibration time steps have passed in simulations such as \textit{program:curie-temperature}.
 

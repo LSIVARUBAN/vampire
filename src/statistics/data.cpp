@@ -43,6 +43,8 @@ namespace stats{
    bool calculate_system_lattice_temp           = false;
    bool calculate_grain_lattice_temp            = false;
    bool calculate_material_lattice_temp         = false;
+   bool calculate_system_angular_momentum       = false;
+   bool calculate_material_angular_momentum     = false;
 
    bool calculate_system_specific_heat          = false;
    bool calculate_grain_specific_heat           = false;

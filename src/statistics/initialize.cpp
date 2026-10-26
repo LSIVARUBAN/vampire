@@ -341,12 +341,12 @@ namespace stats{
       //------------------------------------------------------------------------
       // system lattice temperature
       //------------------------------------------------------------------------
-      if(stats::calculate_system_lattice_temp){
+      if(stats::calculate_system_lattice_temp || stats::calculate_system_angular_momentum){
        for(int atom=0; atom < stats::num_atoms; ++atom){
           // every atom with a lattice mass contributes, including atoms with no magnetic moment.
           mask[atom] = 0;
        }
-       stats::system_lattice_temp.set_mask(1+1,mask,magnetic_moment_array);
+       stats::system_lattice_temp.set_mask(1+1,mask,magnetic_moment_array,stats::calculate_system_lattice_temp,stats::calculate_system_angular_momentum);
       }
 
       //------------------------------------------------------------------------
@@ -356,17 +356,17 @@ namespace stats{
        for(int atom=0; atom < stats::num_atoms; ++atom){
           mask[atom] = grain_array[atom];
        }
-       stats::grain_lattice_temp.set_mask(num_grains+1, mask, magnetic_moment_array);
+       stats::grain_lattice_temp.set_mask(num_grains+1, mask, magnetic_moment_array, true, false);
       }
 
       //------------------------------------------------------------------------
       // material lattice temp
       //------------------------------------------------------------------------
-      if(stats::calculate_material_lattice_temp){
+      if(stats::calculate_material_lattice_temp || stats::calculate_material_angular_momentum){
        for(int atom=0; atom < stats::num_atoms; ++atom){
           mask[atom] = material_type_array[atom];
        }
-       stats::material_lattice_temp.set_mask(num_materials+1,mask,magnetic_moment_array);
+       stats::material_lattice_temp.set_mask(num_materials+1,mask,magnetic_moment_array,stats::calculate_material_lattice_temp,stats::calculate_material_angular_momentum);
       }
 
       //------------------------------------------------------------------------

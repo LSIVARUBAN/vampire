@@ -207,6 +207,8 @@ namespace vout{
    void material_lattice_temp(std::ostream& stream, bool header);
    void mean_syslatticetemp(std::ostream& stream,bool header);
    void material_mean_syslatticetemp(std::ostream& stream,bool header);
+   void angular_momentum(std::ostream& stream, bool header);
+   void material_angular_momentum(std::ostream& stream, bool header);
    void mean_coupling_field_vec(std::ostream& stream, bool header); 
 
    void potential_energy(std::ostream& stream, bool header);

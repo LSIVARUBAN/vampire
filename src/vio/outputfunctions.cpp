@@ -607,4 +607,14 @@ namespace vout{
    stream << stats::material_lattice_temp.output_mean_lattice_temp(header);
     }
 
+   // Output Function 92
+   void angular_momentum(std::ostream& stream, bool header){
+      stream << stats::system_lattice_temp.output_angular_momentum(header);
+   }
+
+   // Output Function 93
+   void material_angular_momentum(std::ostream& stream, bool header){
+      stream << stats::material_lattice_temp.output_angular_momentum(header);
+   }
+
 }

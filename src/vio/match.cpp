@@ -1611,6 +1611,20 @@ namespace vin{
             output_list.push_back(90);
             return EXIT_SUCCESS;
          }
+         //--------------------------------------------------------------------
+         test="angular-momentum";
+         if(word==test){
+            stats::calculate_system_angular_momentum = true;
+            output_list.push_back(92);
+            return EXIT_SUCCESS;
+         }
+         //--------------------------------------------------------------------
+         test="material-angular-momentum";
+         if(word==test){
+            stats::calculate_material_angular_momentum = true;
+            output_list.push_back(93);
+            return EXIT_SUCCESS;
+         }
         //--------------------------------------------------------------------
         test="gnuplot-array-format";
         if(word==test){

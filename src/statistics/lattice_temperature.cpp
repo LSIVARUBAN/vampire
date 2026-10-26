@@ -88,7 +88,8 @@ bool lattice_temp_statistic_t::is_initialized(){
 //------------------------------------------------------------------------------------------------------
 // Function to initialize mask
 //------------------------------------------------------------------------------------------------------
-void lattice_temp_statistic_t::set_mask(const int in_mask_size, std::vector<int> in_mask, const std::vector<double>& mm){
+void lattice_temp_statistic_t::set_mask(const int in_mask_size, std::vector<int> in_mask, const std::vector<double>& mm,
+                                        const bool lattice_temp_requested, const bool angular_momentum_requested){
 
    // Check that mask values never exceed mask_size
    for(unsigned int atom=0; atom<in_mask.size(); ++atom){
@@ -106,8 +107,11 @@ void lattice_temp_statistic_t::set_mask(const int in_mask_size, std::vector<int>
    mask_size = in_mask_size - 1; // last element contains energy for non-magnetic atoms
    mean_counter = 0.0;
    mask=in_mask; // copy contents of vector
+   lattice_temp_enabled = lattice_temp_requested;
+   angular_momentum_enabled = angular_momentum_requested;
    lattice_temp.resize(in_mask_size, 0.0);
    mean_lattice_temp.resize(in_mask_size, 0.0);
+   angular_momentum.resize(3*in_mask_size, 0.0);
    normalisation.resize(in_mask_size, 0.0);
 
 
@@ -169,9 +173,17 @@ void lattice_temp_statistic_t::get_mask(std::vector<int>& out_mask,  std::vector
 }
 
 
-void lattice_temp_statistic_t::calculate_lattice_temp(const std::vector<double>& velo_array_x, // coord vectors for atoms
+//------------------------------------------------------------------------------------------------------
+// Function to calculate the lattice temperature and/or the angular momentum about the centre of mass
+//------------------------------------------------------------------------------------------------------
+void lattice_temp_statistic_t::calculate_lattice_statistics(const std::vector<double>& velo_array_x, // coord vectors for atoms
             const std::vector<double>& velo_array_y,
             const std::vector<double>& velo_array_z){
+
+   // the rigid-body rotation is removed from the lattice temperature only without periodic directions
+   const bool remove_rigid_body_rotation = lattice_temp_enabled && !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
+   // angular momentum is needed for the rotation removal or for output
+   const bool calculate_rotation = remove_rigid_body_rotation || angular_momentum_enabled;
 
    std::fill(lattice_temp.begin(),lattice_temp.end(),0.0);
    std::vector<double> mass(mask_size, 0.0);
@@ -197,26 +209,28 @@ void lattice_temp_statistic_t::calculate_lattice_temp(const std::vector<double>&
       momentum_x[mask_id] += atom_mass * vx;
       momentum_y[mask_id] += atom_mass * vy;
       momentum_z[mask_id] += atom_mass * vz;
-      mass_position_x[mask_id] += atom_mass * atoms::x_coord_array[atom];
-      mass_position_y[mask_id] += atom_mass * atoms::y_coord_array[atom];
-      mass_position_z[mask_id] += atom_mass * atoms::z_coord_array[atom];
-      lattice_temp[mask_id] += atom_mass * (vx*vx + vy*vy + vz*vz);
+      if(calculate_rotation){
+         mass_position_x[mask_id] += atom_mass * atoms::x_coord_array[atom];
+         mass_position_y[mask_id] += atom_mass * atoms::y_coord_array[atom];
+         mass_position_z[mask_id] += atom_mass * atoms::z_coord_array[atom];
+      }
+      if(lattice_temp_enabled) lattice_temp[mask_id] += atom_mass * (vx*vx + vy*vy + vz*vz);
    }
 
    // construct global sums before applying either rigid-body correction
    #ifdef MPICF
-      MPI_Allreduce(MPI_IN_PLACE, &lattice_temp[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      if(lattice_temp_enabled) MPI_Allreduce(MPI_IN_PLACE, &lattice_temp[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(MPI_IN_PLACE, &mass[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(MPI_IN_PLACE, &momentum_x[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(MPI_IN_PLACE, &momentum_y[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(MPI_IN_PLACE, &momentum_z[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      MPI_Allreduce(MPI_IN_PLACE, &mass_position_x[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      MPI_Allreduce(MPI_IN_PLACE, &mass_position_y[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      MPI_Allreduce(MPI_IN_PLACE, &mass_position_z[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      if(calculate_rotation){
+         MPI_Allreduce(MPI_IN_PLACE, &mass_position_x[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(MPI_IN_PLACE, &mass_position_y[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(MPI_IN_PLACE, &mass_position_z[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      }
    #endif
 
-   // if any direction is periodic, rotational subtraction is disabled
-   const bool remove_rigid_body_rotation = !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
    std::vector<double> inertia_xx(mask_size, 0.0);
    std::vector<double> inertia_yy(mask_size, 0.0);
    std::vector<double> inertia_zz(mask_size, 0.0);
@@ -227,7 +241,7 @@ void lattice_temp_statistic_t::calculate_lattice_temp(const std::vector<double>&
    std::vector<double> angular_momentum_y(mask_size, 0.0);
    std::vector<double> angular_momentum_z(mask_size, 0.0);
 
-   if(remove_rigid_body_rotation){
+   if(calculate_rotation){
       for(int atom=0; atom<num_atoms; ++atom){
          const unsigned int mask_id = mask[atom];
          if(mask_id >= static_cast<unsigned int>(mask_size) || mass[mask_id] <= 0.0) continue;
@@ -246,13 +260,15 @@ void lattice_temp_statistic_t::calculate_lattice_temp(const std::vector<double>&
          const double vy = velo_array_y[atom]-centre_of_mass_velocity_y;
          const double vz = velo_array_z[atom]-centre_of_mass_velocity_z;
 
-         // I = Sum_i m_i [(r_i.r_i) 1-r_i r_i^T]
-         inertia_xx[mask_id] += atom_mass*(ry*ry+rz*rz);
-         inertia_yy[mask_id] += atom_mass*(rx*rx+rz*rz);
-         inertia_zz[mask_id] += atom_mass*(rx*rx+ry*ry);
-         inertia_xy[mask_id] -= atom_mass*rx*ry;
-         inertia_xz[mask_id] -= atom_mass*rx*rz;
-         inertia_yz[mask_id] -= atom_mass*ry*rz;
+         // I = Sum_i m_i [(r_i.r_i) 1-r_i r_i^T], only needed to remove the rotation from the lattice temperature
+         if(remove_rigid_body_rotation){
+            inertia_xx[mask_id] += atom_mass*(ry*ry+rz*rz);
+            inertia_yy[mask_id] += atom_mass*(rx*rx+rz*rz);
+            inertia_zz[mask_id] += atom_mass*(rx*rx+ry*ry);
+            inertia_xy[mask_id] -= atom_mass*rx*ry;
+            inertia_xz[mask_id] -= atom_mass*rx*rz;
+            inertia_yz[mask_id] -= atom_mass*ry*rz;
+         }
 
          // L = Sum_i (r_i-r_cm) x m_i(v_i-v_cm)
          angular_momentum_x[mask_id] += atom_mass*(ry*vz-rz*vy);
@@ -261,17 +277,30 @@ void lattice_temp_statistic_t::calculate_lattice_temp(const std::vector<double>&
       }
 
       #ifdef MPICF
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_xx[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_yy[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_zz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_xy[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_xz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(MPI_IN_PLACE, &inertia_yz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         if(remove_rigid_body_rotation){
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_xx[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_yy[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_zz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_xy[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_xz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &inertia_yz[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         }
          MPI_Allreduce(MPI_IN_PLACE, &angular_momentum_x[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(MPI_IN_PLACE, &angular_momentum_y[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(MPI_IN_PLACE, &angular_momentum_z[0], mask_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       #endif
    }
+
+   // store the angular momentum for output
+   if(angular_momentum_enabled){
+      for(int mask_id=0; mask_id < mask_size; ++mask_id){
+         angular_momentum[3*mask_id + 0] = angular_momentum_x[mask_id];
+         angular_momentum[3*mask_id + 1] = angular_momentum_y[mask_id];
+         angular_momentum[3*mask_id + 2] = angular_momentum_z[mask_id];
+      }
+   }
+
+   if(!lattice_temp_enabled) return;
 
    for(int mask_id=0; mask_id < mask_size; ++mask_id){
       if(num_atoms_in_mask[mask_id] <= 0 || mass[mask_id] <= 0.0){
@@ -382,6 +411,48 @@ std::string lattice_temp_statistic_t::output_lattice_temp(bool header){
       }
       else{
          result << 0.5*( 2.0 /(3.0*constants::kB_eV)) * lattice_temp[mask_id ];
+      }
+   }
+
+   return result.str();
+
+}
+
+//------------------------------------------------------------------------------------------------------
+// Function to output the lattice angular momentum about the centre of mass as a unit vector and its
+// magnitude per atom in units of hbar
+//------------------------------------------------------------------------------------------------------
+std::string lattice_temp_statistic_t::output_angular_momentum(bool header){
+
+   // reduced Planck constant in eV ps, since L = Sum_i m_i r_i x v_i with m in eV ps^2/A^2, r in A and v in A/ps is in eV ps
+   const double hbar = 6.582119569e-4;
+
+   // result string stream
+   std::ostringstream res;
+
+   // set custom precision if enabled
+   if(vout::custom_precision){
+      res.precision(vout::precision);
+      if(vout::fixed) res.setf( std::ios::fixed, std::ios::floatfield );
+   }
+   vout::fixed_width_output result(res,vout::fw_size);
+
+   for(int mask_id=0; mask_id<mask_size; ++mask_id){
+      if(header){
+         result << name + std::to_string(mask_id) + "L_norm_x"
+                << name + std::to_string(mask_id) + "L_norm_y"
+                << name + std::to_string(mask_id) + "L_norm_z"
+                << name + std::to_string(mask_id) + "L_hbar_per_atom";
+      }
+      else{
+         const double lx = angular_momentum[3*mask_id + 0];
+         const double ly = angular_momentum[3*mask_id + 1];
+         const double lz = angular_momentum[3*mask_id + 2];
+         const double length = std::sqrt(lx*lx + ly*ly + lz*lz);
+         // zero angular momentum or an empty mask gives a zero direction and magnitude
+         const double inverse_length = length > 0.0 ? 1.0/length : 0.0;
+         const double magnitude = num_atoms_in_mask[mask_id] > 0 ? length/(hbar*double(num_atoms_in_mask[mask_id])) : 0.0;
+         result << lx*inverse_length << ly*inverse_length << lz*inverse_length << magnitude;
       }
    }
 

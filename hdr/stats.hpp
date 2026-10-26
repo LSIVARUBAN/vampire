@@ -84,6 +84,8 @@ namespace stats
    extern bool calculate_system_lattice_temp;
    extern bool calculate_grain_lattice_temp;
    extern bool calculate_material_lattice_temp;
+   extern bool calculate_system_angular_momentum;
+   extern bool calculate_material_angular_momentum;
 
 	extern bool calculate_system_spin_temp;
 	extern bool calculate_grain_spin_temp;
@@ -366,22 +368,26 @@ namespace stats
     class lattice_temp_statistic_t{
 
        public:
-          lattice_temp_statistic_t (std::string n):initialized(false){
+          lattice_temp_statistic_t (std::string n):initialized(false),lattice_temp_enabled(false),angular_momentum_enabled(false){
             name = n;
           };
           bool is_initialized();
-          void set_mask(const int mask_size, std::vector<int> in_mask, const std::vector<double>& mm);
+          void set_mask(const int mask_size, std::vector<int> in_mask, const std::vector<double>& mm,
+                        const bool lattice_temp_requested, const bool angular_momentum_requested);
           void get_mask(std::vector<int>& out_mask, std::vector<double>& out_normalisation);
 
-          void calculate_lattice_temp(const std::vector<double>& vx, const std::vector<double>& vy, const std::vector<double>& vz);
+          void calculate_lattice_statistics(const std::vector<double>& vx, const std::vector<double>& vy, const std::vector<double>& vz);
           void set_lattice_temp(std::vector<double>& lattice_temp, std::vector<double>& mean_lattice_temp, long counter);
           void reset_lattice_temp_averages();
           const std::vector<double>& get_lattice_temp();
           std::string output_lattice_temp(bool header);
-  		std::string output_mean_lattice_temp(bool header);
+  		    std::string output_mean_lattice_temp(bool header);
+          std::string output_angular_momentum(bool header);
 
        private:
           bool initialized;
+          bool lattice_temp_enabled; // calculate the lattice temperature
+          bool angular_momentum_enabled; // store the angular momentum for output
           int num_atoms;
           int mask_size;
           double mean_counter;
@@ -389,6 +395,7 @@ namespace stats
   		std::vector<int> num_atoms_in_mask;
           std::vector<double> lattice_temp;
           std::vector<double> mean_lattice_temp;
+          std::vector<double> angular_momentum; // L_x, L_y, L_z about the centre of mass for each mask id (eV ps)
           std::vector<int> zero_list;
            std::vector<double> normalisation;
           std::string name;

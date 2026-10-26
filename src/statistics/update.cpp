@@ -79,10 +79,10 @@ namespace stats{
             if(stats::calculate_grain_spin_temp)           stats::grain_spin_temp.calculate_spin_temp(sx,sy,sz,bxs,bys,bzs,bxe,bye,bze,mm);
             if(stats::calculate_material_spin_temp)        stats::material_spin_temp.calculate_spin_temp(sx,sy,sz,bxs,bys,bzs,bxe,bye,bze,mm);
 
-            // update lattice temp
-            if(stats::calculate_system_lattice_temp)          stats::system_lattice_temp.calculate_lattice_temp(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
-            if(stats::calculate_grain_lattice_temp)           stats::grain_lattice_temp.calculate_lattice_temp(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
-            if(stats::calculate_material_lattice_temp)        stats::material_lattice_temp.calculate_lattice_temp(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
+            // update lattice temp and/or angular momentum
+            if(stats::calculate_system_lattice_temp || stats::calculate_system_angular_momentum)      stats::system_lattice_temp.calculate_lattice_statistics(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
+            if(stats::calculate_grain_lattice_temp)                                                    stats::grain_lattice_temp.calculate_lattice_statistics(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
+            if(stats::calculate_material_lattice_temp || stats::calculate_material_angular_momentum)  stats::material_lattice_temp.calculate_lattice_statistics(atoms::x_velo_array,atoms::y_velo_array,atoms::z_velo_array);
 
             // update specific heat statistics
             if(stats::calculate_system_specific_heat)         stats::system_specific_heat.calculate(stats::system_energy.get_total_energy());

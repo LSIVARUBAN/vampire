@@ -243,6 +243,8 @@ void save_checkpoint(){
       chkfile.write(reinterpret_cast<const char*>(&sim::end_condition_end_time),sizeof(uint64_t));
    }
 
+   sld::save_phonon_pump_checkpoint(chkfile);
+
    // close checkpoint file
    chkfile.close();
 
@@ -392,6 +394,7 @@ void load_checkpoint(){
 
    // read the optional records which follow the seed record when continuing, a restart uses the settings in the input
    bool alternating_field_record_loaded = false;
+   bool phonon_pump_record_loaded = false;
    if(seed_record && sim::load_checkpoint_continue_flag){
       uint64_t tag = 0;
       while(chkfile.read((char*)&tag,sizeof(uint64_t))){
@@ -399,12 +402,18 @@ void load_checkpoint(){
             load_alternating_field_record(chkfile);
             alternating_field_record_loaded = true;
          }
+         else if(tag == 0x3230504D55504E50){ // PNPUMP02
+            sld::load_phonon_pump_checkpoint(chkfile);
+            phonon_pump_record_loaded = true;
+         }
          else if(tag == end_condition_tag) load_end_condition_record(chkfile);
          else break;
       }
    }
    if(sim::load_checkpoint_continue_flag && sim::alternating_field_enabled && !alternating_field_record_loaded)
       err::zexit("Cannot continue an alternating field from a checkpoint without alternating field state");
+
+   if(sim::load_checkpoint_continue_flag) sld::check_phonon_pump_checkpoint(phonon_pump_record_loaded);
 
    // select the time series field for the restored stage and reversal count, then calculate the instantaneous statistics from the restored atom state
    if(sim::load_checkpoint_continue_flag && program::program == 1) program::set_time_series_field(true);

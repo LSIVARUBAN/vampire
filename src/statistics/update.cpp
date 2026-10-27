@@ -53,6 +53,8 @@ namespace stats{
             if(stats::calculate_grain_energy)                  stats::grain_energy.calculate(sx, sy, sz, mm, mat, temperature);
             if(stats::calculate_material_energy)               stats::material_energy.calculate(sx, sy, sz, mm, mat, temperature);
 
+            sld::update_phonon_pump_diagnostics();
+
             // update sld energy statistics
             // refresh the exchange and spin-lattice coupling energies here so that they reflect the final spin configuration of the timestep (already done by sled thermostats)
             if(stats::calculate_system_sld_energy || stats::calculate_grain_sld_energy || stats::calculate_material_sld_energy)   sld::stats_sld();

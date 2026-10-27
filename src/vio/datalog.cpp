@@ -334,6 +334,12 @@ namespace vout{
 			case 93:
 				vout::material_angular_momentum(stream, header);
 				break;
+			case 94:
+				vout::phonon_pump_work(stream,header);
+				break;
+			case 95:
+				vout::phonon_pump_mode(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;

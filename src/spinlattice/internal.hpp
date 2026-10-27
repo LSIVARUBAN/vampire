@@ -402,10 +402,15 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
        }; // end of internal::mp class
 
 
-       // NEW: Parameters for the linear phonon pump
+      // Parameters for the phonon pump
+      extern double phonon_phase; // carrier phase (rad)
+      extern double phonon_pump_work; // work done on this rank's atoms (eV)
+      void initialise_phonon_pump();
+      void apply_phonon_pump(const double step);
+      void finish_phonon_pump_kick();
       extern bool linear_pump_enabled;
       extern double phonon_frequency;
-      extern double phonon_force_amplitude[3]; // For fx, fy, fz
+      extern double phonon_force_amplitude[3]; // Ax, Ay in eV/A, z is zero as a constant force is removed
       extern double phonon_wavevector[3];      // For kx, ky, kz
       extern double phonon_pulse_start_time;
       extern double phonon_pulse_end_time;
@@ -671,15 +676,6 @@ inline double PBC_wrap<true>(double dx, double L, bool) {
             std::vector<double>& forces_array_y,
             std::vector<double>& forces_array_z,
             std::vector<double>& potential_eng);
-
-      void compute_thz(const int start_index,
-            const int end_index, 
-            const std::vector<double>& x_coord_array, // current coord vectors for atoms
-            const std::vector<double>& y_coord_array,
-            const std::vector<double>& z_coord_array,
-            std::vector<double>& forces_array_x, //  vectors for forces
-            std::vector<double>& forces_array_y,
-            std::vector<double>& forces_array_z);
 
       void compute_forces_snap(const int start_index,
             const int end_index, // last +1 atom to be calculated

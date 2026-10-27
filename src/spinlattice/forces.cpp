@@ -27,6 +27,8 @@
 #include "sim.hpp"
 #include "errors.hpp"
 #include "material.hpp"
+#include "vmpi.hpp"
+#include "vio.hpp"
 
 // sld module headers
 #include "internal.hpp"
@@ -70,7 +72,185 @@ namespace sld{
       }
    }
 
+   // Phonon pump state for the current velocity half-kick
+   std::vector<double> pump_force_x; // pump force on each owned atom (eV/A)
+   std::vector<double> pump_force_y;
+   std::vector<double> pump_power_before; // F.v for each owned atom before the kick
+   bool pump_kick_active = false;
+   const double two_pi = 2.0*M_PI;
+
+   // Number of physical atoms owned by this rank, excluding halo copies
+   int pump_owned_atoms(){
+      #ifdef MPICF
+         return vmpi::num_core_atoms + vmpi::num_bdry_atoms;
+      #else
+         return atoms::num_atoms;
+      #endif
+   }
+
+   // Time since the start of production (s) at a stage step, as the pulse times are measured from the end of equilibration
+   double pump_production_time(const double step){
+      return (step - double(sim::equilibration_time))*mp::dt_SI;
+   }
+
+   // Half-open pulse window [start,end) in production time
+   bool pump_active(const double time){
+      const double eps = 4.0*std::numeric_limits<double>::epsilon();
+      const double start = internal::phonon_pulse_start_time;
+      const double end = internal::phonon_pulse_end_time;
+      return time + eps*std::max(std::abs(time),std::abs(start)) >= start && time < end - eps*std::max(std::abs(time),std::abs(end));
+   }
+
+   // Travelling wave phase theta = 2 pi f (t - t_start) - q.r + phase, with live positions in Angstrom and the carrier time
+   // measured from the start of the pulse, so every frequency starts at the same phase
+   double pump_phase(const int atom, const double time){
+      const double qr = internal::phonon_wavevector[0]*atoms::x_coord_array[atom] + internal::phonon_wavevector[1]*atoms::y_coord_array[atom] + internal::phonon_wavevector[2]*atoms::z_coord_array[atom];
+      return two_pi*internal::phonon_frequency*(time - internal::phonon_pulse_start_time) - qr + internal::phonon_phase;
+   }
+
+   // Global means of cos(theta) and sin(theta) over all owned atoms, removed so that the pump exerts no net force
+   void pump_mean(const double time, double& mean_cos, double& mean_sin){
+      const int num_atoms = pump_owned_atoms();
+      double sums[3] = {0.0, 0.0, double(num_atoms)};
+      for(int atom=0; atom<num_atoms; ++atom){
+         const double theta = pump_phase(atom,time);
+         sums[0] += std::cos(theta);
+         sums[1] += std::sin(theta);
+      }
+      #ifdef MPICF
+         MPI_Allreduce(MPI_IN_PLACE,sums,3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+      #endif
+      mean_cos = sums[0]/sums[2];
+      mean_sin = sums[1]/sums[2];
+   }
+
+   // Pump force (Ax cos(theta), Ay sin(theta), 0) on an atom, minus the global mean
+   void pump_force(const int atom, const double time, const double mean_cos, const double mean_sin, double& fx, double& fy){
+      const double theta = pump_phase(atom,time);
+      fx = internal::phonon_force_amplitude[0]*(std::cos(theta) - mean_cos);
+      fy = internal::phonon_force_amplitude[1]*(std::sin(theta) - mean_sin);
+   }
+
    } // end of anonymous namespace
+
+   namespace internal{
+
+      // Phonon pump originally written by Muhammad Hamza Asim
+      // Resolve the pump wavevector and check the pump settings
+      void initialise_phonon_pump(){
+         if(!linear_pump_enabled) return;
+         if(sim::integrator != sim::suzuki_trotter) err::zexit("The phonon pump requires sim:integrator = spin-lattice");
+         if(phonon_frequency <= 0.0 || phonon_pulse_start_time < 0.0 || phonon_pulse_end_time <= phonon_pulse_start_time) err::zexit("The phonon pump requires phonon:frequency > 0 and 0 <= phonon:pulse-start-time < phonon:pulse-end-time");
+
+         zlog << zTs() << "Phonon pump: frequency " << phonon_frequency << " Hz, pulse " << phonon_pulse_start_time << " to " << phonon_pulse_end_time << " s after the start of production, phase " << phonon_phase << " rad, amplitude (" << phonon_force_amplitude[0] << ", " << phonon_force_amplitude[1] << ") eV/A" << std::endl;
+
+         bool zero_q = true;
+         for(int d=0; d<3; ++d){
+            // q_d = 2 pi direction_d / lambda_d in 1/A
+            phonon_wavevector[d] = phonon_wave_lambda[d] > 0.0 ? two_pi*phonon_wave_direction[d]/phonon_wave_lambda[d] : 0.0;
+            // number of wavelengths across the box, which must be an integer along a periodic direction
+            const double mode = phonon_wavevector[d]*cs::system_dimensions[d]/two_pi;
+            if(cs::pbc[d] && std::abs(mode-std::round(mode)) > 1e-8) err::zexit("The phonon pump wavevector is not suitable with the periodic box");
+            zlog << zTs() << "Phonon pump q_" << "xyz"[d] << " = " << phonon_wavevector[d] << " 1/A, box " << cs::system_dimensions[d] << " A, mode index " << mode << std::endl;
+            if(phonon_wavevector[d] != 0.0) zero_q = false;
+         }
+         // a uniform q=0 drive is removed entirely by the mean subtraction
+         if(zero_q) err::zexit("The phonon pump requires a nonzero wavevector");
+      }
+
+      // Add the pump force to owned atoms just before a velocity half-kick at the given stage step (sim::time or sim::time+1)
+      void apply_phonon_pump(const double step){
+         const double time = pump_production_time(step);
+         pump_kick_active = linear_pump_enabled && pump_active(time);
+         if(!pump_kick_active) return;
+         const int num_atoms = pump_owned_atoms();
+         double mean_cos, mean_sin;
+         pump_mean(time,mean_cos,mean_sin);
+         pump_force_x.resize(num_atoms);
+         pump_force_y.resize(num_atoms);
+         pump_power_before.resize(num_atoms);
+         for(int atom=0; atom<num_atoms; ++atom){
+            double fx, fy;
+            pump_force(atom,time,mean_cos,mean_sin,fx,fy);
+            pump_force_x[atom] = fx;
+            pump_force_y[atom] = fy;
+            forces_array_x[atom] += fx;
+            forces_array_y[atom] += fy;
+            pump_power_before[atom] = fx*atoms::x_velo_array[atom] + fy*atoms::y_velo_array[atom];
+         }
+      }
+
+      // Accumulate the pump work of the completed half-kick, (dt/2) F.(v_before + v_after)/2, with F in eV/A and v in A/ps
+      void finish_phonon_pump_kick(){
+         if(!pump_kick_active) return;
+         double work = 0.0;
+         for(int atom=0; atom<pump_owned_atoms(); ++atom){
+            work += pump_power_before[atom] + pump_force_x[atom]*atoms::x_velo_array[atom] + pump_force_y[atom]*atoms::y_velo_array[atom];
+         }
+         phonon_pump_work += 0.25*mp::dt_SI*1e12*work;
+         pump_kick_active = false;
+      }
+
+   } // end of internal namespace
+
+   // Update pump work and mode projections at the statistics rate
+   void update_phonon_pump_diagnostics(){
+      if(!phonon_pump_diagnostics || !internal::linear_pump_enabled) return;
+      const int num_atoms = pump_owned_atoms();
+      const double ax = internal::phonon_force_amplitude[0];
+      const double ay = internal::phonon_force_amplitude[1];
+      const double norm = std::sqrt(ax*ax + ay*ay);
+      // projections are along the unit vector e = (Ax, Ay, 0)/|A|
+      const double inv_norm = norm > 0.0 ? 1.0/norm : 0.0;
+
+      // work, Re/Im of u.e and v.e projected onto exp(-i q.R0), maximum displacement and atom count
+      double values[7] = {internal::phonon_pump_work, 0.0, 0.0, 0.0, 0.0, 0.0, double(num_atoms)};
+      for(int atom=0; atom<num_atoms; ++atom){
+         // displacement from the creation lattice site R0
+         const double dx = atoms::x_coord_array[atom] - internal::x0_coord_array[atom];
+         const double dy = atoms::y_coord_array[atom] - internal::y0_coord_array[atom];
+         const double dz = atoms::z_coord_array[atom] - internal::z0_coord_array[atom];
+         const double au = (ax*dx + ay*dy)*inv_norm;
+         const double av = (ax*atoms::x_velo_array[atom] + ay*atoms::y_velo_array[atom])*inv_norm;
+         const double qr = internal::phonon_wavevector[0]*internal::x0_coord_array[atom] + internal::phonon_wavevector[1]*internal::y0_coord_array[atom] + internal::phonon_wavevector[2]*internal::z0_coord_array[atom];
+         const double c = std::cos(qr);
+         const double s = -std::sin(qr);
+         values[1] += au*c;
+         values[2] += au*s;
+         values[3] += av*c;
+         values[4] += av*s;
+         values[5] = std::max(values[5], std::sqrt(dx*dx + dy*dy + dz*dz));
+      }
+      #ifdef MPICF
+         const double max_displacement = values[5];
+         MPI_Allreduce(MPI_IN_PLACE,values,7,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+         MPI_Allreduce(&max_displacement,&values[5],1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+      #endif
+      for(int i=0; i<6; ++i) phonon_pump_statistics[i] = i == 5 ? values[i] : values[i]/values[6];
+   }
+
+   // Append the accumulated pump work as an optional checkpoint record
+   void save_phonon_pump_checkpoint(std::ostream& stream){
+      if(!internal::linear_pump_enabled) return;
+      const uint64_t tag = 0x3230504D55504E50; // PNPUMP02
+      stream.write(reinterpret_cast<const char*>(&tag),sizeof(tag));
+      stream.write(reinterpret_cast<const char*>(&internal::phonon_pump_work),sizeof(double));
+   }
+
+   // Restore the accumulated pump work for a continued run
+   void load_phonon_pump_checkpoint(std::istream& stream){
+      stream.read(reinterpret_cast<char*>(&internal::phonon_pump_work),sizeof(double));
+      // Mechanical potential energies are not in the base checkpoint. Refresh them for the first continued energy sample.
+      compute_forces(0,pump_owned_atoms(),atoms::neighbour_list_start_index,atoms::neighbour_list_end_index,
+                     atoms::type_array,atoms::neighbour_list_array,internal::x0_coord_array,internal::y0_coord_array,internal::z0_coord_array,
+                     atoms::x_coord_array,atoms::y_coord_array,atoms::z_coord_array,
+                     internal::forces_array_x,internal::forces_array_y,internal::forces_array_z,internal::potential_eng);
+   }
+
+   // A continued pump needs its saved work, otherwise the accumulated work would restart from zero
+   void check_phonon_pump_checkpoint(const bool loaded){
+      if(internal::linear_pump_enabled && !loaded) err::zexit("Cannot continue a phonon pump without its checkpoint");
+   }
 
    void compute_forces(const int start_index, // first atom for exchange interactions to be calculated
                const int end_index,
@@ -158,15 +338,6 @@ namespace sld{
          sld::internal::force_debug_written = true;
       }
       
-      // calculate THz pulse force
-      if(sld::internal::linear_pump_enabled){
-
-        internal::compute_thz(start_index, end_index,
-                                x_coord_array, y_coord_array, z_coord_array,
-                                forces_array_x, forces_array_y, forces_array_z);
-      
-        }
-
       return;
 
 }
@@ -850,101 +1021,6 @@ void compute_forces_morse(const int start_index,
    }
 }
 
-
-// Author: Muhammad Hamza Asim
-// Applies a time-dependent terahertz (THz) phonon-driven force to atoms
-void compute_thz(const int start_index,
-                 const int end_index,
-                 const std::vector<double>& x_coord_array,
-                 const std::vector<double>& y_coord_array,
-                 const std::vector<double>& z_coord_array,
-                 std::vector<double>& forces_array_x,
-                 std::vector<double>& forces_array_y,
-                 std::vector<double>& forces_array_z)
-{
-
-
-    // Calculate the Current Physical Time
-    // Converts the current step number into the actual time in seconds.
-    uint64_t current_step = sim::time; 
-    double dt = mp::dt_SI;             // Get the duration of one step in seconds 
-    double current_time = static_cast<double>(current_step) * dt; // Total elapsed time (seconds)
-
-
-    if (current_time < sld::internal::phonon_pulse_start_time || current_time > sld::internal::phonon_pulse_end_time) {
-        return; // The pulse is off, so do nothing.
-    }
- 
-    // Calculate the Raw Force for Each Atom
-    // Loop through each atom to calculate the
-    // force from the THz pulse and add it to a running total for later averaging.
-    double sumx = 0.0, sumy = 0.0, sumz = 0.0;
-    std::vector<double> f_thz_temp_x(end_index - start_index); // Temporary storage
-    std::vector<double> f_thz_temp_y(end_index - start_index);
-    std::vector<double> f_thz_temp_z(end_index - start_index);
-
-    // Pre-calculate angular frequency (ω = 2πν) for efficiency
-    const double twopi_niu = sld::internal::phonon_frequency * 6.28318530718;
-    for (int i = start_index; i < end_index; ++i) {
-
-
-        // Calculate the position-dependent part of the wave (k·r)
-        double kr = sld::internal::phonon_wavevector[0] * x_coord_array[i] +
-                    sld::internal::phonon_wavevector[1] * y_coord_array[i] +
-                    sld::internal::phonon_wavevector[2] * z_coord_array[i];
-
-        // Calculate the argument for the main physics equation: cos(ωt - k·r)
-        double arg = current_time * twopi_niu - kr;
-        double cos_factor = std::cos(arg); // The oscillating part of the force
-        double sin_factor = std::sin(arg);
-        
-        // Calculate the raw force and store it temporarily
-        int local_index = i - start_index;
-        f_thz_temp_x[local_index] = sld::internal::phonon_force_amplitude[0] * cos_factor;
-        f_thz_temp_y[local_index] = sld::internal::phonon_force_amplitude[1] * sin_factor;
-        f_thz_temp_z[local_index] = sld::internal::phonon_force_amplitude[2];
-
-        // Add to the running total
-        sumx += f_thz_temp_x[local_index];
-        sumy += f_thz_temp_y[local_index];
-        sumz += f_thz_temp_z[local_index];
-
-        
-      }
-
-    // Calculate the Center-of-Mass Correction
-    // Calculate the average force and will subtract it from each atom's individual force.
-    int counter = end_index - start_index;
-    double avg_fx = 0.0, avg_fy = 0.0, avg_fz = 0.0;
-    if (counter > 0) {
-        avg_fx = sumx / static_cast<double>(counter);
-        avg_fy = sumy / static_cast<double>(counter);
-        avg_fz = sumz / static_cast<double>(counter);
-    }
-  
-    
-    // Apply the Final, Corrected Force 
-    // Loop through the atoms again, retrieve the
-    // temporarily stored raw force, subtract the average
-    for (int i = start_index; i < end_index; ++i) {
-        int local_index = i - start_index;
-        double corrected_fx = f_thz_temp_x[local_index] - avg_fx;
-        double corrected_fy = f_thz_temp_y[local_index] - avg_fy;
-        double corrected_fz = f_thz_temp_z[local_index] - avg_fz;
-
-        // Add the final calculated force to the atom's total force
-        forces_array_x[i] += corrected_fx;
-        forces_array_y[i] += corrected_fy;
-        forces_array_z[i] += corrected_fz;
-
-        if (i == 0 && current_step % 200 == 0) {
-        std::cout << "  Corrected Force X : " << corrected_fx << " N" << std::endl;
-       
-      }
-    }
-
-    return;
-}
 
 void compute_forces_snap(const int start_index,
             const int end_index, // last +1 atom to be calculated

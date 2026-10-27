@@ -211,6 +211,8 @@ namespace sld{
                         sld::internal::potential_eng);
 
 
+      internal::apply_phonon_pump(double(sim::time));
+
      //update position, Velocity
       for(int atom=0;atom<num_atoms;atom++){
 
@@ -232,6 +234,8 @@ namespace sld{
 
 
 
+
+       internal::finish_phonon_pump_kick();
 
        // check positions vs max displacement
        sld::internal::check_displacement();
@@ -280,6 +284,8 @@ namespace sld{
                           sld::internal::potential_eng);
 
 
+      internal::apply_phonon_pump(double(sim::time)+1.0);
+
       for(int atom=0;atom<num_atoms;atom++){
 
         const unsigned int imat = atoms::type_array[atom];
@@ -296,6 +302,8 @@ namespace sld{
 
       }
 
+
+      internal::finish_phonon_pump_kick();
 
   std::fill(sld::internal::fields_array_x.begin(), sld::internal::fields_array_x.end(), 0.0);
   std::fill(sld::internal::fields_array_y.begin(), sld::internal::fields_array_y.end(), 0.0);

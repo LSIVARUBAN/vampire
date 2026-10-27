@@ -432,6 +432,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                     sld::internal::forces_array_z);
       }
 
+      internal::apply_phonon_pump(double(sim::time));
+
       // all force contributions have now been calculated so update core and boundary atoms at the same time
       for(int atom=pre_comm_si;atom<post_comm_ei;atom++){
 
@@ -453,6 +455,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
 
 
              }
+
+             internal::finish_phonon_pump_kick();
 
              vmpi::barrier();
 
@@ -564,6 +568,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
                                          sld::internal::forces_array_z);
            }
 
+           internal::apply_phonon_pump(double(sim::time)+1.0);
+
            // apply the second velocity half step once all local and reverse communicated MLIP force contributions are available
            for(int atom=pre_comm_si;atom<post_comm_ei;atom++){
 
@@ -581,6 +587,8 @@ void suzuki_trotter_step_parallel(std::vector<double> &x_spin_array,
               
             }
 
+
+            internal::finish_phonon_pump_kick();
 
        		vmpi::barrier();
 

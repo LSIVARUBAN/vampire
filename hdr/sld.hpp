@@ -15,6 +15,7 @@
 
 // C++ standard library headers
 #include <string>
+#include <iosfwd>
 
 // Vampire headers
 #include "sld.hpp"
@@ -31,6 +32,14 @@ namespace sld{
    //-----------------------------------------------------------------------------
    extern bool enabled; // bolean to enable and disable sld components
    extern bool output_force_debug; // boolean to enable output of per atom mechanical potential force table
+
+   // Phonon pump diagnostics: work, complex displacement/velocity projections and maximum displacement
+   extern bool phonon_pump_diagnostics;
+   extern double phonon_pump_statistics[6];
+   void update_phonon_pump_diagnostics();
+   void save_phonon_pump_checkpoint(std::ostream& stream);
+   void load_phonon_pump_checkpoint(std::istream& stream);
+   void check_phonon_pump_checkpoint(const bool loaded);
 
    //-----------------------------------------------------------------------------
    // Function to initialise sld module

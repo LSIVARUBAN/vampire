@@ -553,43 +553,44 @@ Sets the atomic number used by the ZBL potential.
 
 
 \section*{Phonon Pump Parameters}
-The following commands control an external, time-dependent force pump designed to excite specific phonon modes in the lattice. This is used to simulate the effects of THz laser pulses on the spin-lattice system. All parameters are defined using the \textit{phonon:} prefix.
+The following commands control an external, time-dependent force designed to excite specific phonon modes in the lattice, used to simulate the effect of THz phonon excitation on the spin-lattice system. All parameters use the \textit{phonon:} prefix. The force on atom $i$ is
+\[
+F_{i,x}=A_x\left(\cos\theta_i-\langle\cos\theta\rangle\right),\qquad
+F_{i,y}=A_y\left(\sin\theta_i-\langle\sin\theta\rangle\right),\qquad
+\theta_i=2\pi f (t-t_{\rm start})-\mathbf q\cdot\mathbf r_i+\phi,
+\]
+where $\mathbf r_i$ is the current atomic position, $t$ the time since the start of production, and $\langle\rangle$ the mean over all atoms.
 
-{\zicf phonon:linear-pump = boolean}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:linear-pump = boolean}
+{\zicf phonon:linear-pump = boolean}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:linear-pump}
 Flag to enable the linearly polarized phonon pump. If enabled, a force is applied to the atoms according to the parameters below. Default value is false.
 
-{\zicf phonon:frequency = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:frequency = float}
-Specifies the frequency of the driving force. The value is converted to base SI units (Hz). It is recommended to specify units. Supported units: THz, GHz. Example: \textit{phonon:frequency = 8.3 ! THz}.
+{\zicf phonon:frequency = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:frequency}
+Driving frequency $f$, required when the pump is enabled. Units are Hz (default), GHz or THz.
 
-{\zicf phonon:pulse-start-time = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:pulse-start-time = float}
-Specifies the simulation time at which the force pump turns on. The value is converted to base SI units (s). It is recommended to specify units. Supported units: ps, fs. Example: \textit{phonon:pulse-start-time = 5.0 ! ps}.
+{\zicf phonon:pulse-start-time = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:pulse-start-time}
+{\zicf phonon:pulse-end-time = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:pulse-end-time}
+Times after the start of production at which the pump turns on and off. Units are s (default), ps or fs, and $0\le t_{\rm start}<t_{\rm end}$. For example, a start of 5 ps starts the pump 5 ps after equilibration has finished.
 
-{\zicf phonon:pulse-end-time = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:pulse-end-time = float}
-Specifies the simulation time at which the force pump turns off. The value is converted to base SI units (s). It is recommended to specify units. Supported units: ps, fs. Example: \textit{phonon:pulse-end-time = 80.0 ! ps}.
+{\zicf phonon:phase = float ! rad}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:phase}
+Carrier phase $\phi$ at the start of the pulse in radians, default zero.
 
-{\zicf phonon:force-amplitude-x = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:force-amplitude-x = float}
-The amplitude of the force component applied in the x-direction. For a linear pump, this is the main driving force. For a chiral pump, this could be the amplitude of the cosine component. Units are Newtons (N).
+{\zicf phonon:force-amplitude-x = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:force-amplitude-x}
+{\zicf phonon:force-amplitude-y = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:force-amplitude-y}
+Signed force amplitudes $A_x$ and $A_y$, default zero. Units are eV/A (default) or N.
 
-{\zicf phonon:force-amplitude-y = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:force-amplitude-y = float}
-The amplitude of the force component applied in the y-direction. For a chiral pump, this could be the amplitude of the sine component. Units are Newtons (N).
+{\zicf phonon:wave-lambda-x = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-x}
+{\zicf phonon:wave-lambda-y = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-y}
+{\zicf phonon:wave-lambda-z = float ! string}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-z}
+{\zicf phonon:wave-direction-x = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-x}
+{\zicf phonon:wave-direction-y = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-y}
+{\zicf phonon:wave-direction-z = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-z}
+Wavelengths $\lambda_\alpha$ (Angstrom by default) and signed direction factors $d_\alpha$ giving $q_\alpha=2\pi d_\alpha/\lambda_\alpha$, or zero for a zero wavelength. The direction factors are not normalised. $\mathbf q$ must be nonzero, since the mean subtraction removes a uniform force, and along each periodic direction $q_\alpha L_\alpha/2\pi$ must be an integer. For example, the P point of a bcc box of 18 cells with $a=2.866$ Angstrom uses $\lambda_\alpha=2a$ and $d_\alpha=\pm1$.
 
-{\zicf phonon:force-amplitude-z = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:force-amplitude-z = float}
-The amplitude of the force component applied in the z-direction. Units are Newtons (N).
+{\zicf output:phonon-pump-work}\phantomsection\addcontentsline{toc}{subsubsection}{output:phonon-pump-work}
+Outputs the work done by the pump since the start of the simulation in eV/atom.
 
-{\zicf phonon:wave-lambda-x = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-x = float}
-The wavelength ($\lambda_x$) of the force wave in the x-direction. Used to calculate the final k-vector. Units are in Angstrom. 
-
-{\zicf phonon:wave-lambda-y = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-y = float}
-The wavelength ($\lambda_y$) of the force wave in the y-direction. Units are in Angstrom.
-
-{\zicf phonon:wave-lambda-z = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-lambda-z = float}
-The wavelength ($\lambda_z$) of the force wave in the z-direction. Units are in Angstrom. 
-
-{\zicf phonon:wave-direction-x = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-x = float} The x-component of the unit vector that defines the direction of propagation for the force wave. 
-
-{\zicf phonon:wave-direction-y = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-y = float} The y-component of the unit vector that defines the direction of propagation. 
-
-{\zicf phonon:wave-direction-z = float}\phantomsection\addcontentsline{toc}{subsubsection}{phonon:wave-direction-z = float} The z-component of the unit vector that defines the direction of propagation. 
+{\zicf output:phonon-pump-mode}\phantomsection\addcontentsline{toc}{subsubsection}{output:phonon-pump-mode}
+Outputs the amplitude of the pumped lattice mode, as the real and imaginary parts of $N^{-1}\sum_i[\mathbf e\cdot(\mathbf r_i-\mathbf R_i^0)]\exp(-i\mathbf q\cdot\mathbf R_i^0)$ in Angstrom and the same projection of the velocities in Angstrom/ps, followed by the maximum atomic displacement in Angstrom. Here $\mathbf R_i^0$ are the lattice sites and $\mathbf e=(A_x,A_y,0)/|\mathbf A|$.
 
 \section*{Spin-wave and phonon spectra}
 \phantomsection\addcontentsline{toc}{section}{Spin-wave and phonon spectra}

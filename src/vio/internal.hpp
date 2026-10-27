@@ -216,6 +216,8 @@ namespace vout{
    void sld_exchange_energy(std::ostream& stream, bool header);
    void sld_coupling_energy(std::ostream& stream, bool header);
    void sld_total_energy(std::ostream& stream, bool header);
+   void phonon_pump_work(std::ostream& stream, bool header);
+   void phonon_pump_mode(std::ostream& stream, bool header);
 
    void mean_potential_energy(std::ostream& stream, bool header);
    void mean_kinetic_energy(std::ostream& stream, bool header);

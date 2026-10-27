@@ -1533,6 +1533,20 @@ namespace vin{
             return EXIT_SUCCESS;
          }
          //--------------------------------------------------------------------
+         test="phonon-pump-work";
+         if(word==test){
+            sld::phonon_pump_diagnostics = true;
+            output_list.push_back(94);
+            return EXIT_SUCCESS;
+         }
+         //--------------------------------------------------------------------
+         test="phonon-pump-mode";
+         if(word==test){
+            sld::phonon_pump_diagnostics = true;
+            output_list.push_back(95);
+            return EXIT_SUCCESS;
+         }
+         //--------------------------------------------------------------------
          test="potential-energy";
          if(word==test){
             stats::calculate_system_sld_energy = true;

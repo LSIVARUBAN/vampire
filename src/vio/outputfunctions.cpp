@@ -557,6 +557,17 @@ namespace vout{
       stream << stats::height_spin_length.output_mean_spin_length(header);
    }
 
+   // Output Function 94: accumulated pump work per atom
+   void phonon_pump_work(std::ostream& stream, bool header){
+      stream << generic_output_double("PumpWork(eV/atom)",sld::phonon_pump_statistics[0],header);
+   }
+
+   // Output Function 95: pumped mode projections N^-1 sum (e.u or e.v) exp(-i q.R0) and maximum displacement
+   void phonon_pump_mode(std::ostream& stream, bool header){
+      const char* labels[] = {"PumpURe(A)","PumpUIm(A)","PumpVRe(A/ps)","PumpVIm(A/ps)","MaxDisplacement(A)"};
+      for(int i=0; i<5; ++i) stream << generic_output_double(labels[i],sld::phonon_pump_statistics[i+1],header);
+   }
+
    // Output Function 81
    void potential_energy(std::ostream& stream, bool header){
       stream << stats::system_sld_energy.output_sld_energy(stats::potential, header);

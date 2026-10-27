@@ -27,6 +27,8 @@ namespace sld{
    //------------------------------------------------------------------------------
    bool enabled = false;
    bool output_force_debug = false;
+   bool phonon_pump_diagnostics = false;
+   double phonon_pump_statistics[6] = {};
    double var_test=0;
    double spin_temperature;
    double lattice_temperature;
@@ -41,7 +43,9 @@ namespace sld{
       //------------------------------------------------------------------------
 
       //Spin-lattice coupling variables
-      bool linear_pump_enabled;
+      bool linear_pump_enabled = false;
+      double phonon_phase = 0.0;
+      double phonon_pump_work = 0.0; // work done on this rank's atoms in eV, summed over ranks only for output
       double phonon_frequency;
       double phonon_force_amplitude[3];
       double phonon_wavevector[3];

@@ -1583,11 +1583,12 @@ namespace vin{
          }
 
          //--------------------------------------------------------------------
-        test="mean-coupling-field-vec";
-        if(word==test){
-        output_list.push_back(91);
-         return EXIT_SUCCESS;
-      }
+         test="mean-coupling-field-vec";
+         if(word==test){
+            sld::calculate_mean_coupling_field = true;
+            output_list.push_back(91);
+            return EXIT_SUCCESS;
+         }
 
          //--------------------------------------------------------------------
          //test="sld-total-spin-energy";

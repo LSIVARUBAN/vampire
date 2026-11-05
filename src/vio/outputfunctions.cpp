@@ -24,7 +24,6 @@
 #include "spintransport.hpp"
 #include "sld.hpp"
 #include "atoms.hpp"
-#include "../spinlattice/internal.hpp"
 // vio module headers
 #include "internal.hpp"
 
@@ -53,24 +52,10 @@ namespace vout{
          return;
       }
 
-      double sum_hx = 0.0, sum_hy = 0.0, sum_hz = 0.0;
-      for (int i = 0; i < atoms::num_atoms; ++i) {
-         sum_hx += sld::internal::coupling_field_x[i];
-         sum_hy += sld::internal::coupling_field_y[i];
-         sum_hz += sld::internal::coupling_field_z[i];
-      }
-
-      double mean_hx = 0.0, mean_hy = 0.0, mean_hz = 0.0;
-      if (atoms::num_atoms > 0) {
-         double n_atoms_double = static_cast<double>(atoms::num_atoms);
-         mean_hx = sum_hx / n_atoms_double;
-         mean_hy = sum_hy / n_atoms_double;
-         mean_hz = sum_hz / n_atoms_double;
-      }
-      
-      stream << generic_output_double("", mean_hx, header);
-      stream << generic_output_double("", mean_hy, header);
-      stream << generic_output_double("", mean_hz, header);
+      // only rank 0 writes output, so the mean over every rank's atoms is reduced in sld::update_mean_coupling_field
+      stream << generic_output_double("", sld::mean_coupling_field[0], header);
+      stream << generic_output_double("", sld::mean_coupling_field[1], header);
+      stream << generic_output_double("", sld::mean_coupling_field[2], header);
    }
 
 

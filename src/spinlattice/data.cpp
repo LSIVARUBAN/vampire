@@ -29,6 +29,8 @@ namespace sld{
    bool output_force_debug = false;
    bool phonon_pump_diagnostics = false;
    double phonon_pump_statistics[6] = {};
+   bool calculate_mean_coupling_field = false;
+   double mean_coupling_field[3] = {};
    double var_test=0;
    double spin_temperature;
    double lattice_temperature;

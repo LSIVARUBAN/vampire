@@ -61,6 +61,7 @@ namespace stats{
             if(stats::calculate_system_sld_energy)             stats::system_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);
             if(stats::calculate_grain_sld_energy)              stats::grain_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);
             if(stats::calculate_material_sld_energy)           stats::material_sld_energy.calculate(sx, sy, sz, mm, mat, temperature);
+            sld::update_mean_coupling_field(); // after sld::stats_sld so that any refreshed coupling fields are used
 
             // update magnetization statistics
             if(stats::calculate_system_magnetization)          stats::system_magnetization.calculate_magnetization(sx,sy,sz,mm);

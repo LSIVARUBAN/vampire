@@ -26,6 +26,7 @@
 #include "material.hpp"
 #include "sld.hpp"
 #include "sim.hpp"
+#include "vmpi.hpp"
 
 // sld module headers
 #include "internal.hpp"
@@ -1137,4 +1138,28 @@ namespace internal{
    }
 
 } // end of internal namespace
+
+   // Update the mean spin-lattice coupling field (T) at the statistics rate
+   void update_mean_coupling_field(){
+      if(!calculate_mean_coupling_field || !enabled) return;
+      // halo atoms are stored after the core and boundary atoms owned by this rank, so they are excluded
+      #ifdef MPICF
+         const int num_atoms = vmpi::num_core_atoms + vmpi::num_bdry_atoms;
+      #else
+         const int num_atoms = atoms::num_atoms;
+      #endif
+
+      // field sums and atom count, reduced together so that every rank divides by the global atom count
+      double values[4] = {0.0, 0.0, 0.0, double(num_atoms)};
+      for(int atom=0; atom<num_atoms; ++atom){
+         values[0] += internal::coupling_field_x[atom];
+         values[1] += internal::coupling_field_y[atom];
+         values[2] += internal::coupling_field_z[atom];
+      }
+      #ifdef MPICF
+         MPI_Allreduce(MPI_IN_PLACE,values,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+      #endif
+      for(int i=0; i<3; ++i) mean_coupling_field[i] = values[3] > 0.0 ? values[i]/values[3] : 0.0;
+   }
+
 } // end of sld namespace

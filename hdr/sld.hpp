@@ -41,6 +41,11 @@ namespace sld{
    void load_phonon_pump_checkpoint(std::istream& stream);
    void check_phonon_pump_checkpoint(const bool loaded);
 
+   // Mean spin-lattice coupling field (T) over all atoms, reduced over every rank
+   extern bool calculate_mean_coupling_field;
+   extern double mean_coupling_field[3];
+   void update_mean_coupling_field();
+
    //-----------------------------------------------------------------------------
    // Function to initialise sld module
    //-----------------------------------------------------------------------------

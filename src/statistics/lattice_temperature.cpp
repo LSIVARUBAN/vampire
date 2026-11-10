@@ -180,8 +180,10 @@ void lattice_temp_statistic_t::calculate_lattice_statistics(const std::vector<do
             const std::vector<double>& velo_array_y,
             const std::vector<double>& velo_array_z){
 
+   // centre-of-mass and rigid-body corrections can be disabled with spin-lattice:lattice-temperature-correction
+   const bool apply_correction = sld::lattice_temperature_correction_enabled();
    // the rigid-body rotation is removed from the lattice temperature only without periodic directions
-   const bool remove_rigid_body_rotation = lattice_temp_enabled && !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
+   const bool remove_rigid_body_rotation = lattice_temp_enabled && apply_correction && !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
    // angular momentum is needed for the rotation removal or for output
    const bool calculate_rotation = remove_rigid_body_rotation || angular_momentum_enabled;
 
@@ -309,11 +311,11 @@ void lattice_temp_statistic_t::calculate_lattice_statistics(const std::vector<do
       }
 
       // Sum_i m_i |v_i-v_cm|^2 = Sum_i m_i |v_i|^2-|Sum_i m_i v_i|^2/Sum_i m_i
-      const double centre_of_mass_term = (momentum_x[mask_id]*momentum_x[mask_id] + momentum_y[mask_id]*momentum_y[mask_id] + momentum_z[mask_id]*momentum_z[mask_id]) / mass[mask_id];
+      const double centre_of_mass_term = apply_correction ? (momentum_x[mask_id]*momentum_x[mask_id] + momentum_y[mask_id]*momentum_y[mask_id] + momentum_z[mask_id]*momentum_z[mask_id]) / mass[mask_id] : 0.0;
       double corrected_mass_velocity_squared = std::max(0.0, lattice_temp[mask_id] - centre_of_mass_term);
 
       // removing COM translation removes 3 DOFs
-      double degrees_of_freedom = 3.0*double(num_atoms_in_mask[mask_id])-3.0;
+      double degrees_of_freedom = apply_correction ? 3.0*double(num_atoms_in_mask[mask_id])-3.0 : 3.0*double(num_atoms_in_mask[mask_id]);
 
       if(remove_rigid_body_rotation && degrees_of_freedom >= 3.0){
          const double inertia[6] = {inertia_xx[mask_id], inertia_yy[mask_id],

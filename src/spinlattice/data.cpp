@@ -60,6 +60,7 @@ namespace sld{
       std::vector<double> coupling_field_z;
       std::vector<double> spin_hessian_trace;
       bool spin_temperature_correction = true;
+      bool lattice_temperature_correction = true;
 
 
       bool enabled; // bool to enable module
@@ -202,6 +203,11 @@ namespace sld{
    // return whether nonlinear spin temperature corrections are enabled
    bool spin_temperature_correction_enabled(){
       return internal::spin_temperature_correction;
+   }
+
+   // return whether centre-of-mass and rigid-body rotation corrections are applied to the lattice temperature
+   bool lattice_temperature_correction_enabled(){
+      return internal::lattice_temperature_correction;
    }
 
 } // end of sld namespace

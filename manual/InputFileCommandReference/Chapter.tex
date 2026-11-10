@@ -424,6 +424,13 @@ the aligned ground state without changing the spin field. When disabled, $\Delta
 {\zicf spin-lattice:spin-temperature-correction=bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:spin-temperature-correction=bool}
 Includes the nonlinear field correction in the spin temperature calculation. The correction covers the full N\'eel coupling, biquadratic exchange, second-order uniaxial anisotropy and fourth-order cubic anisotropy. With the standard thermostat this changes only the measured spin temperature. With the SLED thermostat the measured spin temperature also feeds the electron temperature equation.
 
+{\zicf spin-lattice:lattice-temperature-correction=bool [default true]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:lattice-temperature-correction=bool}
+Removes rigid-body motion from the lattice temperature. When enabled, the centre-of-mass velocity is subtracted and the degrees of freedom are reduced from $3N$ to $3N-3$. If no direction is periodic, the rigid-body rotation $\boldsymbol{\omega}=\mathsf{I}^{-1}\mathbf{L}$ about the centre of mass is also subtracted and three further degrees of freedom are removed, giving
+\[
+T_l=\frac{1}{f k_B}\sum_i m_i\left|\mathbf{v}_i-\mathbf{v}_\mathrm{cm}-\boldsymbol{\omega}\times(\mathbf{r}_i-\mathbf{r}_\mathrm{cm})\right|^2 .
+\]
+When disabled, $T_l=\sum_i m_i|\mathbf{v}_i|^2/(3Nk_B)$.
+
 {\zicf spin-lattice:thermostat=string [default standard]}\phantomsection\addcontentsline{toc}{subsection}{spin-lattice:thermostat=string}
 Selects the thermal bath used by the spin-lattice integrator. The accepted values are \textit{standard} and \textit{sled}. The standard thermostat uses
 \textit{sim:temperature}. The SLED thermostat evolves an electron temperature according to

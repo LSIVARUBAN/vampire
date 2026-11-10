@@ -181,6 +181,8 @@ namespace sld{
    const std::vector<double>& spin_temperature_hessian_trace();
    // return whether nonlinear spin temperature corrections are enabled
    bool spin_temperature_correction_enabled();
+   // return whether centre-of-mass and rigid-body rotation corrections are applied to the lattice temperature
+   bool lattice_temperature_correction_enabled();
 
 /*
    extern double potential_energy;

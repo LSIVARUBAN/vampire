@@ -9,6 +9,24 @@
 //
 //   implementation based on the paper Phys. Rev. B 103, 024429, (2021) M.Strungaru, M.O.A. Ellis et al
 //------------------------------------------------------------------------------
+//   Spin temperature
+//      B_i = -(1/(mu_i mu_B)) dH/ds_i
+//      D_i = 2 s_i.B_i - Tr[(I - s_i s_i^T) dB_i/ds_i]
+//      T_s = mu_B Sum_i mu_i |s_i x B_i|^2 / (k_B Sum_i D_i)  
+//      without the correction: D_i = 2 s_i.B_i
+//
+//   Lattice temperature (m_i mass, r'_i = r_i - r_cm, v'_i = v_i - v_cm)
+//      M    = Sum_i m_i
+//      P    = Sum_i m_i v_i                                    (P = M v_cm)
+//      Sum_i m_i |v'_i|^2 = Sum_i m_i |v_i|^2 - |P|^2/M        (KE' = KE - P^2/2M)
+//      L    = Sum_i r'_i x m_i v'_i                            (L = r x p)
+//      I    = Sum_i m_i [(r'_i.r'_i) 1 - r'_i r'_i^T]
+//      w    = I^-1 L                                           (L = I w)
+//      Sum_i m_i |w x r'_i|^2 = w.L                            (KE_rot = w.L/2)
+//      T_l  = Sum_i m_i |v'_i - w x r'_i|^2 / (f k_B)          (KE = f k_B T/2)
+//      f    = 3N - 3, or 3N - 6 when the rotation is removed (no periodic directions)
+//      without the correction: T_l = Sum_i m_i |v_i|^2 / (3N k_B)
+//------------------------------------------------------------------------------
 //
 
 // C++ standard library headers
@@ -184,15 +202,18 @@ double compute_lattice_temperature(const int start_index, // first atom for exch
 
    if(mass <= 0.0 || number_of_atoms <= 0.0) return 0.0;
 
+   // without the corrections T_l = Sum_i m_i |v_i|^2/(3N k_B)
+   const bool apply_correction = sld::internal::lattice_temperature_correction;
+
    // Sum_i m_i |v_i-v_cm|^2 = Sum_i m_i |v_i|^2-|Sum_i m_i v_i|^2/Sum_i m_i
-   const double centre_of_mass_term = (momentum_x*momentum_x + momentum_y*momentum_y + momentum_z*momentum_z) / mass;
+   const double centre_of_mass_term = apply_correction ? (momentum_x*momentum_x + momentum_y*momentum_y + momentum_z*momentum_z) / mass : 0.0;
    double thermal_mass_velocity_squared = std::max(0.0, mass_velocity_squared - centre_of_mass_term);
 
    // removing COM translation removes 3 DOFs
-   double degrees_of_freedom = 3.0*number_of_atoms-3.0;
+   double degrees_of_freedom = apply_correction ? 3.0*number_of_atoms-3.0 : 3.0*number_of_atoms;
 
    // if any direction is periodic, rotational subtraction is disabled
-   const bool remove_rigid_body_rotation = !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
+   const bool remove_rigid_body_rotation = apply_correction && !cs::pbc[0] && !cs::pbc[1] && !cs::pbc[2];
    if(remove_rigid_body_rotation && degrees_of_freedom >= 3.0){
       const double centre_of_mass_x = mass_position_x/mass;
       const double centre_of_mass_y = mass_position_y/mass;

@@ -385,6 +385,13 @@ namespace sld{
          return true;
       }
 
+      test = "lattice-temperature-correction";
+      if( word == test ){
+         sld::internal::lattice_temperature_correction =
+            vin::check_for_valid_bool(value, word, line, prefix, "input");
+         return true;
+      }
+
       test = "thermostat"; // SLED or standard thermostat, if not specified, default is standard thermostat
       if( word == test ){
          if(value == "standard"){

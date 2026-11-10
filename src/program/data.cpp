@@ -53,6 +53,12 @@ namespace program{
       double exchange_stiffness_delta_constraint_angle =  5; // 22.5 degrees
 
       //------------------------------------------------------------------------
+      // Effective damping program
+      //------------------------------------------------------------------------
+      double effective_damping_rotation_angle = 30.0; // initial rotation of magnetisation from z-axis (degrees)
+      std::vector<double> effective_damping_rotation_axis = {1.0, 0.0, 0.0}; // axis to rotate spins around, default x-axis
+
+      //------------------------------------------------------------------------
       // Material specific program parameters
       //------------------------------------------------------------------------
       std::vector<internal::mp_t> mp; // array of material properties

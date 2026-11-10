@@ -56,6 +56,9 @@ namespace stats
 	// Function to reset average statistics counters
    void reset();
 
+	// Function to process input file parameters for statistics module
+	bool match_input_parameter(std::string const key, std::string const word, std::string const value, std::string const unit, int const line);
+
 	// Statistics control flags (to be moved internally when long-awaited refactoring of vio is done)
 	extern bool calculate_system_energy;
 	extern bool calculate_grain_energy;
@@ -107,6 +110,20 @@ namespace stats
 
 	extern bool calculate_system_binder_cumulant;
 	extern bool calculate_material_binder_cumulant;
+
+	extern bool calculate_cubic_per_spin_geofencing;
+	extern bool calculate_uniaxial_per_spin_geofencing;
+
+	extern bool output_cubic_geofencing_product; // output m . e_a for the closest axis with the geofencing state
+	extern bool output_uniaxial_geofencing_product;
+
+	//---------------------------------------------------------------------------
+	// Geofencing of the magnetisation and of each spin into easy axis states
+	//---------------------------------------------------------------------------
+	enum geofencing_t { cubic_geofencing = 0, uniaxial_geofencing = 1 };
+
+	std::string output_geofencing_state(const geofencing_t type, const bool header);
+	std::string output_per_spin_geofencing(const geofencing_t type, const bool header);
 
 	// forward declaration of friend classes
 	class susceptibility_statistic_t;

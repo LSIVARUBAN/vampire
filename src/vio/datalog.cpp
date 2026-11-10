@@ -340,6 +340,18 @@ namespace vout{
 			case 95:
 				vout::phonon_pump_mode(stream,header);
 				break;
+			case 96:
+				vout::cubic_geofencing(stream,header);
+				break;
+			case 97:
+				vout::uniaxial_geofencing(stream,header);
+				break;
+			case 98:
+				vout::cubic_per_spin_geofencing(stream,header);
+				break;
+			case 99:
+				vout::uniaxial_per_spin_geofencing(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;

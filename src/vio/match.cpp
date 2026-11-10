@@ -88,6 +88,7 @@ namespace vin{
         else if(montecarlo::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
         else if(program::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
         else if(sim::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
+        else if(stats::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
         else if(st::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
         else if(spin_transport::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
         else if(unitcell::match_input_parameter(key, word, value, unit, line)) return EXIT_SUCCESS;
@@ -1652,6 +1653,50 @@ namespace vin{
             int r=atoi(value.c_str());
             check_for_valid_int(r, word, line, prefix, 0, 1000000,"input","0 - 1,000,000");
             vout::output_rate=r;
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="geofencing-cubic"; // cubic state of the magnetisation, optionally without m . e_a column
+        if(word==test){
+            if(value == "no-product") stats::output_cubic_geofencing_product = false;
+            else if(value != "" && value != "product"){
+               terminaltextcolor(RED);
+               std::cerr << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+               terminaltextcolor(WHITE);
+               zlog << zTs() << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+               err::vexit();
+            }
+            stats::calculate_system_magnetization=true;
+            output_list.push_back(96);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="geofencing-uniaxial"; // uniaxial state of the magnetisation, optionally without m . e_a column
+        if(word==test){
+            if(value == "no-product") stats::output_uniaxial_geofencing_product = false;
+            else if(value != "" && value != "product"){
+               terminaltextcolor(RED);
+               std::cerr << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+               terminaltextcolor(WHITE);
+               zlog << zTs() << "Error - value for \'" << prefix << word << "\' must be \"no-product\" (or omitted) on line " << line << " of input file" << std::endl;
+               err::vexit();
+            }
+            stats::calculate_system_magnetization=true;
+            output_list.push_back(97);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="geofencing-cubic-per-spin";
+        if(word==test){
+            stats::calculate_cubic_per_spin_geofencing=true;
+            output_list.push_back(98);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="geofencing-uniaxial-per-spin";
+        if(word==test){
+            stats::calculate_uniaxial_per_spin_geofencing=true;
+            output_list.push_back(99);
             return EXIT_SUCCESS;
         }
 

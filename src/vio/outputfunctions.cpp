@@ -613,4 +613,24 @@ namespace vout{
       stream << stats::material_lattice_temp.output_angular_momentum(header);
    }
 
+   // Output Function 96 - cubic geofencing state of the magnetisation
+   void cubic_geofencing(std::ostream& stream, bool header){
+      stream << stats::output_geofencing_state(stats::cubic_geofencing, header);
+   }
+
+   // Output Function 97 - uniaxial geofencing state of the magnetisation
+   void uniaxial_geofencing(std::ostream& stream, bool header){
+      stream << stats::output_geofencing_state(stats::uniaxial_geofencing, header);
+   }
+
+   // Output Function 98 - cubic per-spin geofencing
+   void cubic_per_spin_geofencing(std::ostream& stream, bool header){
+      stream << stats::output_per_spin_geofencing(stats::cubic_geofencing, header);
+   }
+
+   // Output Function 99 - uniaxial per-spin geofencing
+   void uniaxial_per_spin_geofencing(std::ostream& stream, bool header){
+      stream << stats::output_per_spin_geofencing(stats::uniaxial_geofencing, header);
+   }
+
 }

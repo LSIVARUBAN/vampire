@@ -35,34 +35,13 @@ namespace anisotropy{
       if(key!=prefix) return false;
 
       //-------------------------------------------------------------------
-      std::string test="surface-anisotropy-threshold";
-      if(word==test){
-          // test for native keyword
-          test="native";
-          if(value==test){
-             internal::native_neel_anisotropy_threshold = true;
-             return EXIT_SUCCESS;
-          }
-          int sat=atoi(value.c_str());
-          // Test for valid range
-          vin::check_for_valid_int(sat, word, line, prefix, 0, 1000000000,"input","0 - 1,000,000,000");
-          internal::neel_anisotropy_threshold = sat;
-          return true;
-      }
+      // surface-anisotropy-threshold and surface-anisotropy-nearest-neighbour-range are deprecated
+      // forms of create:surface-threshold and create:surface-identification-range (see create module)
       //-------------------------------------------------------------------
-      test="surface-anisotropy-nearest-neighbour-range";
+      std::string test="enable-bulk-neel-anisotropy";
       if(word==test){
-          // Test for valid range
-          double r = atof(value.c_str());
-          vin::check_for_valid_value(r, word, line, prefix, unit, "length", 0.0, 1.0e9,"input","0.0 - 1,000,000,000");
-          internal::nearest_neighbour_distance = r;
-          return true;
-      }
-      //-------------------------------------------------------------------
-      test="enable-bulk-neel-anisotropy";
-      if(word==test){
-          // Enable large threshold to force calculation of Neel anisotropy for all atoms
-          internal::neel_anisotropy_threshold = internal::bulk_neel_anisotropy_threshold;
+          // Calculate Neel anisotropy for all atoms rather than only surface atoms
+          internal::enable_bulk_neel_anisotropy = true;
           return true;
       }
       //-------------------------------------------------------------------

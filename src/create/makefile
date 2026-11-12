@@ -24,6 +24,7 @@ generate_crystal.o \
 geometry.o \
 get_material_height.o \
 hexagonal_array.o \
+identify_surface_atoms.o \
 initialize.o \
 interface.o \
 layers.o \

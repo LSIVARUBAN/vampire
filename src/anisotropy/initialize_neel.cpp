@@ -39,7 +39,8 @@ namespace internal{
                                           std::vector<std::vector <neighbours::neighbour_t> >& cneighbourlist){
 
       // Print informative message to log file
-      zlog << zTs() << "Using Néel pair anisotropy for surface atoms." << std::endl;
+      if(internal::enable_bulk_neel_anisotropy) zlog << zTs() << "Using Néel pair anisotropy for all atoms." << std::endl;
+      else zlog << zTs() << "Using Néel pair anisotropy for surface atoms." << std::endl;
 
       // allocate memory for neel anisotropy tensor
       internal::neel_tensor.resize( 9 * atoms::num_atoms, 0.0 );
@@ -58,8 +59,8 @@ namespace internal{
       for(int atom=0;atom<atoms::num_atoms;atom++){
 
 
-         // Only calculate parameters for atoms with less than full nn coordination
-         if(atoms::surface_array[atom]){
+         // Only calculate parameters for atoms with less than full nn coordination (or all atoms for bulk Neel anisotropy)
+         if(atoms::surface_array[atom] || internal::enable_bulk_neel_anisotropy){
 
             // get material id for atom
             const unsigned int imat = atoms::type_array[atom];
@@ -169,5 +170,18 @@ namespace internal{
    } // end of surface anisotropy initialisation
 
 } // end of internal namespace
+
+   //---------------------------------------------------------------------------
+   // Function to initialise Neel anisotropy for the surface atoms identified in
+   // the create module, using their nearest neighbour interactions
+   //---------------------------------------------------------------------------
+   void initialise_neel_anisotropy(std::vector <std::vector <bool> >& nearest_neighbour_interactions_list,
+                                   std::vector<std::vector <neighbours::neighbour_t> >& cneighbourlist){
+
+      if(internal::enable_neel_anisotropy) internal::initialise_neel_anisotropy_tensor(nearest_neighbour_interactions_list, cneighbourlist);
+
+      return;
+
+   }
 
 } // end of anisotropy namespace

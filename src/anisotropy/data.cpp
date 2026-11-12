@@ -166,9 +166,7 @@ namespace anisotropy{
       std::vector<bool> triaxial_second_order_fixed_basis(100,true);
       std::vector<bool> triaxial_fourth_order_fixed_basis(100,true);
 
-      bool native_neel_anisotropy_threshold  = false; // enables site-dependent surface threshold
-   	unsigned int neel_anisotropy_threshold = 123456789; // global threshold for surface atoms
-      double nearest_neighbour_distance      = -1.0; // Control surface anisotropy nearest neighbour distance (A), negative for the default
+      bool enable_bulk_neel_anisotropy       = false; // Calculate Neel anisotropy for all atoms rather than only surface atoms
       bool neel_range_dependent              = false; // Enable range dependent Neel anisotropy Lij = L0 exp(-F(r-r0)/r0 )
       double neel_exponential_range          = 2.5; // r0 value for range dependence of Neel anisotropy
       double neel_exponential_factor         = 5.53; // F value for range dependence of Neel anisotropy (default assumes nnn fraction of 10% of nn value)

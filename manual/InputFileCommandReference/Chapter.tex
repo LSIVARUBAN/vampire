@@ -103,6 +103,10 @@ will set the periodic boundary conditions along the $y$ and $z$ directions.
 
 {\zicf create:interfacial-roughness-height-field-resolution}\phantomsection\addcontentsline{toc}{subsection}{create:interfacial-roughness-height-field-resolution}
 
+{\zicf create:surface-threshold = integer [default from unit cell]}\phantomsection\addcontentsline{toc}{subsection}{create:surface-threshold} Determines the minimal number of nearest neighbours to classify an atom as a surface atom, as used for the N\'eel pair anisotropy. The default value is the number of neighbours specified by the crystal or unit cell file.
+
+{\zicf create:surface-identification-range = float [default nearest neighbour radius]}\phantomsection\addcontentsline{toc}{subsection}{create:surface-identification-range} Sets the range for counting nearest neighbours when identifying surface atoms. The default is the nearest neighbour radius of the crystal structure, or all interactions for a unit cell file.
+
 {\zicf create:alloy-random-seed integer [default 683614233]}\phantomsection\addcontentsline{toc}{subsection}{create:alloy-random-seed} Sets the random seed for the psuedo random number generator for generating random alloys. Simulations use a predictable sequence of psuedo random numbers to give repeatable results for the same simulation. The seed determines the actual sequence of numbers and is used to generate a different alloy distribution. Note that different numbers of cores will change the structure that is generated.
 
 {\zicf create:grain-random-seed integer [default 1527349271]}\phantomsection\addcontentsline{toc}{subsection}{create:grain-random-seed} Sets the random seed for the psuedo random number generator for generating random grain structures.
@@ -242,24 +246,18 @@ in the strength of the exchange constants.\\
 The following commands control the calculation of the magnetic anisotropy energy
 for the system.
 
-{\zicf anisotropy:surface-anisotropy-threshold = integer [default native]}\phantomsection\addcontentsline{toc}
-{subsection}{anisotropy:surface-anisotropy-threshold} Determines minimal number
-of neighbours to classify as surface atom. The default value is the number of
-neighbours specified by the crystal or unit cell file. You can set this as a
-lower threshold.
+{\zicf anisotropy:surface-anisotropy-threshold = integer}\phantomsection\addcontentsline{toc}
+{subsection}{anisotropy:surface-anisotropy-threshold} Deprecated form of
+\textit{create:surface-threshold}.
 
-{\zicf anisotropy:surface-anisotropy-nearest-neighbour-range = float [default nearest neighbour radius]}\phantomsection\addcontentsline{toc}
-{subsection}{anisotropy:surface-anisotropy-nearest-neighbour-range} Sets the
-interaction range for the nearest neighbour list used for the surface anisotropy
-calculation. The default is the nearest neighbour radius of the crystal
-structure, or all interactions for a unit cell file.
+{\zicf anisotropy:surface-anisotropy-nearest-neighbour-range = float}\phantomsection\addcontentsline{toc}
+{subsection}{anisotropy:surface-anisotropy-nearest-neighbour-range} Deprecated
+form of \textit{create:surface-identification-range}.
 
 {\zicf anisotropy:enable-bulk-neel-anisotropy = bool [default false]}\phantomsection\addcontentsline{toc}
 {subsection}{anisotropy:enable-bulk-neel-anisotropy} Enables calculation of the
 N\'eel pair anisotropy in the bulk, irrespective of the number of neighbours,
-enabling the effect of localised spin-orbit interactions. Internally this sets a
-large threshold, and so specifying anisotropy:surface-anisotropy-threshold will
-override this flag.
+enabling the effect of localised spin-orbit interactions.
 
 {\zicf anisotropy:neel-anisotropy-exponential-range = float [default $2.5$]}\phantomsection\addcontentsline{toc}
 {subsection}{anisotropy:neel-anisotropy-exponential-range} Enables an

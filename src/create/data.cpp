@@ -56,6 +56,9 @@ namespace create{
          bool select_material_by_z_height = false;	// Toggle overwriting of material id by z-height
          bool output_gv_file = true; // toggle output of grain positions to file
 
+         unsigned int surface_threshold = 123456789;   // atoms with fewer nearest neighbours are surface atoms (default from unit cell)
+         double surface_identification_range = -1.0;  // nearest neighbour range for surface identification (A), negative for the default
+
       } // end of internal namespace
 
 } // end of create namespace

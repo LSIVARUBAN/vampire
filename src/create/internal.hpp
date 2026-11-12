@@ -145,10 +145,17 @@ namespace create{
       extern bool select_material_by_z_height;
       extern bool output_gv_file; // toggle output of grain positions to file
 
+      extern unsigned int surface_threshold;      // atoms with fewer nearest neighbours are surface atoms
+      extern double surface_identification_range; // nearest neighbour range for surface identification (A), negative for the default
+
       //-----------------------------------------------------------------------------
       // Internal functions for create module
       //-----------------------------------------------------------------------------
       void set_atom_vars(std::vector<cs::catom_t> &, neighbours::list_t& bilinear, neighbours::list_t& biquadratic);
+
+      void identify_surface_atoms(std::vector<cs::catom_t> & catom_array,
+                                  std::vector<std::vector <neighbours::neighbour_t> > & cneighbourlist,
+                                  std::vector <std::vector <bool> >& nearest_neighbour_interactions_list);
 
       bool point_in_polygon2(const create::internal::points_t test, std::vector<create::internal::points_t>& points);
 

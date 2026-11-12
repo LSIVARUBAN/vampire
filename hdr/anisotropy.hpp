@@ -127,9 +127,10 @@ namespace anisotropy
    std::vector<double> get_kl_vector(const int material);
 
    //-----------------------------------------------------------------------------
-   // function to identify surface atoms
+   // function to initialise Neel anisotropy for surface atoms (identified in the create module)
    //-----------------------------------------------------------------------------
-   void identify_surface_atoms(std::vector<cs::catom_t> & catom_array, std::vector<std::vector <neighbours::neighbour_t> > & cneighbourlist);
+   void initialise_neel_anisotropy(std::vector <std::vector <bool> >& nearest_neighbour_interactions_list,
+                                   std::vector<std::vector <neighbours::neighbour_t> >& cneighbourlist);
 
    //---------------------------------------------------------------------------
    // Function to process input file parameters for anisotropy module

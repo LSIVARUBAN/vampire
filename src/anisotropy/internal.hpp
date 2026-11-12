@@ -347,10 +347,7 @@ namespace anisotropy{
       extern std::vector< evec_t > kr_vector; // 100 phi = 0 direction
       extern std::vector< evec_t > kl_vector; // 010 phi = 90 direction
 
-      extern bool native_neel_anisotropy_threshold;  // enables site-dependent surface threshold
-      extern unsigned int neel_anisotropy_threshold; // global threshold for surface atoms
-      const unsigned int bulk_neel_anisotropy_threshold = 1000000000; // threshold set by enable-bulk-neel-anisotropy (all atoms are surface atoms)
-      extern double nearest_neighbour_distance;      // Control surface anisotropy nearest neighbour distance
+      extern bool enable_bulk_neel_anisotropy;       // Calculate Neel anisotropy for all atoms rather than only surface atoms
       extern bool neel_range_dependent;              // Enable range dependent Neel anisotropy Lij = L0 exp(-F(r-r0)/r0)
       extern double neel_exponential_range;          // r0 value for range dependence of Neel anisotropy
       extern double neel_exponential_factor;         // F value for range dependence of Neel anisotropy

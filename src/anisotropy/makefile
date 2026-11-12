@@ -11,7 +11,6 @@ data.o \
 energy.o \
 fields.o \
 get_anisotropy.o \
-identify_surface_atoms.o \
 initialize.o \
 initialize_neel.o \
 interface.o \

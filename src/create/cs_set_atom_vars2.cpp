@@ -183,9 +183,11 @@ void set_atom_vars(std::vector<cs::catom_t> & catom_array,
 	}
 
    //---------------------------------------------------------------------------
-   // Identify surface atoms and initialise anisotropy data
+   // Identify surface atoms and initialise Neel anisotropy data
    //---------------------------------------------------------------------------
-   anisotropy::identify_surface_atoms(catom_array, bilinear.list);
+   std::vector <std::vector <bool> > nearest_neighbour_interactions_list;
+   internal::identify_surface_atoms(catom_array, bilinear.list, nearest_neighbour_interactions_list);
+   anisotropy::initialise_neel_anisotropy(nearest_neighbour_interactions_list, bilinear.list);
 
 	//===========================================================
 	// Create 1-D neighbourlist

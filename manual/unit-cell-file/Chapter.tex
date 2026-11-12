@@ -45,7 +45,7 @@ $.$	 & cx,cy,cz   unit cell coordinates as a fraction of unit cell size\\
 $.$	 & mat\_id  material id of the atom, integer starting at 0\\
 $.$	 & cat\_id  category id of the atom, used for calculating properties not categorised by material, eg height or sublattice. Integer starting at 1.\\
 $.$	 & hcat\_id Height category id used for calculating properties as a function of height\\
-$.$	 & surface\_flag (optional) If provided, must be 0 or 1 for every atom line. A value of 1 marks that atom as a surface atom and 0 marks it as a bulk atom. If this optional column is present, \vampire uses it to identify surface atoms (for example for N\'eel pair anisotropy) rather than the usual geometric identification from the number of nearest neighbours, unless \textit{anisotropy:enable-bulk-neel-anisotropy} is set.\\
+$.$	 & surface\_flag (optional) If provided, must be 0 or 1 for every atom line. A value of 1 marks that atom as a surface atom and 0 marks it as a bulk atom. If this optional column is present, \vampire uses it to identify surface atoms (for example for N\'eel pair anisotropy) rather than the usual geometric identification from the number of nearest neighbours.\\
 $12$   & Defines the total number of interactions for the unit cell and the expected type of exchange
 (isotropic, vectorial, tensorial, normalized-isotropic, normalized-vectorial, normalized-tensorial). No lines are allowed between this line and the list of interactions.\\
 $13$   & These lines list all the interactions.\\

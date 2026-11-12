@@ -17,48 +17,37 @@
 #include <sstream>
 
 // Vampire headers
-#include "atoms.hpp" // to be removed
-#include "create.hpp" // to be removed
-
-#include "anisotropy.hpp"
+#include "atoms.hpp"
+#include "create.hpp"
 #include "errors.hpp"
 #include "material.hpp"
-#include "units.hpp"
 #include "vio.hpp"
 
-// anisotropy module headers
+// create module headers
 #include "internal.hpp"
 
-namespace anisotropy{
+namespace create{
+namespace internal{
 
    //---------------------------------------------------------------------------
-   // Function to identify less than fully coordinated atoms
+   // Function to identify less than fully coordinated (surface) atoms in the
+   // initial structure, saved in atoms::surface_array, and the nearest neighbour
+   // interactions of each atom (used for Neel anisotropy)
    //---------------------------------------------------------------------------
-   void identify_surface_atoms(std::vector<cs::catom_t> & catom_array, std::vector<std::vector <neighbours::neighbour_t> > & cneighbourlist){
+   void identify_surface_atoms(std::vector<cs::catom_t> & catom_array,
+                               std::vector<std::vector <neighbours::neighbour_t> > & cneighbourlist,
+                               std::vector <std::vector <bool> >& nearest_neighbour_interactions_list){
 
       // initialise surface threshold if not overidden by input file
-      if(internal::neel_anisotropy_threshold == 123456789) internal::neel_anisotropy_threshold = cs::unit_cell.surface_threshold;
+      if(internal::surface_threshold == 123456789) internal::surface_threshold = cs::unit_cell.surface_threshold;
 
-      // use surface flags from the unit cell file if present, unless Neel anisotropy is enabled for all atoms
-      const bool bulk_neel_anisotropy = internal::neel_anisotropy_threshold >= internal::bulk_neel_anisotropy_threshold;
-      const bool use_unit_cell_surface_flags = cs::unit_cell.surface_flags_present && !bulk_neel_anisotropy;
-
-      //-------------------------------------------------
-      //	Optionally set up surface anisotropy
-      //-------------------------------------------------
+      // use surface flags from the unit cell file if present
+      const bool use_unit_cell_surface_flags = cs::unit_cell.surface_flags_present;
 
       // create temporary array for storing surface threshold
-      std::vector<unsigned int> surface_anisotropy_threshold_array(atoms::num_atoms, internal::neel_anisotropy_threshold);
+      std::vector<unsigned int> surface_threshold_array(atoms::num_atoms, internal::surface_threshold);
       if(use_unit_cell_surface_flags) zlog << zTs() << "Identifying surface atoms using unit cell surface flags." << std::endl;
-      // if using native (local) surface threshold then repopulate threshold array
-      else if(internal::native_neel_anisotropy_threshold){
-         zlog << zTs() << "Identifying surface atoms using native (site dependent) threshold." << std::endl;
-         for(int atom=0; atom < atoms::num_atoms; atom++){
-            unsigned int atom_uc_id = catom_array.at(atom).uc_id;
-            surface_anisotropy_threshold_array.at(atom) = cs::unit_cell.atom.at(atom_uc_id).ni;
-         }
-      }
-      else zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::neel_anisotropy_threshold << std::endl;
+      else zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::surface_threshold << std::endl;
 
       //--------------------------------------------------------------------------------------------
       // Determine nearest neighbour interactions from unit cell data for a single unit cell
@@ -69,7 +58,7 @@ namespace anisotropy{
 
       // nearest neighbour range (A), by default the nearest neighbour radius of a built-in unit cell
       // (so that longer range exchange interactions are not counted) or all interactions in a unit cell file
-      double nn_range = internal::nearest_neighbour_distance;
+      double nn_range = internal::surface_identification_range;
       if(nn_range < 0.0) nn_range = (cs::unit_cell.cutoff_radius > 0.0) ? 1.000001*cs::unit_cell.cutoff_radius*cs::unit_cell.dimensions[0] : 1.0e9;
       zlog << zTs() << "Counting nearest neighbours within " << nn_range << " A for surface atom identification." << std::endl;
 
@@ -115,7 +104,7 @@ namespace anisotropy{
       //------------------------------------------------------------
 
       // vector to identify all nearest neighbour interactions
-      std::vector <std::vector <bool> > nearest_neighbour_interactions_list(atoms::num_atoms);
+      nearest_neighbour_interactions_list.resize(atoms::num_atoms);
 
       // loop over all atoms
       for(int atom=0; atom < atoms::num_atoms; atom++){
@@ -180,7 +169,7 @@ namespace anisotropy{
             }
 
             // check for atoms with < threshold number of nearest neighbours
-            if(nnn_int<surface_anisotropy_threshold_array.at(atom)){
+            if(nnn_int<surface_threshold_array.at(atom)){
                atoms::surface_array[atom]=true;
                num_surface_atoms++;
                //total_num_surface_nn+=nnn_int;
@@ -200,15 +189,9 @@ namespace anisotropy{
       for(int mat = 0; mat < mp::num_materials; mat++) zlog << " " << num_surface_atoms_per_material[mat];
       zlog << std::endl;
 
-      //----------------------------------------------------------------
-      // If neel surface anisotropy is enabled, calculate necessary data
-      //----------------------------------------------------------------
-      if(internal::enable_neel_anisotropy){
-         internal::initialise_neel_anisotropy_tensor(nearest_neighbour_interactions_list, cneighbourlist);
-      }
-
       return;
 
    }
 
-} // end of anisotropy namespace
+} // end of internal namespace
+} // end of create namespace

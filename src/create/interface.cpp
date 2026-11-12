@@ -25,6 +25,12 @@ namespace create{
    //-----------------------------------------------------------------------------
    bool match_input_parameter(string const key, string const word, string const value, string const unit, int const line){
 
+      //----------------------------------------------------------------------
+      // Deprecated forms of create:surface-threshold and create:surface-identification-range
+      //----------------------------------------------------------------------
+      if(key == "anisotropy" && word == "surface-anisotropy-threshold") return match_input_parameter("create", "surface-threshold", value, unit, line);
+      if(key == "anisotropy" && word == "surface-anisotropy-nearest-neighbour-range") return match_input_parameter("create", "surface-identification-range", value, unit, line);
+
       // Check for valid key, if no match return false
       std::string prefix="create";
       if(key!=prefix) return false;
@@ -32,7 +38,23 @@ namespace create{
       //----------------------------------
       // Now test for all valid options
       //----------------------------------
-      std::string test="faceted-particle";
+      std::string test="surface-threshold"; // atoms with fewer nearest neighbours are surface atoms
+      if(word==test){
+         int threshold = atoi(value.c_str());
+         vin::check_for_valid_int(threshold, word, line, prefix, 0, 1000000000,"input","0 - 1,000,000,000");
+         create::internal::surface_threshold = threshold;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="surface-identification-range"; // nearest neighbour range for surface identification
+      if(word==test){
+         double r = atof(value.c_str());
+         vin::check_for_valid_value(r, word, line, prefix, unit, "length", 0.0, 1.0e9,"input","0.0 - 1,000,000,000");
+         create::internal::surface_identification_range = r;
+         return true;
+      }
+      //--------------------------------------------------------------------
+      test="faceted-particle";
       if(word==test){
          // check for blank value
          test="";

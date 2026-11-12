@@ -149,7 +149,7 @@ namespace unitcell{
 
 		double dimensions[3];
 		double shape[3][3];
-      double cutoff_radius; // nearest neighbours
+      double cutoff_radius = 0.0; // nearest neighbour radius normalised to the unit cell x size (built-in unit cells only)
       unsigned int interaction_range; /// maximum range in unit cells
 
 		unsigned int lcsize; /// number of local categories

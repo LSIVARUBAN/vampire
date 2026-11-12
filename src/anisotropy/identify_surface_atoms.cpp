@@ -67,8 +67,14 @@ namespace anisotropy{
       // vector to store interactions within range
       std::vector<bool> nn_interaction(cs::unit_cell.bilinear.interaction.size(),false);
 
+      // nearest neighbour range (A), by default the nearest neighbour radius of a built-in unit cell
+      // (so that longer range exchange interactions are not counted) or all interactions in a unit cell file
+      double nn_range = internal::nearest_neighbour_distance;
+      if(nn_range < 0.0) nn_range = (cs::unit_cell.cutoff_radius > 0.0) ? 1.000001*cs::unit_cell.cutoff_radius*cs::unit_cell.dimensions[0] : 1.0e9;
+      zlog << zTs() << "Counting nearest neighbours within " << nn_range << " A for surface atom identification." << std::endl;
+
       // save nn_distance for performance
-      const double rsq = internal::nearest_neighbour_distance * internal::nearest_neighbour_distance;
+      const double rsq = nn_range * nn_range;
 
       // Get unit cell size
       const double ucdx = cs::unit_cell.dimensions[0];

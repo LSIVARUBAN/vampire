@@ -248,10 +248,11 @@ of neighbours to classify as surface atom. The default value is the number of
 neighbours specified by the crystal or unit cell file. You can set this as a
 lower threshold.
 
-{\zicf anisotropy:surface-anisotropy-nearest-neighbour-range = float [default $\infty$]}\phantomsection\addcontentsline{toc}
+{\zicf anisotropy:surface-anisotropy-nearest-neighbour-range = float [default nearest neighbour radius]}\phantomsection\addcontentsline{toc}
 {subsection}{anisotropy:surface-anisotropy-nearest-neighbour-range} Sets the
 interaction range for the nearest neighbour list used for the surface anisotropy
-calculation.
+calculation. The default is the nearest neighbour radius of the crystal
+structure, or all interactions for a unit cell file.
 
 {\zicf anisotropy:enable-bulk-neel-anisotropy = bool [default false]}\phantomsection\addcontentsline{toc}
 {subsection}{anisotropy:enable-bulk-neel-anisotropy} Enables calculation of the

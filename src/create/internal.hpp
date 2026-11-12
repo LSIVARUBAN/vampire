@@ -145,7 +145,7 @@ namespace create{
       extern bool select_material_by_z_height;
       extern bool output_gv_file; // toggle output of grain positions to file
 
-      extern unsigned int surface_threshold;      // atoms with fewer nearest neighbours are surface atoms
+      extern unsigned int surface_threshold;      // atoms with fewer nearest neighbours are surface atoms (123456789 for the site dependent default)
       extern double surface_identification_range; // nearest neighbour range for surface identification (A), negative for the default
 
       //-----------------------------------------------------------------------------

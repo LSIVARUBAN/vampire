@@ -38,16 +38,8 @@ namespace internal{
                                std::vector<std::vector <neighbours::neighbour_t> > & cneighbourlist,
                                std::vector <std::vector <bool> >& nearest_neighbour_interactions_list){
 
-      // initialise surface threshold if not overidden by input file
-      if(internal::surface_threshold == 123456789) internal::surface_threshold = cs::unit_cell.surface_threshold;
-
       // use surface flags from the unit cell file if present
       const bool use_unit_cell_surface_flags = cs::unit_cell.surface_flags_present;
-
-      // create temporary array for storing surface threshold
-      std::vector<unsigned int> surface_threshold_array(atoms::num_atoms, internal::surface_threshold);
-      if(use_unit_cell_surface_flags) zlog << zTs() << "Identifying surface atoms using unit cell surface flags." << std::endl;
-      else zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::surface_threshold << std::endl;
 
       //--------------------------------------------------------------------------------------------
       // Determine nearest neighbour interactions from unit cell data for a single unit cell
@@ -95,6 +87,26 @@ namespace internal{
          const double range = (dx*dx + dy*dy + dz*dz);
          if(range <=rsq) nn_interaction[itr]=true;
       }
+
+      //--------------------------------------------------------------------------------------------
+      // Determine the surface threshold of each atom, by default the bulk number of nearest
+      // neighbours of its unit cell site, counted from the unit cell interactions within range
+      //--------------------------------------------------------------------------------------------
+      std::vector<unsigned int> site_coordination(cs::unit_cell.atom.size(), 0);
+      for(unsigned int itr = 0; itr < cs::unit_cell.bilinear.interaction.size(); itr++){
+         if(nn_interaction[itr]) site_coordination[cs::unit_cell.bilinear.interaction[itr].i]++;
+      }
+
+      // create temporary array for storing surface threshold
+      std::vector<unsigned int> surface_threshold_array(atoms::num_atoms, internal::surface_threshold);
+      if(use_unit_cell_surface_flags) zlog << zTs() << "Identifying surface atoms using unit cell surface flags." << std::endl;
+      else if(internal::surface_threshold == 123456789){
+         zlog << zTs() << "Identifying surface atoms using the bulk number of nearest neighbours of each unit cell site:";
+         for(unsigned int site = 0; site < site_coordination.size(); site++) zlog << " " << site_coordination[site];
+         zlog << std::endl;
+         for(int atom=0; atom < atoms::num_atoms; atom++) surface_threshold_array[atom] = site_coordination[catom_array[atom].uc_id];
+      }
+      else zlog << zTs() << "Identifying surface atoms using global threshold value of " << internal::surface_threshold << std::endl;
 
       //------------------------------------------------------------
       // Identify all nearest neighbour interactions in system

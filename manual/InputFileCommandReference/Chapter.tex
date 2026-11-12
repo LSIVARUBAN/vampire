@@ -103,7 +103,7 @@ will set the periodic boundary conditions along the $y$ and $z$ directions.
 
 {\zicf create:interfacial-roughness-height-field-resolution}\phantomsection\addcontentsline{toc}{subsection}{create:interfacial-roughness-height-field-resolution}
 
-{\zicf create:surface-threshold = integer [default from unit cell]}\phantomsection\addcontentsline{toc}{subsection}{create:surface-threshold} Determines the minimal number of nearest neighbours to classify an atom as a surface atom, as used for the N\'eel pair anisotropy and the surface and bulk magnetisation outputs. The default value is the number of neighbours specified by the crystal or unit cell file.
+{\zicf create:surface-threshold = integer [default bulk coordination of each site]}\phantomsection\addcontentsline{toc}{subsection}{create:surface-threshold} Determines the minimal number of nearest neighbours to classify an atom as a surface atom, as used for the N\'eel pair anisotropy and the surface and bulk magnetisation outputs. By default each atom is compared with the bulk number of nearest neighbours of its unit cell site. A unit cell file of a whole particle needs a threshold or surface flags.
 
 {\zicf create:surface-identification-range = float [default nearest neighbour radius]}\phantomsection\addcontentsline{toc}{subsection}{create:surface-identification-range} Sets the range for counting nearest neighbours when identifying surface atoms. The default is the nearest neighbour radius of the crystal structure, or all interactions for a unit cell file.
 

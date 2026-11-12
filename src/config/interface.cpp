@@ -83,6 +83,18 @@ namespace config{
          return EXIT_SUCCESS;
       }
       //--------------------------------------------------------------------
+      test="atoms-surface"; // output coordinates of surface atoms with the atomic configurations
+      if(word==test){
+         internal::output_atoms_surface_config = true;
+         return EXIT_SUCCESS;
+      }
+      //--------------------------------------------------------------------
+      test="sld-surface"; // output dynamic (SLD) positions of surface atoms with the atomic configurations
+      if(word==test){
+         internal::output_sld_surface_config = true;
+         return EXIT_SUCCESS;
+      }
+      //--------------------------------------------------------------------
       test="output-format";
       if(word==test){
          test="binary";

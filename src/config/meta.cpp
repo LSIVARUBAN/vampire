@@ -27,12 +27,17 @@ namespace config{
    namespace internal{
 
       //---------------------------------------------------------------------
-      // Function to write meta data for coordinate and atomic data
+      // Function to write meta data for coordinate and atomic data (of the
+      // surface atoms if surface is true, which are written to a single file)
       //---------------------------------------------------------------------
-      void write_coordinate_meta(){
+      void write_coordinate_meta(const bool surface){
+
+         const std::string name = surface ? "atoms-coords-surface" : "atoms-coords"; // file name without extension
+         const uint64_t num_atoms = surface ? uint64_t(config::internal::total_surface_atoms) : config::internal::total_output_atoms;
+         const int num_files = surface ? 1 : config::internal::num_io_groups;
 
          std::ofstream scmf; // spin coordinate meta file
-         scmf.open("atoms-coords.meta");
+         scmf.open(name + ".meta");
 
          // determine file format
          std::string format_string;
@@ -60,7 +65,7 @@ namespace config{
          scmf << "#--------------------------------------------"<< std::endl;
          scmf << "Format: "<< format_string << std::endl;
          scmf << "#--------------------------------------------"<< std::endl;
-         scmf << "Number of atoms: "<< config::internal::total_output_atoms << std::endl;
+         scmf << "Number of atoms: "<< num_atoms << std::endl;
          scmf << "#--------------------------------------------" << std::endl;
          scmf << "Number of materials: " << mp::num_materials << std::endl;
          for(int mat=0;mat<mp::num_materials;mat++){
@@ -68,14 +73,14 @@ namespace config{
             mp::material[mat].name << std::endl;
          }
          scmf << "#--------------------------------------------" << std::endl;
-         scmf << "Number of coord files: " << config::internal::num_io_groups << std::endl;
+         scmf << "Number of coord files: " << num_files << std::endl;
 
          // set simple file name for single file output
-         if(config::internal::num_io_groups == 1) scmf << "atoms-coords.data" << std::endl;
+         if(num_files == 1) scmf << name << ".data" << std::endl;
          // otherwise set indexed files
          else{
-            for(int fid = 0; fid < config::internal::num_io_groups; fid++){
-               scmf << "atoms-coords-" << std::setfill('0') << std::setw(6) << fid << ".data" << "\n";
+            for(int fid = 0; fid < num_files; fid++){
+               scmf << name << "-" << std::setfill('0') << std::setw(6) << fid << ".data" << "\n";
             }
             // flush data to disk
             scmf << std::flush;
@@ -89,7 +94,8 @@ namespace config{
       }
 
       //---------------------------------------------------------------------
-      // Function to write meta data for each configuration
+      // Function to write meta data for each configuration (of the surface
+      // atoms if surface is true, which are written to a single file)
       //---------------------------------------------------------------------
       void write_meta(const double simulation_time, // time (seconds)
                       const double temperature, // system temperature (Kelvin)
@@ -99,11 +105,15 @@ namespace config{
                       const double applied_field_mag,
                       const double magnetization_x, // magnetization components (normalized)
                       const double magnetization_y,
-                      const double magnetization_z){
+                      const double magnetization_z,
+                      const bool surface){
+
+         const std::string name = surface ? "spins-surface-" : "spins-"; // file name prefix
+         const int num_files = surface ? 1 : config::internal::num_io_groups;
 
          // determine file name
          std::stringstream filename;
-         filename << "spins-";
+         filename << name;
          filename << std::setfill('0') << std::setw(8) << sim::output_atoms_file_counter;
          filename << ".meta";
 
@@ -125,14 +135,14 @@ namespace config{
          ofile << "Temperature: "<< temperature << "\n";
          ofile << "Magnetisation: " << magnetization_x << "\t" << magnetization_y << "\t" << magnetization_z << "\n";
          ofile << "#------------------------------------------------------" << "\n";
-         ofile << "Number of spin files: " << config::internal::num_io_groups << "\n"; //vmpi::num_processors-1 << "\n";
+         ofile << "Number of spin files: " << num_files << "\n"; //vmpi::num_processors-1 << "\n";
 
          // set simple file name for single file output
-         if(config::internal::num_io_groups == 1) ofile << "spins-" << std::setfill('0') << std::setw(8) << sim::output_atoms_file_counter << ".data" << std::endl;
+         if(num_files == 1) ofile << name << std::setfill('0') << std::setw(8) << sim::output_atoms_file_counter << ".data" << std::endl;
          // otherwise set indexed files
          else{
-            for(int fid = 0; fid < config::internal::num_io_groups; fid++){
-               ofile << "spins-" << std::setfill('0') << std::setw(8) << sim::output_atoms_file_counter << "-" << std::setfill('0') << std::setw(6) << fid << ".data" << "\n";
+            for(int fid = 0; fid < num_files; fid++){
+               ofile << name << std::setfill('0') << std::setw(8) << sim::output_atoms_file_counter << "-" << std::setfill('0') << std::setw(6) << fid << ".data" << "\n";
             }
             // flush data to disk
             ofile << std::flush;

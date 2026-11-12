@@ -16,6 +16,7 @@ meta.o \
 legacy.o \
 write_coords.o \
 atoms_coords_sld.o \
+surface.o \
 write.o
 
 # Append module objects to global tree

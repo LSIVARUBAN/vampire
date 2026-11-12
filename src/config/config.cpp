@@ -91,8 +91,10 @@ void output(){ // should include variables for data to be outputted, eg spins, c
          if (config::internal::output_rate_counter_coords == 0)
          {
              config::internal::atoms_coords();
+             if(config::internal::output_atoms_surface_config) config::internal::atoms_coords_surface();
              if(atoms::num_non_magnetic_atoms > 0) config::internal::atoms_non_magnetic();
           }
+         if(config::internal::output_atoms_surface_config) config::internal::atoms_surface(); // before atoms(), which increments the frame counter
          config::internal::atoms(); // call function to output spins coords
          config::internal::output_rate_counter_coords++; //update the counter
       }
@@ -111,11 +113,14 @@ void output(){ // should include variables for data to be outputted, eg spins, c
             if (config::internal::output_rate_counter_coords == 0)
             {
                 config::internal::atoms_coords();
+                if(config::internal::output_atoms_surface_config) config::internal::atoms_coords_surface();
                 if(atoms::num_non_magnetic_atoms > 0) config::internal::atoms_non_magnetic();
 
              }
             // atoms() increments the frame counter, write dynamic coordinates before spin coordinates so SLD coordinates and spins share the same index
             if (config::internal::sld_format) config::internal::atoms_coords_sld();
+            if (config::internal::output_sld_surface_config) config::internal::atoms_coords_sld_surface();
+            if(config::internal::output_atoms_surface_config) config::internal::atoms_surface(); // before atoms(), which increments the frame counter
             config::internal::atoms(); // call function to output spins coords
 
             config::internal::output_rate_counter_coords++; //update the counter
@@ -132,8 +137,10 @@ void output(){ // should include variables for data to be outputted, eg spins, c
                   if(config::internal::output_rate_counter_coords == 0)
                   {
                      config::internal::atoms_coords();
+                     if(config::internal::output_atoms_surface_config) config::internal::atoms_coords_surface();
                      if(atoms::num_non_magnetic_atoms > 0) config::internal::atoms_non_magnetic();
                   }
+                  if(config::internal::output_atoms_surface_config) config::internal::atoms_surface(); // before atoms(), which increments the frame counter
                   config::internal::atoms();
                   config::internal::output_rate_counter_coords++;
                }
@@ -145,8 +152,10 @@ void output(){ // should include variables for data to be outputted, eg spins, c
                   if (config::internal::output_rate_counter_coords == 0)
                   {
                      config::internal::atoms_coords();
+                     if(config::internal::output_atoms_surface_config) config::internal::atoms_coords_surface();
                      if(atoms::num_non_magnetic_atoms > 0) config::internal::atoms_non_magnetic();
                   }
+                  if(config::internal::output_atoms_surface_config) config::internal::atoms_surface(); // before atoms(), which increments the frame counter
                   config::internal::atoms();
                   config::internal::output_rate_counter_coords++;
                }

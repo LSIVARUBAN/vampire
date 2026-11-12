@@ -51,6 +51,8 @@ namespace internal
    extern int output_atoms_config_rate; // rate to output atoms
 
    extern bool sld_format; //flag to enable dynamic positions for SLD
+   extern bool output_atoms_surface_config; // flag to enable output of surface atom coordinates
+   extern bool output_sld_surface_config;   // flag to enable output of dynamic (SLD) positions of surface atoms
 
    extern bool output_cells_config; // flag to enable cells output
    extern bool output_cells_config_continuous; // flag to enable continuous output of cells configurations
@@ -75,6 +77,11 @@ namespace internal
    extern std::vector<uint64_t> local_output_atom_list; // list of atom numbers to output to disk
 
    extern uint64_t total_output_atoms; // total number of atoms to be outputted (all processors)
+
+   extern std::vector<uint64_t> local_surface_atom_list; // list of surface atom numbers to output to disk
+   extern std::vector<int> surface_recv_counts;   // number of surface atoms on each processor (root process)
+   extern std::vector<int> surface_displacements; // offsets of surface atoms of each processor (root process)
+   extern int total_surface_atoms;                // total number of surface atoms to be outputted
    extern uint64_t total_output_cells; // total number of cells to be outputted
 
    // Data buffers for parallel i/o
@@ -112,6 +119,11 @@ namespace internal
    void atoms_coords_sld();
    void atoms_non_magnetic();
 
+   void initialize_surface();
+   void atoms_surface();
+   void atoms_coords_surface();
+   void atoms_coords_sld_surface();
+
    double legacy_atoms();
    double legacy_atoms_coords();
    void legacy_cells();
@@ -126,7 +138,7 @@ namespace internal
                             const std::vector<uint64_t> &mask,
                             std::vector<double> &buffer);
 
-   void write_coordinate_meta();
+   void write_coordinate_meta(const bool surface = false);
    void write_non_magnetic_meta(const uint64_t num_data);
    void write_meta(const double simulation_time, // time (seconds)
                    const double temperature,     // system temperature (Kelvin)
@@ -136,7 +148,8 @@ namespace internal
                    const double applied_field_mag,
                    const double magnetization_x, // magnetization components (normalized)
                    const double magnetization_y,
-                   const double magnetization_z);
+                   const double magnetization_z,
+                   const bool surface = false);
 
    std::string data_filename(bool coords);
 

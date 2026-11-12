@@ -181,6 +181,9 @@ namespace config{
             }
          #endif
 
+         // set up output of surface atoms
+         if(config::internal::output_atoms_surface_config || config::internal::output_sld_surface_config) config::internal::initialize_surface();
+
          // set initialised flag
          config::internal::initialised = true;
 

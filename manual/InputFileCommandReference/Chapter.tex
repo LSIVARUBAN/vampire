@@ -1266,6 +1266,10 @@ The following options allow a cubic slice of the total configuration data to be 
 
 {\zicf config:atoms-maximum-z}\phantomsection\addcontentsline{toc}{subsection}{config:atoms-max-z} Determines the maximum z value (as a fraction of the total system dimensions) of the data slice to be outputted to the configuration file.
 
+{\zicf config:atoms-surface flag}\phantomsection\addcontentsline{toc}{subsection}{config:atoms-surface} With \textit{config:atoms}, also outputs the configurations of the surface atoms (see \textit{create:surface-threshold}) in the same files as \textit{config:atoms}, named atoms-coords-surface and spins-surface-XXXXXXXX. Surface files are always written as a single file.
+
+{\zicf config:sld-surface flag}\phantomsection\addcontentsline{toc}{subsection}{config:sld-surface} With \textit{config:atoms}, also outputs the positions of the surface atoms in spin-lattice simulations in the same files as \textit{config:sld}, named atoms-coords-sld-surface-XXXXXXXX.
+
 {\zicf config:macro-cells flag [default false]}\phantomsection\addcontentsline{toc}{subsection}{config:macro-cells} Enables the output of macro cell spin configurations either at the end of the simulations or during the simulation. The options are:
 
 \begin{itemize}

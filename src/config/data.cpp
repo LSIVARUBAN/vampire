@@ -42,6 +42,8 @@ namespace config{
       int output_atoms_config_rate = 1000; // rate to output atoms
 
       bool sld_format = false; // enable SLD output of latice configurations
+      bool output_atoms_surface_config = false; // flag to enable output of surface atom coordinates
+      bool output_sld_surface_config = false;   // flag to enable output of dynamic (SLD) positions of surface atoms
 
       bool output_cells_config = false; // flag to enable cells output
       bool output_cells_config_continuous = false; // flag to enable cells output
@@ -66,6 +68,11 @@ namespace config{
       std::vector<uint64_t> local_output_atom_list(0); // list of atom numbers to output to disk
 
       uint64_t total_output_atoms = 0; // total number of atoms to be outputted (all processors)
+
+      std::vector<uint64_t> local_surface_atom_list(0); // list of surface atom numbers to output to disk
+      std::vector<int> surface_recv_counts(0);   // number of surface atoms on each processor (root process)
+      std::vector<int> surface_displacements(0); // offsets of surface atoms of each processor (root process)
+      int total_surface_atoms = 0;               // total number of surface atoms to be outputted
       uint64_t total_output_cells = 0; // total number of cells to be outputted
 
       // Data buffers for parallel i/o

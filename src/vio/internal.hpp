@@ -230,6 +230,15 @@ namespace vout{
    void cubic_per_spin_geofencing(std::ostream& stream, bool header);
    void uniaxial_per_spin_geofencing(std::ostream& stream, bool header);
 
+   void surface_mvec(std::ostream& stream, bool header);
+   void bulk_mvec(std::ostream& stream, bool header);
+   void mat_surface_mvec(std::ostream& stream, bool header);
+   void mat_bulk_mvec(std::ostream& stream, bool header);
+   void mean_surface_mvec(std::ostream& stream, bool header);
+   void mean_bulk_mvec(std::ostream& stream, bool header);
+   void mat_mean_surface_mvec(std::ostream& stream, bool header);
+   void mat_mean_bulk_mvec(std::ostream& stream, bool header);
+
    //-------------------------------------------------------------------------
    // Funciton protypes for functions inside: datalog.cpp
    //-------------------------------------------------------------------------

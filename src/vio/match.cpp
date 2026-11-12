@@ -1656,6 +1656,62 @@ namespace vin{
             return EXIT_SUCCESS;
         }
         //--------------------------------------------------------------------
+        test="surface-magnetisation";
+        if(word==test){
+            stats::calculate_surface_magnetization=true;
+            output_list.push_back(100);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="bulk-magnetisation";
+        if(word==test){
+            stats::calculate_bulk_magnetization=true;
+            output_list.push_back(101);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="material-surface-magnetisation";
+        if(word==test){
+            stats::calculate_material_surface_magnetization=true;
+            output_list.push_back(102);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="material-bulk-magnetisation";
+        if(word==test){
+            stats::calculate_material_bulk_magnetization=true;
+            output_list.push_back(103);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="mean-surface-magnetisation";
+        if(word==test){
+            stats::calculate_surface_magnetization=true;
+            output_list.push_back(104);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="mean-bulk-magnetisation";
+        if(word==test){
+            stats::calculate_bulk_magnetization=true;
+            output_list.push_back(105);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="material-mean-surface-magnetisation";
+        if(word==test){
+            stats::calculate_material_surface_magnetization=true;
+            output_list.push_back(106);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
+        test="material-mean-bulk-magnetisation";
+        if(word==test){
+            stats::calculate_material_bulk_magnetization=true;
+            output_list.push_back(107);
+            return EXIT_SUCCESS;
+        }
+        //--------------------------------------------------------------------
         test="geofencing-cubic"; // cubic state of the magnetisation, optionally without m . e_a column
         if(word==test){
             if(value == "no-product") stats::output_cubic_geofencing_product = false;

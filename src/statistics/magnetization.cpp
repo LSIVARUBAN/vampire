@@ -46,6 +46,10 @@ std::string expand_str(std::string str){
    if(str == "h") return "height_magnetization";
    if(str == "mh") return "material_height_magnetization";
    if(str == "mgh") return "material_grain_height_magnetization";
+   if(str == "sf") return "surface_magnetization";
+   if(str == "bk") return "bulk_magnetization";
+   if(str == "msf") return "material_surface_magnetization";
+   if(str == "mbk") return "material_bulk_magnetization";
 
    return "";
 

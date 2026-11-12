@@ -49,6 +49,10 @@ namespace stats{
          if(stats::calculate_height_magnetization)          stats::height_magnetization.reset_magnetization_averages();
          if(stats::calculate_material_height_magnetization) stats::material_height_magnetization.reset_magnetization_averages();
          if(stats::calculate_material_grain_height_magnetization) stats::material_grain_height_magnetization.reset_magnetization_averages();
+         if(stats::calculate_surface_magnetization)          stats::surface_magnetization.reset_magnetization_averages();
+         if(stats::calculate_bulk_magnetization)             stats::bulk_magnetization.reset_magnetization_averages();
+         if(stats::calculate_material_surface_magnetization) stats::material_surface_magnetization.reset_magnetization_averages();
+         if(stats::calculate_material_bulk_magnetization)    stats::material_bulk_magnetization.reset_magnetization_averages();
 
          // update torque statistics
          if(stats::calculate_system_torque)          stats::system_torque.reset_torque_averages();

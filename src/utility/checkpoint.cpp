@@ -38,6 +38,9 @@ namespace{
    const uint64_t alternating_field_tag = 0x3330444C46544C41;
    const uint64_t end_condition_tag = 0x3130444E43444E45;
 
+   // marker for the surface and bulk magnetisation statistics appended last (ASCII "SURFMAG1" in little endian)
+   const uint64_t surface_magnetisation_tag = 0x3147414D46525553;
+
    // read the accumulated statistics, restoring them only if restore is true, otherwise the records are just consumed
    void load_statistics(std::ifstream& chkfile, const bool restore){
       stats::system_magnetization.load_checkpoint(chkfile,restore);
@@ -55,6 +58,14 @@ namespace{
       stats::system_susceptibility.load_checkpoint(chkfile,restore);
       stats::grain_susceptibility.load_checkpoint(chkfile,restore);
       stats::material_susceptibility.load_checkpoint(chkfile,restore);
+   }
+
+   // read the accumulated surface and bulk magnetisation statistics, restoring them only if restore is true
+   void load_surface_statistics(std::ifstream& chkfile, const bool restore){
+      stats::surface_magnetization.load_checkpoint(chkfile,restore);
+      stats::bulk_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_surface_magnetization.load_checkpoint(chkfile,restore);
+      stats::material_bulk_magnetization.load_checkpoint(chkfile,restore);
    }
 
    // check that the input uses the same alternating field protocol and restore its schedule state
@@ -245,6 +256,13 @@ void save_checkpoint(){
 
    sld::save_phonon_pump_checkpoint(chkfile);
 
+   // append the surface and bulk magnetisation statistics last, so that older versions stop reading before them
+   chkfile.write(reinterpret_cast<const char*>(&surface_magnetisation_tag),sizeof(uint64_t));
+   stats::surface_magnetization.save_checkpoint(chkfile);
+   stats::bulk_magnetization.save_checkpoint(chkfile);
+   stats::material_surface_magnetization.save_checkpoint(chkfile);
+   stats::material_bulk_magnetization.save_checkpoint(chkfile);
+
    // close checkpoint file
    chkfile.close();
 
@@ -395,6 +413,7 @@ void load_checkpoint(){
    // read the optional records which follow the seed record when continuing, a restart uses the settings in the input
    bool alternating_field_record_loaded = false;
    bool phonon_pump_record_loaded = false;
+   std::streampos surface_statistics_start = -1;
    if(seed_record && sim::load_checkpoint_continue_flag){
       uint64_t tag = 0;
       while(chkfile.read((char*)&tag,sizeof(uint64_t))){
@@ -407,6 +426,11 @@ void load_checkpoint(){
             phonon_pump_record_loaded = true;
          }
          else if(tag == end_condition_tag) load_end_condition_record(chkfile);
+         else if(tag == surface_magnetisation_tag){
+            // consume now and restore with the other accumulated statistics below
+            surface_statistics_start = chkfile.tellg();
+            load_surface_statistics(chkfile, false);
+         }
          else break;
       }
    }
@@ -423,6 +447,17 @@ void load_checkpoint(){
    chkfile.clear();
    chkfile.seekg(statistics_start);
    load_statistics(chkfile, sim::load_checkpoint_continue_flag);
+
+   // restore the accumulated surface and bulk magnetisation, which older checkpoint files do not contain
+   if(surface_statistics_start >= 0){
+      chkfile.clear();
+      chkfile.seekg(surface_statistics_start);
+      load_surface_statistics(chkfile, sim::load_checkpoint_continue_flag);
+   }
+   else if(sim::load_checkpoint_continue_flag){
+      const bool surface_statistics_used = stats::calculate_surface_magnetization || stats::calculate_bulk_magnetization || stats::calculate_material_surface_magnetization || stats::calculate_material_bulk_magnetization;
+      if(surface_statistics_used) zlog << zTs() << "Warning - checkpoint has no surface and bulk magnetisation statistics, so their mean values restart from the checkpoint" << std::endl;
+   }
 
    // close checkpoint file
    chkfile.close();

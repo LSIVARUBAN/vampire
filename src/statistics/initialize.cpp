@@ -157,6 +157,40 @@ namespace stats{
       }
 
       //------------------------------------------------------------------------
+      // surface and bulk magnetisation (surface atoms identified in the create
+      // module from the initial structure). Atoms outside the surface or bulk
+      // and non-magnetic atoms are assigned to the last mask, which is ignored.
+      //------------------------------------------------------------------------
+      if(stats::calculate_surface_magnetization){
+         for(int atom=0; atom < stats::num_atoms; ++atom){
+            if(non_magnetic_materials_array[material_type_array[atom]] || !atoms::surface_array[atom]) mask[atom] = 1;
+            else mask[atom] = 0;
+         }
+         stats::surface_magnetization.set_mask(1+1,mask,magnetic_moment_array);
+      }
+      if(stats::calculate_bulk_magnetization){
+         for(int atom=0; atom < stats::num_atoms; ++atom){
+            if(non_magnetic_materials_array[material_type_array[atom]] || atoms::surface_array[atom]) mask[atom] = 1;
+            else mask[atom] = 0;
+         }
+         stats::bulk_magnetization.set_mask(1+1,mask,magnetic_moment_array);
+      }
+      if(stats::calculate_material_surface_magnetization){
+         for(int atom=0; atom < stats::num_atoms; ++atom){
+            if(non_magnetic_materials_array[material_type_array[atom]] || !atoms::surface_array[atom]) mask[atom] = num_materials;
+            else mask[atom] = material_type_array[atom];
+         }
+         stats::material_surface_magnetization.set_mask(num_materials+1,mask,magnetic_moment_array);
+      }
+      if(stats::calculate_material_bulk_magnetization){
+         for(int atom=0; atom < stats::num_atoms; ++atom){
+            if(non_magnetic_materials_array[material_type_array[atom]] || atoms::surface_array[atom]) mask[atom] = num_materials;
+            else mask[atom] = material_type_array[atom];
+         }
+         stats::material_bulk_magnetization.set_mask(num_materials+1,mask,magnetic_moment_array);
+      }
+
+      //------------------------------------------------------------------------
       // material grain magnetization
       //------------------------------------------------------------------------
       if(stats::calculate_material_grain_magnetization){

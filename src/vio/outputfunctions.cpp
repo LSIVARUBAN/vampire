@@ -633,4 +633,44 @@ namespace vout{
       stream << stats::output_per_spin_geofencing(stats::uniaxial_geofencing, header);
    }
 
+   // Output Function 100 - surface magnetisation
+   void surface_mvec(std::ostream& stream, bool header){
+      stream << stats::surface_magnetization.output_normalized_magnetization(header);
+   }
+
+   // Output Function 101 - bulk magnetisation
+   void bulk_mvec(std::ostream& stream, bool header){
+      stream << stats::bulk_magnetization.output_normalized_magnetization(header);
+   }
+
+   // Output Function 102 - material surface magnetisation
+   void mat_surface_mvec(std::ostream& stream, bool header){
+      stream << stats::material_surface_magnetization.output_normalized_magnetization(header);
+   }
+
+   // Output Function 103 - material bulk magnetisation
+   void mat_bulk_mvec(std::ostream& stream, bool header){
+      stream << stats::material_bulk_magnetization.output_normalized_magnetization(header);
+   }
+
+   // Output Function 104 - mean surface magnetisation
+   void mean_surface_mvec(std::ostream& stream, bool header){
+      stream << stats::surface_magnetization.output_normalized_mean_magnetization(header);
+   }
+
+   // Output Function 105 - mean bulk magnetisation
+   void mean_bulk_mvec(std::ostream& stream, bool header){
+      stream << stats::bulk_magnetization.output_normalized_mean_magnetization(header);
+   }
+
+   // Output Function 106 - material mean surface magnetisation
+   void mat_mean_surface_mvec(std::ostream& stream, bool header){
+      stream << stats::material_surface_magnetization.output_normalized_mean_magnetization(header);
+   }
+
+   // Output Function 107 - material mean bulk magnetisation
+   void mat_mean_bulk_mvec(std::ostream& stream, bool header){
+      stream << stats::material_bulk_magnetization.output_normalized_mean_magnetization(header);
+   }
+
 }

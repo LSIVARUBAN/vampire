@@ -34,6 +34,10 @@ namespace stats{
    bool calculate_height_magnetization          = false;
    bool calculate_material_height_magnetization = false;
    bool calculate_material_grain_height_magnetization = false;
+   bool calculate_surface_magnetization         = false;
+   bool calculate_bulk_magnetization            = false;
+   bool calculate_material_surface_magnetization = false;
+   bool calculate_material_bulk_magnetization   = false;
 
    bool calculate_system_torque                 = false;
    bool calculate_grain_torque                  = false;
@@ -87,6 +91,10 @@ namespace stats{
    magnetization_statistic_t height_magnetization("h");
    magnetization_statistic_t material_height_magnetization("mh");
    magnetization_statistic_t material_grain_height_magnetization("mgh");
+   magnetization_statistic_t surface_magnetization("sf");
+   magnetization_statistic_t bulk_magnetization("bk");
+   magnetization_statistic_t material_surface_magnetization("msf");
+   magnetization_statistic_t material_bulk_magnetization("mbk");
 
    torque_statistic_t system_torque("s");
    torque_statistic_t grain_torque("g");

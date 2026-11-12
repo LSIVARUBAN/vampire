@@ -74,6 +74,10 @@ namespace stats{
             if(stats::calculate_height_magnetization)          stats::height_magnetization.calculate_magnetization(sx,sy,sz,mm);
             if(stats::calculate_material_height_magnetization) stats::material_height_magnetization.calculate_magnetization(sx,sy,sz,mm);
             if(stats::calculate_material_grain_height_magnetization) stats::material_grain_height_magnetization.calculate_magnetization(sx,sy,sz,mm);
+            if(stats::calculate_surface_magnetization)          stats::surface_magnetization.calculate_magnetization(sx,sy,sz,mm);
+            if(stats::calculate_bulk_magnetization)             stats::bulk_magnetization.calculate_magnetization(sx,sy,sz,mm);
+            if(stats::calculate_material_surface_magnetization) stats::material_surface_magnetization.calculate_magnetization(sx,sy,sz,mm);
+            if(stats::calculate_material_bulk_magnetization)    stats::material_bulk_magnetization.calculate_magnetization(sx,sy,sz,mm);
 
             // update torque statistics
             if(stats::calculate_system_torque)          stats::system_torque.calculate_torque(sx,sy,sz,bxs,bys,bzs,bxe,bye,bze,mm);

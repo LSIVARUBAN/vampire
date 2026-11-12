@@ -352,6 +352,30 @@ namespace vout{
 			case 99:
 				vout::uniaxial_per_spin_geofencing(stream,header);
 				break;
+			case 100:
+				vout::surface_mvec(stream,header);
+				break;
+			case 101:
+				vout::bulk_mvec(stream,header);
+				break;
+			case 102:
+				vout::mat_surface_mvec(stream,header);
+				break;
+			case 103:
+				vout::mat_bulk_mvec(stream,header);
+				break;
+			case 104:
+				vout::mean_surface_mvec(stream,header);
+				break;
+			case 105:
+				vout::mean_bulk_mvec(stream,header);
+				break;
+			case 106:
+				vout::mat_mean_surface_mvec(stream,header);
+				break;
+			case 107:
+				vout::mat_mean_bulk_mvec(stream,header);
+				break;
 			case 997: //MP
 				vout::material_binder_cumulant(stream,header);
 				break;
